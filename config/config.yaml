@@ -1,0 +1,22 @@
+app:
+  name: "hrms-setting-service"
+  port: 3000
+  env: "development"
+
+database:
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: "postgres"
+  name: "hrms_setting"
+
+redis:
+  host: "localhost"
+  port: 6379
+
+kafka:
+  brokers:
+    - "localhost:9092"
+
+jwt:
+  publicKey: "test-public-key"
