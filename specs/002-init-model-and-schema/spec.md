@@ -176,7 +176,7 @@ The **HRMS Setting Service** is the master-data configuration authority for a mu
 - **TypeScript Representation**: `IPoc` interface, `PocEntity` TypeORM class, `CreatePocDto`, `UpdatePocDto`.
 
 ### Entity: Effective Change (`effective_changes`)
-- **Purpose**: Stores future/scheduled modifications (`update`, `deactivate`) or pending creations for master data entities.
+- **Purpose**: Stores future/scheduled modifications (`update`, `deactivate`) for master data entities.
 - **Aggregate**: Effective Change Aggregate Root.
 - **Tenant Scope**: Tenant-scoped (`tenant_id`).
 - **Company Scope**: Company-scoped (`company_id`).
@@ -231,7 +231,7 @@ Based strictly on schema ownership and foreign key deletion behavior:
 
 ### Master Data Entities (`Location`, `Department`, `Grade`, `JobTitle`, `PoC`)
 States governed by `master_data_status`:
-- **`scheduled`**: Master record created with an `effective_at` timestamp in the future.
+- **`scheduled`**: Master record created directly with an `effective_at` timestamp in the future and `status = 'scheduled'`.
 - **`active`**: Currently valid and operational master data record.
 - **`inactive`**: Deactivated/archived master data record.
 
@@ -239,8 +239,8 @@ States governed by `master_data_status`:
 
 ## 6. Effective-Dated Changes
 
-1. **Direct Master Record Creation (`CREATE`)**: Master entity row inserted directly with `status = 'scheduled'`.
-2. **Pending Modifications / Deactivations (`UPDATE` / `DEACTIVATE`)**: Stored in `effective_changes` with operation type and JSONB payload.
+1. **Direct Master Record Creation (`CREATE`)**: Scheduled creation inserts the master entity row directly into its master table with `status = 'scheduled'` and `effective_at = <future_timestamp>`. At `effective_at`, `status` transitions to `'active'`.
+2. **Pending Modifications / Deactivations (`UPDATE` / `DEACTIVATE`)**: Stored in `effective_changes` with `operation` (`update` or `deactivate`) and JSONB `payload`. At `effective_at`, `payload` is applied to the master row and `effective_changes.status` transitions to `'applied'`.
 
 ---
 

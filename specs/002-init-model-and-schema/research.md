@@ -23,12 +23,12 @@
 
 ## 3. Effective-Date Processing & Change Management
 
-### Effective Changes Execution Mechanics
+### Authoritative Effective-Dated Change Workflow
 - **Decision**: 
-  - Direct creation (`CREATE`): Master entity row inserted directly with `status = 'scheduled'` and `effective_at = <future_timestamp>`. Transitioned to `active` at execution time.
-  - Future updates/deactivations (`UPDATE`/`DEACTIVATE`): Current row remains untouched in its current state (`active`). An `effective_changes` record is created storing `payload` (JSONB) and `expected_updated_at`.
-  - Single Pending Limit: The partial unique index `uq_effective_changes_one_pending_per_entity` enforces at most ONE pending (`scheduled` or `processing`) change per target entity.
-- **Rationale**: Aligns strictly with `schema.sql` capabilities and avoids introducing un-indexed temporal tables or unsupported multi-version queues.
+  - **Master Record Creation (`CREATE`)**: Scheduled creation inserts the master entity row directly into its master table with `status = 'scheduled'` and `effective_at = <future_timestamp>`. When `effective_at` is reached, the Go worker (`setting-effective-worker-go`) triggers NestJS to transition `status` from `'scheduled'` to `'active'`.
+  - **Master Record Modifications (`UPDATE` / `DEACTIVATE`)**: Future updates or deactivations leave the current master entity row untouched in its current state (`active`). An `effective_changes` record is created storing `operation` (`update` or `deactivate`), `payload` (JSONB), and `expected_updated_at`. At `effective_at`, the worker triggers execution to apply `payload` to the master row and set `effective_changes.status = 'applied'`.
+  - **Single Pending Change Limit**: The partial unique index `uq_effective_changes_one_pending_per_entity` enforces at most ONE pending (`scheduled` or `processing`) modification/deactivation change per target entity.
+- **Rationale**: Aligns strictly with `schema.sql` capability where master tables natively support `status = 'scheduled'` and `effective_at`, while pending updates/deactivations are queued in `effective_changes`.
 
 ---
 

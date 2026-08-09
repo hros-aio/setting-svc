@@ -53,8 +53,26 @@ Setting Service consumes reference projections asynchronously from external serv
 - **Source Service**: Tenant / Admin Service
 - **Topic**: `hrms.tenant.lifecycle-events`
 - **Target Table**: `tenants`
+- **Supported Event Types**: `com.hrms.tenant.created`, `com.hrms.tenant.updated`, `com.hrms.tenant.deleted`
+- **Required Payload Fields**: `tenantId` (UUID), `tenantCode` (string), `name` (string), `sourceVersion` (bigint integer or string representation)
+- **Source-Version Handling & Ordering Guarantees**:
+  - Events for a single tenant partition are strictly ordered by `sourceVersion` (monotonic integer).
+  - Consumers MUST inspect incoming `sourceVersion` against stored `source_version`.
+  - **Stale Event Rule**: If `incoming.sourceVersion <= stored.source_version`, ignore and log as stale duplicate.
+  - **Valid Event Rule**: If `incoming.sourceVersion > stored.source_version`, execute upsert and update `source_version = incoming.sourceVersion`.
+- **Idempotency Behavior**: Consumer tracks processed event IDs (`id`) using an idempotent consumer record table or DB unique constraint to guarantee at-least-once delivery safety.
+- **Delete Semantics**: Receiving `com.hrms.tenant.deleted` does NOT hard-delete rows if foreign-key dependencies exist; `tenants` rows are marked soft-deleted/archived according to platform tenant retention rules.
 
 ### Employee Reference Projection Consumer
 - **Source Service**: Directory Service
 - **Topic**: `hrms.directory.employee-events`
 - **Target Table**: `employee_references`
+- **Supported Event Types**: `com.hrms.directory.employee.created`, `com.hrms.directory.employee.updated`, `com.hrms.directory.employee.terminated`
+- **Required Payload Fields**: `tenantId` (UUID), `employeeId` (UUID), `companyId` (UUID), `employeeNumber` (string), `displayName` (string), `employmentStatus` (string), `sourceVersion` (bigint string/integer), `sourceUpdatedAt` (timestamptz)
+- **Source-Version Handling & Ordering Guarantees**:
+  - Events are partitioned by `tenantId:employeeId` and strictly ordered by `sourceVersion`.
+  - **Stale Event Rule**: Consumers skip execution if `incoming.sourceVersion <= stored.source_version`.
+  - **Valid Event Rule**: Execute upsert when `incoming.sourceVersion > stored.source_version`, storing `sourceVersion` and `sourceUpdatedAt`.
+- **Idempotency Behavior**: Idempotent processing guaranteed by `UNIQUE (tenant_id, employee_id)` composite index and message key deduplication.
+- **Delete / Termination Semantics**:
+  - `com.hrms.directory.employee.terminated`: Updates `employment_status = 'TERMINATED'` and `source_version`. The record is retained to preserve historical integrity for inactive `PoC` records.

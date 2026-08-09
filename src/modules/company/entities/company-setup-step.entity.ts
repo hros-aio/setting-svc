@@ -39,13 +39,23 @@ export class CompanySetupStepEntity {
   @JoinColumn({ name: 'company_id' })
   company: CompanyEntity;
 
-  @Column({ type: 'enum', enum: SetupStepType, name: 'step_type' })
+  @Column({
+    type: 'enum',
+    enum: SetupStepType,
+    enumName: 'setup_step_type',
+    name: 'step_type',
+  })
   stepType: SetupStepType;
 
   @Column({ type: 'smallint', name: 'step_order' })
   stepOrder: number;
 
-  @Column({ type: 'enum', enum: SetupStepStatus, default: SetupStepStatus.INCOMPLETE })
+  @Column({
+    type: 'enum',
+    enum: SetupStepStatus,
+    enumName: 'setup_step_status',
+    default: SetupStepStatus.INCOMPLETE,
+  })
   status: SetupStepStatus;
 
   @Column({ type: 'timestamptz', nullable: true, name: 'completed_at' })

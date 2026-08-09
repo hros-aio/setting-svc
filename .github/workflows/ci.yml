@@ -2,9 +2,12 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [  master ]
+    branches: [ master ]
   pull_request:
-    branches: [  master ]
+    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-typecheck:
@@ -14,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,6 +47,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -82,6 +89,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Apply schema.sql to PostgreSQL
         env:

@@ -40,7 +40,12 @@ export class CompanyEntity {
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'display_name' })
   displayName?: string;
 
-  @Column({ type: 'enum', enum: CompanyStatus, default: CompanyStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: CompanyStatus,
+    enumName: 'company_status',
+    default: CompanyStatus.PENDING,
+  })
   status: CompanyStatus;
 
   @Column({ type: 'boolean', default: false, name: 'is_template' })

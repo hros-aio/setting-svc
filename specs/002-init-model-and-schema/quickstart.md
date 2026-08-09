@@ -44,12 +44,28 @@ INSERT INTO companies (tenant_id, company_code, legal_name) VALUES
 ### Scenario C: Single HQ per Company Validation
 Verify partial index `uq_locations_one_headquarter_per_company`:
 ```sql
--- Insert HQ Location 1
+-- Insert HQ Location 1 filtering by both tenant_id and company_code
 INSERT INTO locations (tenant_id, company_id, code, name, is_headquarter, status, effective_at)
-VALUES ('01913912-1000-7000-8000-000000000001', (SELECT id FROM companies WHERE company_code='COMP1'), 'HQ1', 'Headquarters 1', true, 'active', now());
+VALUES (
+  '01913912-1000-7000-8000-000000000001',
+  (SELECT id FROM companies WHERE tenant_id = '01913912-1000-7000-8000-000000000001' AND company_code = 'COMP1'),
+  'HQ1',
+  'Headquarters 1',
+  true,
+  'active',
+  now()
+);
 
 -- Try inserting second HQ Location 2 for COMP1 (Must Fail)
 INSERT INTO locations (tenant_id, company_id, code, name, is_headquarter, status, effective_at)
-VALUES ('01913912-1000-7000-8000-000000000001', (SELECT id FROM companies WHERE company_code='COMP1'), 'HQ2', 'Headquarters 2', true, 'active', now());
+VALUES (
+  '01913912-1000-7000-8000-000000000001',
+  (SELECT id FROM companies WHERE tenant_id = '01913912-1000-7000-8000-000000000001' AND company_code = 'COMP1'),
+  'HQ2',
+  'Headquarters 2',
+  true,
+  'active',
+  now()
+);
 ```
 *Expected Outcome*: Insertion of second HQ fails with partial index violation `uq_locations_one_headquarter_per_company`.

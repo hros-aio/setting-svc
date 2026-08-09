@@ -70,12 +70,12 @@
 
 ## Phase 6: User Story 4 - Effective-Dated Change Processing (Priority: P4)
 
-**Goal**: Model future-dated modifications (`CREATE`, `UPDATE`, `DEACTIVATE`) via `effective_changes`, `IEffectiveChange` interface, and `EffectiveChangeEntity`
+**Goal**: Model future-dated modifications (`UPDATE`, `DEACTIVATE`) via `effective_changes` and direct `CREATE` scheduled status on master tables, including `IEffectiveChange` interface and `EffectiveChangeEntity`
 
 **Independent Test**: Verify `uq_effective_changes_one_pending_per_entity` partial unique index using `quickstart.md`
 
 - [x] T016 [P] [US4] Define `EffectiveChange` entity mapping, `IEffectiveChange` interface, `EffectiveChangeEntity` TypeORM class, `ScheduleChangeDto`, status lifecycle (`scheduled` -> `applied`/`failed`), and payload structure in `specs/002-init-model-and-schema/data-model.md`
-- [x] T017 [US4] Document effective-dated execution mechanics and Go worker boundary rules in `specs/002-init-model-and-schema/research.md`
+- [x] T017 [US4] Document effective-dated execution mechanics, direct scheduled master creation, and Go worker boundary rules in `specs/002-init-model-and-schema/research.md`
 
 ---
 

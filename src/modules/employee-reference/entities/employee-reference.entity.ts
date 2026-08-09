@@ -44,8 +44,16 @@ export class EmployeeReferenceEntity {
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'employment_status' })
   employmentStatus?: string;
 
-  @Column({ type: 'bigint', default: 0, name: 'source_version' })
-  sourceVersion: number;
+  @Column({
+    type: 'bigint',
+    default: '0',
+    name: 'source_version',
+    transformer: {
+      to: (value: string | number): string => String(value ?? 0),
+      from: (value: string | number): string => String(value ?? 0),
+    },
+  })
+  sourceVersion: string;
 
   @Column({ type: 'timestamptz', nullable: true, name: 'source_updated_at' })
   sourceUpdatedAt?: Date;

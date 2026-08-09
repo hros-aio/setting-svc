@@ -22,8 +22,16 @@ export class TenantEntity {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'bigint', default: 0, name: 'source_version' })
-  sourceVersion: number;
+  @Column({
+    type: 'bigint',
+    default: '0',
+    name: 'source_version',
+    transformer: {
+      to: (value: string | number): string => String(value ?? 0),
+      from: (value: string | number): string => String(value ?? 0),
+    },
+  })
+  sourceVersion: string;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
