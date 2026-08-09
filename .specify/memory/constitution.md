@@ -1,19 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 2.0.0
+- Version change: 2.0.0 → 2.1.0
 - List of modified principles:
-  - Added Principle I: Clean Architecture Layering & Module Boundaries
-  - Added Principle II: Polyrepo Architecture & Cross-Service Contracts
-  - Added Principle III: TypeScript Rigor & Naming Standards
-  - Added Principle IV: Testing Discipline & Quality Gates
-  - Added Principle V: Database Integrity, Transactions & Migrations
-  - Added Principle VI: Security, Authentication & Observability
-  - Added Principle VII: Performance, Caching & Scalability
+  - Materially expanded Principle I (Clean Architecture Layering & Module Boundaries) with explicit polyrepo & cross-service boundaries from system-architecture.md and product-requirements.md
+  - Materially expanded Principle II (Polyrepo Architecture & Cross-Service Contracts) clarifying event-driven Kafka integration, Go Worker boundaries, and outbox pattern
+  - Materially expanded Principle III (TypeScript Rigor & Naming Standards) with NestJS & DTO validation guidelines
+  - Materially expanded Principle IV (Testing Discipline & Quality Gates) with Testcontainers and AAA standards
+  - Materially expanded Principle V (Database Integrity, Transactions & Migrations) detailing soft delete, optimistic locking, zero synchronous direct DB mutations from external workers, and effective-dated organizational state models
+  - Materially expanded Principle VI (Security, Authentication & Observability) clarifying multi-tenant isolation, tenant_id scoping, asymmetric JWT RS256, and structured JSON logs
+  - Materially expanded Principle VII (Performance, Caching & Scalability) aligning Redis usage, cursor pagination, and asynchronous event workers
 - Added sections:
-  - Core Principles
-  - Technology Stack & Infrastructure
-  - Workflow & Quality Gates
-  - Governance
+  - Operational & Domain Architecture (Company setup sequencing, template copy-on-create rules, and Go worker task scheduling constraints)
 - Removed sections: N/A
 - Templates requiring updates:
   - .specify/templates/plan-template.md: ✅ verified
@@ -27,35 +24,46 @@ Sync Impact Report
 ## Core Principles
 
 ### I. Clean Architecture Layering & Module Boundaries
-The application MUST adhere strictly to clean architecture layering: Controller (transport only) → Service (business logic & transaction boundaries) → Repository (persistence only). Direct calls bypassing intermediate layers (e.g. controller calling repository) are FORBIDDEN. Within each service repository, domain modules MUST remain self-contained; cross-module access within the same service MUST happen exclusively through exported service providers via module index barrels (`index.ts`). Circular dependencies between modules are strictly forbidden.
+The application MUST adhere strictly to clean architecture layering: Controller (transport only, zero business logic) → Service (business logic, transaction boundaries & domain events) → Repository (persistence only). Direct calls bypassing intermediate layers (e.g., controller directly invoking repository methods) are strictly FORBIDDEN. Within the Setting Service repository, domain modules (Company, Location, Department, Grade, Job Title, Point of Contact) MUST remain self-contained; cross-module communication within the service MUST happen exclusively through exported service providers via module index barrels (`index.ts`). Circular dependencies between modules are strictly prohibited.
 
 ### II. Polyrepo Architecture & Cross-Service Contracts
-Each business domain MUST be built and deployed as an independent repository (`hrms-<domain>-service`). Cross-service interactions MUST use explicit, versioned contracts over REST (via OpenAPI/Swagger typed clients) or asynchronous Kafka events with versioned schemas. Direct database sharing or inter-service source code imports are FORBIDDEN. Each service owns its database/schema exclusively.
+Each business domain MUST be built, maintained, and deployed as an independent repository (e.g., `setting-service`, `setting-effective-worker-go`). Cross-service interactions MUST use explicit, versioned contracts over REST (via OpenAPI/Swagger typed clients) or asynchronous Kafka events with versioned schemas managed via Transactional Outbox patterns. Direct database sharing, cross-service database access, or inter-service source code imports (including `workspace:*` npm protocols across repos) are strictly FORBIDDEN. The Setting Service owns its PostgreSQL database exclusively.
 
 ### III. TypeScript Rigor & Naming Standards
-All TypeScript code MUST run under `strict: true` with zero usage of `any` (use `unknown` and narrow). Explicit return types are MANDATORY on all public API methods and exported functions. Code and file naming MUST strictly follow suffix-based kebab-case conventions (`<domain>.<type>.ts`) matching physical directory structures. Barrel exports (`index.ts`) MUST re-export public APIs only and avoid deep barrel creation inside `dto/` or `entities/`.
+All TypeScript code MUST run under strict mode (`strict: true`) with zero usage of `any` (use `unknown` and type narrowing). Explicit return types are MANDATORY on all public API methods, exported functions, and service boundaries. Code and file naming MUST strictly follow suffix-based kebab-case conventions (`<domain>.<type>.ts`, e.g., `company.service.ts`) matching physical directory structures. Barrel exports (`index.ts`) MUST re-export public APIs only and avoid deep barrel creation inside `dto/` or `entities/`.
 
 ### IV. Testing Discipline & Quality Gates
-All business logic MUST be covered by unit tests (minimum 90% statement/function coverage, 85% branch coverage enforced in CI). Tests MUST follow the Arrange-Act-Assert (AAA) pattern. Repositories and database interactions MUST be tested against real PostgreSQL instances via Testcontainers (no mocking database engines for query correctness tests). CI pipelines MUST enforce linting, formatting, type-checking, and test coverage before merging.
+All business logic MUST be covered by unit tests (minimum 90% statement/function coverage, 85% branch coverage enforced in CI). Tests MUST follow the Arrange-Act-Assert (AAA) pattern. Repositories and database interactions MUST be tested against real PostgreSQL instances via Testcontainers (mocking database engines for query correctness tests is strictly forbidden). CI pipelines MUST enforce linting (`pnpm lint`), type-checking (`tsc --noEmit`), and test suite execution (`pnpm test`) before merging any pull request.
 
 ### V. Database Integrity, Transactions & Migrations
-Database schemas MUST extend `BaseEntity` (providing UUID primary keys, soft-delete `deletedAt`, audit timestamps, and `@VersionColumn()` optimistic locking where concurrent updates occur). Multi-statement atomic operations MUST be wrapped in explicit service-level transactions. Schema changes MUST be executed exclusively via TypeORM migrations under `src/migrations/` with mandatory `down()` rollback functions (`synchronize: true` is forbidden outside local sandboxes). Foreign keys and query filter columns MUST be indexed.
+Database schemas MUST extend `BaseEntity` (providing UUID primary keys, soft-delete `deletedAt`, audit timestamps, and `@VersionColumn()` optimistic locking where concurrent updates occur). Multi-statement atomic operations MUST be wrapped in explicit service-level transactions. Schema changes MUST be executed exclusively via TypeORM migrations under `src/migrations/` with mandatory `down()` rollback functions (`synchronize: true` is forbidden outside local development sandboxes). Foreign keys, tenant isolation keys (`tenant_id`, `company_id`), and query filter columns MUST be indexed. Effective-dated master data changes (Location, Department, Grade, Job Title, PoC) MUST use scheduled/active/inactive status transitions with transactional outbox event publishing rather than direct un-audited state overwrites.
 
 ### VI. Security, Authentication & Observability
-Authentication MUST use asymmetric JWT RS256 signing (public key verification across microservices). Role-Based Access Control (RBAC) MUST be declared at controller boundaries via `@Permissions()` decorators and enforced by `PermissionGuard`. All raw input MUST be validated with `class-validator` DTOs with strict whitelisting. Logging MUST be structured JSON via `AppLogger` carrying `requestId`, `tenantCode`, and correlation context.
+Authentication MUST use asymmetric JWT RS256 signing (public key verification across microservices). All domain tables and queries MUST enforce multi-tenant isolation by explicitly scoping data by `tenant_id` (and `company_id` where applicable). Role-Based Access Control (RBAC) MUST be declared at controller boundaries via `@Permissions()` decorators and enforced by `PermissionGuard`. All raw input MUST be validated with `class-validator` DTOs using strict whitelisting (`whitelist: true`, `forbidNonWhitelisted: true`). Logging MUST be structured JSON via `AppLogger` carrying `requestId`, `tenantCode`, `companyId`, and correlation context.
 
 ### VII. Performance, Caching & Scalability
-List endpoints MUST implement cursor or offset pagination via `libs-sql`. N+1 queries are review blockers and strictly prohibited; explicit join select projections MUST be used instead of `select *`. Caching MUST be routed through `CacheManager` with explicit TTLs for read-heavy master data, sessions, and permissions only—mutable transactional entities MUST NEVER be cached without write-through invalidation. Bulk write operations MUST use batching or queue-backed workers.
+List endpoints MUST implement cursor or offset pagination via `@hros/libs-sql`. N+1 queries are review blockers and strictly prohibited; explicit join select projections MUST be used instead of wildcard selections. Caching MUST be routed through `CacheManager` with explicit TTLs for read-heavy master data and company setup configurations—Redis is runtime infrastructure only and MUST NEVER act as a source of truth. Transactional entities MUST NEVER be cached without write-through or event-driven invalidation.
+
+## Operational & Domain Architecture
+
+1. **Company Setup & Activation Lifecycle**:
+   - Newly created companies MUST be initialized in `PENDING` status.
+   - Company activation (`PENDING` → `ACTIVE`) MUST validate that all 8 mandatory setup steps (Company Info, Location, Department, Grade, Job Title, PoC, Roles, Employee Import) are completed.
+   - Company configuration template copying MUST be strictly **copy-on-create**; live configuration inheritance between companies is strictly prohibited.
+
+2. **Effective-Dated Worker Boundaries**:
+   - The Go worker service (`setting-effective-worker-go`) acts strictly as an execution scheduler via Asynq and Kafka.
+   - The Go worker MUST NOT have direct access, driver connections, or credentials to the Setting Service PostgreSQL database. Domain authority and state mutation MUST remain exclusively within the NestJS Setting Service.
 
 ## Technology Stack & Infrastructure
 
-The project standardized on the following core tech stack:
+The project standardizes on the following core tech stack:
 - **Framework & Language**: NestJS (latest), TypeScript (`strict: true`), pnpm package manager.
-- **Data & Persistence**: PostgreSQL (ACID relational), TypeORM, Redis (via `CacheManager`).
-- **Communication & Integration**: RESTful APIs (versioned), OpenAPI/Swagger, Kafka (asynchronous event messaging).
+- **Data & Persistence**: PostgreSQL 18 (ACID relational), TypeORM, Redis (via `CacheManager`).
+- **Communication & Integration**: RESTful APIs (versioned), OpenAPI/Swagger, Kafka (asynchronous event messaging via Transactional Outbox).
 - **Containerization & Deployment**: Docker (immutable images), Kubernetes (declarative orchestration).
 - **Tooling & Quality**: ESLint, Prettier, Husky, Commitlint (Conventional Commits format).
-- **Shared Libraries**: `@hrms/libs-core`, `@hrms/libs-sql`, `@hrms/libs-apis` consumed as versioned npm packages.
+- **Shared Libraries**: `@hros/libs-core`, `@hros/libs-sql`, `@hros/libs-apis`, `@hros/libs-events` consumed as independently versioned npm packages.
 
 ## Workflow & Quality Gates
 
@@ -75,10 +83,10 @@ The project standardized on the following core tech stack:
 ## Governance
 
 - **Supremacy**: This Constitution supersedes all informal team practices, local conventions, and unwritten rules across the service codebase.
-- **Compliance & PR Reviews**: All pull requests MUST be verified for compliance against this Constitution and the accompanying `coding-conventions.md`, `implementation-rules.md`, `tech-stack.md`, `testing-strategy.md`, and `repository-structure.md`.
+- **Compliance & PR Reviews**: All pull requests MUST be verified for compliance against this Constitution and the accompanying `coding-conventions.md`, `implementation-rules.md`, `product-requirements.md`, `system-architecture.md`, `tech-stack.md`, `testing-strategy.md`, and `repository-structure.md`.
 - **Amendments**: Amendments to this Constitution require formal review, rationale documentation, and a version bump:
-  - **MAJOR**: Structural governance or principle redefinitions / removals.
+  - **MAJOR**: Backward-incompatible governance or principle removals / redefinitions.
   - **MINOR**: Addition of new principles or significant structural guidance expansion.
   - **PATCH**: Non-semantic clarifications, typo fixes, or wording updates.
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-08 | **Last Amended**: 2026-08-08
+**Version**: 2.1.0 | **Ratified**: 2026-08-08 | **Last Amended**: 2026-08-09
