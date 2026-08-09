@@ -1,0 +1,205 @@
+classDiagram
+    direction LR
+
+    class Tenant {
+        +TenantId id
+        +string name
+        +Company defaultCompany
+        +designateDefaultCompany(company)
+        +createCompany()
+    }
+
+    class Company {
+        +CompanyId id
+        +string name
+        +CompanyStatus status
+        +bool isDefault
+        +completeInformation()
+        +activate()
+        +canActivate() bool
+    }
+
+    class CompanySetup {
+        +CompanySetupId id
+        +SetupStatus status
+        +int completedSteps
+        +int totalSteps
+        +isCompleted() bool
+    }
+
+    class SetupStep {
+        +SetupStepType type
+        +SetupStepStatus status
+        +datetime completedAt
+        +markCompleted()
+        +markIncomplete()
+    }
+
+    class Location {
+        +LocationId id
+        +string name
+        +MasterDataStatus status
+        +create(effectiveAt)
+        +update(effectiveAt)
+        +deactivate(effectiveAt)
+    }
+
+    class Department {
+        +DepartmentId id
+        +string name
+        +MasterDataStatus status
+        +create(effectiveAt)
+        +update(effectiveAt)
+        +deactivate(effectiveAt)
+    }
+
+    class Grade {
+        +GradeId id
+        +string name
+        +MasterDataStatus status
+        +create(effectiveAt)
+        +update(effectiveAt)
+        +deactivate(effectiveAt)
+    }
+
+    class JobTitle {
+        +JobTitleId id
+        +string name
+        +MasterDataStatus status
+        +create(effectiveAt)
+        +update(effectiveAt)
+        +deactivate(effectiveAt)
+    }
+
+    class EffectiveChange {
+        +EffectiveChangeId id
+        +ChangeType type
+        +datetime effectiveAt
+        +ChangeStatus status
+        +schedule()
+        +apply()
+        +cancel()
+    }
+
+    class ConfigurationInitialization {
+        +ConfigurationInitializationId id
+        +datetime initializedAt
+        +bool copyGrades
+        +bool copyJobTitles
+        +bool copyRoles
+        +bool copyResponsibilities
+        +initialize()
+    }
+
+    class OrganizationResponsibility {
+        +ResponsibilityId id
+        +string responsibilityType
+        +ResponsibilityStatus status
+        +assign(employee)
+        +reassign(employee)
+    }
+
+    class Employee {
+        +EmployeeId id
+        +string employeeNumber
+        +EmployeeStatus status
+    }
+
+    class EmployeeTransfer {
+        +TransferId id
+        +datetime effectiveAt
+        +TransferStatus status
+        +initiate()
+        +cancel()
+        +complete()
+    }
+
+    class RoleSetupReference {
+        +bool completed
+    }
+
+    class EmployeeImportReference {
+        +bool completed
+    }
+
+    class CompanyStatus {
+        <<enumeration>>
+        PENDING
+        ACTIVE
+    }
+
+    class SetupStepType {
+        <<enumeration>>
+        COMPANY_INFORMATION
+        LOCATION
+        DEPARTMENT
+        GRADE
+        JOB_TITLE
+        ROLE
+        EMPLOYEE_IMPORT
+        ORGANIZATION_RESPONSIBILITY
+    }
+
+    class SetupStepStatus {
+        <<enumeration>>
+        INCOMPLETE
+        COMPLETED
+    }
+
+    class MasterDataStatus {
+        <<enumeration>>
+        SCHEDULED
+        ACTIVE
+        INACTIVE
+    }
+
+    class ChangeType {
+        <<enumeration>>
+        CREATE
+        UPDATE
+        DEACTIVATE
+    }
+
+    class ChangeStatus {
+        <<enumeration>>
+        SCHEDULED
+        APPLIED
+        CANCELLED
+    }
+
+    class TransferStatus {
+        <<enumeration>>
+        PENDING
+        COMPLETED
+        CANCELLED
+    }
+
+    Tenant "1" *-- "1..*" Company : contains
+    Tenant "1" --> "0..1" Company : default company
+
+    Company "1" *-- "1" CompanySetup : has
+    CompanySetup "1" *-- "8" SetupStep : tracks
+
+    Company "1" *-- "0..*" Location : owns
+    Company "1" *-- "0..*" Department : owns
+    Company "1" *-- "0..*" Grade : owns
+    Company "1" *-- "0..*" JobTitle : owns
+    Company "1" *-- "0..*" OrganizationResponsibility : owns
+    Company "1" *-- "0..*" Employee : employs
+
+    Location "1" --> "0..1" EffectiveChange : scheduled change
+    Department "1" --> "0..1" EffectiveChange : scheduled change
+    Grade "1" --> "0..1" EffectiveChange : scheduled change
+    JobTitle "1" --> "0..1" EffectiveChange : scheduled change
+
+    Company "1" --> "0..*" ConfigurationInitialization : receives
+    Company "1" --> "0..*" ConfigurationInitialization : source
+
+    OrganizationResponsibility "0..*" --> "1" Employee : assigned to
+
+    EmployeeTransfer "0..*" --> "1" Employee : subject
+    EmployeeTransfer "0..*" --> "1" Company : source
+    EmployeeTransfer "0..*" --> "1" Company : destination
+
+    CompanySetup "1" --> "1" RoleSetupReference : checks
+    CompanySetup "1" --> "1" EmployeeImportReference : checks

@@ -1,0 +1,37 @@
+flowchart TD
+    A([HR identifies employee transfer])
+    --> B[Select Employee]
+
+    B --> C[Select Source Company]
+
+    C --> D[Select Destination Company]
+
+    D --> E[Define destination assignment]
+
+    E --> F[Set Effective Date]
+
+    F --> G{Destination setup valid?}
+
+    G -->|No| H[Resolve missing Company /<br/>organizational configuration]
+
+    H --> G
+
+    G -->|Yes| I[Submit transfer]
+
+    I --> J[Transfer = Pending]
+
+    J --> K[Employee continues working<br/>under Source Company]
+
+    K --> L{Effective Date reached?}
+
+    L -->|No| K
+
+    L -->|Yes| M[Source Company employment<br/>becomes historical]
+
+    M --> N[Destination Company employment<br/>becomes current]
+
+    N --> O[Related organizational access<br/>and business context transition]
+
+    O --> P[Historical Source Company<br/>records remain available]
+
+    P --> Q([Transfer completed])

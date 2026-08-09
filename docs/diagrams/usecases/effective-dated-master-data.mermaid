@@ -1,0 +1,31 @@
+flowchart TD
+    A([Administrator wants organizational change])
+    --> B{Change type}
+
+    B -->|Create| C[Enter new master data]
+    B -->|Update| D[Edit existing master data]
+    B -->|Deactivate| E[Select record to deactivate]
+
+    C --> F[Specify Effective Date]
+    D --> F
+    E --> F
+
+    F --> G{Effective Date >=<br/>end of current business day?}
+
+    G -->|No| H[Reject change]
+
+    H --> F
+
+    G -->|Yes| I[Schedule organizational change]
+
+    I --> J[Current configuration remains active]
+
+    J --> K{Effective Date reached?}
+
+    K -->|No| J
+
+    K -->|Yes| L[New organizational state becomes effective]
+
+    L --> M[Previous state retained as history]
+
+    M --> N([Change completed])

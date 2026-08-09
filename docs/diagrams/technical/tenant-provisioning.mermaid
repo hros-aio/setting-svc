@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+
+    participant TenantSvc as Tenant Service
+    participant Kafka as Kafka
+    participant SettingSvc as Setting Service
+    participant DB as Setting DB
+
+    TenantSvc->>Kafka: tenant.provisioned
+    Kafka->>SettingSvc: consume tenant.provisioned
+
+    SettingSvc->>DB: Check company exists for tenant
+
+    alt Company does not exist
+        SettingSvc->>DB: BEGIN
+        SettingSvc->>DB: Create Company<br/>status = PENDING
+        SettingSvc->>DB: Initialize legal information<br/>from Tenant data
+        SettingSvc->>DB: Create Company Setup Progress
+        SettingSvc->>DB: Create mandatory setup steps
+        SettingSvc->>DB: COMMIT
+    else Company already exists
+        SettingSvc->>SettingSvc: Ignore duplicate provisioning
+    end

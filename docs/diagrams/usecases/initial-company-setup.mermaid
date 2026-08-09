@@ -1,0 +1,41 @@
+flowchart TD
+    A([Tenant successfully provisioned])
+    --> B[Company automatically created]
+
+    B --> C[Company status = PENDING]
+
+    C --> D[Complete Company Information]
+
+    D --> E[Configure Locations]
+
+    E --> F[Configure Departments]
+
+    F --> G[Configure Grades]
+
+    G --> H[Configure Job Titles]
+
+    H --> I[Configure Roles]
+
+    I --> J[Import Employees]
+
+    J --> K[Configure Organization Responsibilities / PoC]
+
+    K --> L{All mandatory setup<br/>steps completed?}
+
+    L -->|No| M[Company remains PENDING]
+
+    M --> N[Administrator completes<br/>missing setup]
+
+    N --> L
+
+    L -->|Yes| O[Activation becomes available]
+
+    O --> P[Administrator selects<br/>Activate Company]
+
+    P --> Q{Final validation successful?}
+
+    Q -->|No| M
+
+    Q -->|Yes| R[Company status = ACTIVE]
+
+    R --> S([Company operational])
