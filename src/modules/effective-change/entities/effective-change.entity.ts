@@ -13,8 +13,11 @@ import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { ChangeOperation, EffectiveChangeStatus } from '../../../common/enums/domain-enums';
 
 @Entity('effective_changes')
-@Check(`ck_effective_changes_entity_type`, `entity_type IN ('location', 'department', 'grade', 'job_title', 'poc')`)
-@Check(`ck_effective_changes_cancelled`, `status <> 'cancelled' OR cancelled_at IS NOT NULL`)
+@Check(
+  'ck_effective_changes_entity_type',
+  `entity_type IN ('location', 'department', 'grade', 'job_title', 'poc')`,
+)
+@Check('ck_effective_changes_cancelled', `status <> 'cancelled' OR cancelled_at IS NOT NULL`)
 export class EffectiveChangeEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -49,7 +52,7 @@ export class EffectiveChangeEntity {
   status: EffectiveChangeStatus;
 
   @Column({ type: 'jsonb', default: '{}' })
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
 
   @Column({ type: 'timestamptz', nullable: true, name: 'expected_updated_at' })
   expectedUpdatedAt?: Date;

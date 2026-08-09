@@ -16,8 +16,11 @@ import { SetupStepType, SetupStepStatus } from '../../../common/enums/domain-enu
 @Entity('company_setup_steps')
 @Unique('uq_company_setup_step', ['companyId', 'stepType'])
 @Unique('uq_company_setup_order', ['companyId', 'stepOrder'])
-@Check(`ck_company_setup_order`, `step_order BETWEEN 1 AND 8`)
-@Check(`ck_company_setup_completion`, `(status = 'incomplete' AND completed_at IS NULL) OR (status = 'completed' AND completed_at IS NOT NULL)`)
+@Check('ck_company_setup_order', `step_order BETWEEN 1 AND 8`)
+@Check(
+  'ck_company_setup_completion',
+  `(status = 'incomplete' AND completed_at IS NULL) OR (status = 'completed' AND completed_at IS NOT NULL)`,
+)
 export class CompanySetupStepEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -55,7 +58,7 @@ export class CompanySetupStepEntity {
   externalReferenceId?: string;
 
   @Column({ type: 'jsonb', default: '{}' })
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;

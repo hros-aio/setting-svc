@@ -16,7 +16,10 @@ import { MasterDataStatus } from '../../../common/enums/domain-enums';
 
 @Entity('departments')
 @Unique('uq_departments_company_code', ['companyId', 'code'])
-@Check(`ck_departments_not_self_parent`, `parent_department_id IS NULL OR parent_department_id <> id`)
+@Check(
+  'ck_departments_not_self_parent',
+  `parent_department_id IS NULL OR parent_department_id <> id`,
+)
 export class DepartmentEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

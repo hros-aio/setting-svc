@@ -48,7 +48,7 @@ export class LocationEntity {
   timezone?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  address?: Record<string, any>;
+  address?: Record<string, unknown>;
 
   @Column({ type: 'boolean', default: false, name: 'is_headquarter' })
   isHeadquarter: boolean;

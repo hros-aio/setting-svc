@@ -7,7 +7,6 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-  Index,
   Unique,
   Check,
 } from 'typeorm';
@@ -17,7 +16,10 @@ import { CompanyStatus } from '../../../common/enums/domain-enums';
 
 @Entity('companies')
 @Unique('uq_companies_tenant_code', ['tenantId', 'companyCode'])
-@Check(`ck_companies_activation_state`, `(status = 'pending' AND activated_at IS NULL) OR (status = 'active' AND activated_at IS NOT NULL)`)
+@Check(
+  'ck_companies_activation_state',
+  `(status = 'pending' AND activated_at IS NULL) OR (status = 'active' AND activated_at IS NOT NULL)`,
+)
 export class CompanyEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -54,7 +56,7 @@ export class CompanyEntity {
   countryCode?: string;
 
   @Column({ type: 'jsonb', nullable: true, name: 'legal_address' })
-  legalAddress?: Record<string, any>;
+  legalAddress?: Record<string, unknown>;
 
   @Column({ type: 'varchar', length: 64, default: 'UTC' })
   timezone: string;
