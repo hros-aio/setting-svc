@@ -1,0 +1,28 @@
+flowchart TD
+    A([Administrator creates Company])
+    --> B[Enter Company information]
+
+    B --> C{Use Default Company<br/>configuration?}
+
+    C -->|No| D[Create empty Company configuration]
+
+    C -->|Yes| E[Select configuration categories]
+
+    E --> F[Copy selected configuration<br/>from Default Company]
+
+    F --> G[Copied data becomes<br/>independent Company data]
+
+    D --> H[Company created as PENDING]
+    G --> H
+
+    H --> I[Review setup progress]
+
+    I --> J[Complete remaining setup steps]
+
+    J --> K{All mandatory steps complete?}
+
+    K -->|No| I
+
+    K -->|Yes| L[Administrator activates Company]
+
+    L --> M([Company ACTIVE])

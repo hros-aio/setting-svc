@@ -1,0 +1,48 @@
+sequenceDiagram
+    autonumber
+
+    actor Admin
+    participant UI as HRMS Web
+    participant SettingSvc as Setting Service
+    participant DB as Setting DB
+    participant Worker as Effective Change Worker
+    participant Kafka as Kafka
+    participant Consumer as Downstream Services
+
+    Admin->>UI: Update Grade
+    Admin->>UI: Select effectiveAt
+
+    UI->>SettingSvc: UPDATE Grade<br/>effectiveAt
+
+    SettingSvc->>SettingSvc: Validate effectiveAt
+
+    alt effectiveAt invalid
+        SettingSvc-->>UI: Reject request
+    else valid
+        SettingSvc->>DB: Validate company ownership
+        SettingSvc->>DB: Validate no pending conflicting change
+        SettingSvc->>DB: Create scheduled change
+        SettingSvc-->>UI: Change scheduled
+    end
+
+    Note over DB,Worker: Time reaches effectiveAt
+
+    Worker->>DB: Find due scheduled changes
+    Worker->>DB: Claim change
+
+    Worker->>DB: BEGIN
+    Worker->>DB: Revalidate current state
+
+    alt State still valid
+        Worker->>DB: Apply new master-data state
+        Worker->>DB: Preserve previous historical state
+        Worker->>DB: Mark change APPLIED
+        Worker->>DB: Write outbox event
+        Worker->>DB: COMMIT
+
+        Worker->>Kafka: Publish organizational change
+        Kafka-->>Consumer: Synchronize local references
+    else Conflict detected
+        Worker->>DB: Mark change CONFLICT / FAILED
+        Worker->>DB: COMMIT
+    end

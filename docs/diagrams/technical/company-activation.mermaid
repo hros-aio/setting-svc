@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+
+    actor Admin
+    participant UI as HRMS Web
+    participant SettingSvc as Setting Service
+    participant DB as Setting DB
+    participant AuthSvc as Authorization Service
+    participant DirectorySvc as Directory Service
+    participant Kafka as Kafka
+
+    Admin->>UI: Activate Company
+    UI->>SettingSvc: Activate Company
+
+    SettingSvc->>DB: Load Company
+    SettingSvc->>DB: Validate Company Information
+    SettingSvc->>DB: Validate Location setup
+    SettingSvc->>DB: Validate Department setup
+    SettingSvc->>DB: Validate Grade setup
+    SettingSvc->>DB: Validate Job Title setup
+
+    SettingSvc->>AuthSvc: Validate Role setup
+    AuthSvc-->>SettingSvc: Completion status
+
+    SettingSvc->>DirectorySvc: Validate Employee import
+    DirectorySvc-->>SettingSvc: Completion status
+
+    SettingSvc->>DB: Validate Responsibility / PoC setup
+
+    alt Any mandatory step incomplete
+        SettingSvc-->>UI: Reject activation<br/>return incomplete steps
+        UI-->>Admin: Display blocking setup steps
+    else All steps complete
+        SettingSvc->>DB: BEGIN
+        SettingSvc->>DB: Company PENDING -> ACTIVE
+        SettingSvc->>DB: Write activation audit/outbox
+        SettingSvc->>DB: COMMIT
+
+        SettingSvc->>Kafka: company.activated
+
+        SettingSvc-->>UI: Activation successful
+        UI-->>Admin: Company Active
+    end

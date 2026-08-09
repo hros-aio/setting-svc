@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+
+    actor Admin
+    participant UI as HRMS Web
+    participant SettingSvc as Setting Service
+    participant DB as Setting DB
+    participant AuthSvc as Authorization Service
+    participant DirectorySvc as Directory Service
+
+    Admin->>UI: Create Company
+
+    UI->>SettingSvc: Create Company<br/>selectedCopyCategories
+
+    SettingSvc->>DB: Load Tenant + Default Company
+
+    SettingSvc->>DB: BEGIN
+    SettingSvc->>DB: Create Company<br/>status = PENDING
+    SettingSvc->>DB: Create Setup Progress
+
+    opt Copy Grades
+        SettingSvc->>DB: Load active Grades<br/>from Default Company
+        SettingSvc->>DB: Create independent Grade copies
+    end
+
+    opt Copy Job Titles
+        SettingSvc->>DB: Load active Job Titles<br/>from Default Company
+        SettingSvc->>DB: Create independent Job Title copies
+    end
+
+    SettingSvc->>DB: COMMIT
+
+    opt Copy Roles
+        SettingSvc->>AuthSvc: Request role configuration initialization
+    end
+
+    opt Copy Organization Responsibilities
+        SettingSvc->>DB: Copy responsibility configuration
+    end
+
+    SettingSvc-->>UI: Company created<br/>status = PENDING
+    UI-->>Admin: Show setup progress

@@ -1,0 +1,48 @@
+sequenceDiagram
+    autonumber
+
+    actor HR as HR Administrator
+    participant UI as HRMS Web
+    participant DirectorySvc as Directory Service
+    participant SettingSvc as Setting Service
+    participant DB as Directory DB
+    participant Worker as Transfer Worker
+    participant Kafka as Kafka
+    participant AccessSvc as Access Service
+    participant TimeSvc as Time Service
+    participant PayrollSvc as Payroll Service
+
+    HR->>UI: Initiate inter-company transfer
+
+    UI->>DirectorySvc: Create Transfer Request<br/>Company A -> Company B<br/>effectiveAt
+
+    DirectorySvc->>SettingSvc: Validate destination Company
+    SettingSvc-->>DirectorySvc: Company ACTIVE
+
+    DirectorySvc->>SettingSvc: Validate destination<br/>Location / Department / Grade / Job Title
+    SettingSvc-->>DirectorySvc: Valid
+
+    DirectorySvc->>DB: Create pending transfer
+
+    DirectorySvc-->>UI: Transfer scheduled
+
+    Note over DB,Worker: Time reaches effectiveAt
+
+    Worker->>DB: Claim pending transfer
+    Worker->>DB: BEGIN
+
+    Worker->>DB: Close Company A employment context
+    Worker->>DB: Preserve historical assignment
+    Worker->>DB: Activate Company B employment context
+    Worker->>DB: Mark transfer COMPLETED
+    Worker->>DB: Write outbox event
+
+    Worker->>DB: COMMIT
+
+    Worker->>Kafka: employee.company-transferred
+
+    par Downstream synchronization
+        Kafka->>AccessSvc: Update authorization scope
+        Kafka->>TimeSvc: Update employment references
+        Kafka->>PayrollSvc: Update employment/payroll context
+    end
