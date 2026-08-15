@@ -9,5 +9,6 @@ export * from './services/company-provisioning.service';
 export * from './services/company.service';
 export * from './services/template-copy.service';
 export * from './dto/create-company.dto';
+export * from './dto/update-company-information.dto';
 export * from './dto/company-response.dto';
 export * from './enums';
