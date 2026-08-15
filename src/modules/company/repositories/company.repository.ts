@@ -70,4 +70,34 @@ export class CompanyRepository extends Repository<CompanyEntity> {
     });
     return updated!;
   }
+
+  async clearTemplateDesignation(tenantId: string, manager?: EntityManager): Promise<void> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    await repo.update(
+      { tenantId, isTemplate: true },
+      {
+        isTemplate: false,
+      },
+    );
+  }
+
+  async setTemplateDesignation(
+    companyId: string,
+    tenantId: string,
+    isTemplate: boolean,
+    userId?: string,
+    manager?: EntityManager,
+  ): Promise<CompanyEntity> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    const updateData: QueryDeepPartialEntity<CompanyEntity> = { isTemplate };
+    if (userId) {
+      updateData.updatedBy = userId;
+    }
+    await repo.update({ id: companyId, tenantId }, updateData);
+    const updated = await repo.findOne({
+      where: { id: companyId, tenantId },
+      relations: ['setupSteps'],
+    });
+    return updated!;
+  }
 }

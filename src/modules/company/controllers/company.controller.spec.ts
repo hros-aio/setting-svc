@@ -16,6 +16,7 @@ describe('CompanyController', () => {
     mockCompanyService = {
       createCompany: jest.fn(),
       updateCompanyInformation: jest.fn(),
+      designateDefaultCompany: jest.fn(),
     };
 
     mockCacheService = {
@@ -131,6 +132,49 @@ describe('CompanyController', () => {
       await expect(
         controller.updateCompanyInformation('company-uuid-1', { legalName: 'Acme' }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('designateDefaultCompany', () => {
+    it('should designate default company and return formatted response with isTemplate: true', async () => {
+      const companyId = 'company-uuid-1';
+      const mockDesignatedCompany: Partial<CompanyEntity> = {
+        id: companyId,
+        tenantId: 'tenant-uuid-1',
+        companyCode: 'COMP_1',
+        legalName: 'Acme Corp SG Pte Ltd',
+        displayName: 'Acme SG',
+        status: CompanyStatus.ACTIVE,
+        isTemplate: true,
+        countryCode: 'SG',
+        currencyCode: 'SGD',
+        timezone: 'Asia/Singapore',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        setupSteps: [],
+      };
+
+      (mockCompanyService.designateDefaultCompany as jest.Mock).mockResolvedValue(
+        mockDesignatedCompany,
+      );
+
+      const result = await controller.designateDefaultCompany(companyId);
+
+      expect(result.success).toBe(true);
+      expect(result.data.isTemplate).toBe(true);
+      expect(mockCompanyService.designateDefaultCompany).toHaveBeenCalledWith(
+        'TEST_TENANT',
+        companyId,
+        expect.objectContaining({ userId: 'user-uuid-1' }),
+      );
+    });
+
+    it('should throw BadRequestException if tenantCode is missing from request context', async () => {
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+
+      await expect(controller.designateDefaultCompany('company-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });
