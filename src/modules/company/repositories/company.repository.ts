@@ -16,6 +16,21 @@ export class CompanyRepository extends Repository<CompanyEntity> {
     return repo.findOne({ where: { tenantId, isTemplate: true } });
   }
 
+  async existsByTenantAndCode(
+    tenantId: string,
+    companyCode: string,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    const count = await repo.count({
+      where: {
+        tenantId,
+        companyCode,
+      },
+    });
+    return count > 0;
+  }
+
   async createAndSave(
     companyData: Partial<CompanyEntity>,
     manager?: EntityManager,

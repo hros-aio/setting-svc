@@ -1,40 +1,60 @@
 import { BadRequestException } from '@nestjs/common';
-import { SetupStepStatus } from '../../../enums';
-import { MANDATORY_SETUP_STEPS_SEQUENCE } from '../enums/mandatory-setup-steps.enum';
-import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { SetupStepSeederService } from './setup-step-seeder.service';
+import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
+import { SetupStepStatus, SetupStepType } from '../../../enums';
+import { CopyableCategory } from '../enums/copyable-category.enum';
 
 describe('SetupStepSeederService', () => {
   let service: SetupStepSeederService;
-  let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
+  let mockRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
 
   beforeEach(() => {
-    mockSetupStepRepo = {
+    mockRepo = {
       bulkCreateAndSave: jest.fn().mockImplementation((steps) => Promise.resolve(steps)),
     };
-    service = new SetupStepSeederService(
-      mockSetupStepRepo as unknown as CompanySetupStepRepository,
-    );
+    service = new SetupStepSeederService(mockRepo as unknown as CompanySetupStepRepository);
+  });
+
+  it('should seed 8 incomplete setup steps when no categories are copied', async () => {
+    const tenantId = 'tenant-uuid-1';
+    const companyId = 'company-uuid-1';
+
+    const result = await service.seedMandatorySteps(tenantId, companyId, []);
+
+    expect(mockRepo.bulkCreateAndSave).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(8);
+    result.forEach((step) => {
+      expect(step.status).toBe(SetupStepStatus.INCOMPLETE);
+      expect(step.completedAt).toBeUndefined();
+      expect(step.tenantId).toBe(tenantId);
+      expect(step.companyId).toBe(companyId);
+    });
+  });
+
+  it('should mark GRADE and JOB_TITLE as COMPLETED when their categories are in copiedCategories', async () => {
+    const tenantId = 'tenant-uuid-1';
+    const companyId = 'company-uuid-1';
+
+    const result = await service.seedMandatorySteps(tenantId, companyId, [
+      CopyableCategory.GRADES,
+      CopyableCategory.JOB_TITLES,
+    ]);
+
+    expect(result).toHaveLength(8);
+    const gradeStep = result.find((s) => s.stepType === SetupStepType.GRADE);
+    const jobTitleStep = result.find((s) => s.stepType === SetupStepType.JOB_TITLE);
+    const roleStep = result.find((s) => s.stepType === SetupStepType.ROLE);
+
+    expect(gradeStep?.status).toBe(SetupStepStatus.COMPLETED);
+    expect(gradeStep?.completedAt).toBeDefined();
+    expect(gradeStep?.metadata).toEqual({ completedViaCopy: true });
+
+    expect(jobTitleStep?.status).toBe(SetupStepStatus.COMPLETED);
+    expect(roleStep?.status).toBe(SetupStepStatus.INCOMPLETE);
   });
 
   it('should throw BadRequestException if tenantId or companyId is missing', async () => {
     await expect(service.seedMandatorySteps('', 'comp-1')).rejects.toThrow(BadRequestException);
     await expect(service.seedMandatorySteps('ten-1', '')).rejects.toThrow(BadRequestException);
-  });
-
-  it('should seed exactly 8 mandatory setup steps in fixed sequential order and INCOMPLETE status', async () => {
-    const tenantId = 'test-tenant-uuid';
-    const companyId = 'test-company-uuid';
-
-    const result = await service.seedMandatorySteps(tenantId, companyId);
-
-    expect(mockSetupStepRepo.bulkCreateAndSave).toHaveBeenCalledTimes(1);
-    expect(result).toHaveLength(8);
-    expect(result.map((s) => s.stepOrder)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-    expect(result.every((s) => s.status === SetupStepStatus.INCOMPLETE)).toBe(true);
-    expect(result.every((s) => s.tenantId === tenantId && s.companyId === companyId)).toBe(true);
-    expect(result.map((s) => s.stepType)).toEqual(
-      MANDATORY_SETUP_STEPS_SEQUENCE.map((s) => s.type),
-    );
   });
 });

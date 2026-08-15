@@ -1,4 +1,4 @@
-export * from './enums';
+export * from './company.module';
 export * from './entities/company.entity';
 export * from './entities/company-setup-step.entity';
 export * from './entities/outbox-event.entity';
@@ -6,4 +6,8 @@ export * from './repositories/company.repository';
 export * from './repositories/company-setup-step.repository';
 export * from './services/setup-step-seeder.service';
 export * from './services/company-provisioning.service';
-export * from './company.module';
+export * from './services/company.service';
+export * from './services/template-copy.service';
+export * from './dto/create-company.dto';
+export * from './dto/company-response.dto';
+export * from './enums';
