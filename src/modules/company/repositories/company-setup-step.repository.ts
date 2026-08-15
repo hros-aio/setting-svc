@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
-import { SetupStepType } from '../../../enums';
+import { SetupStepStatus, SetupStepType } from '../../../enums';
 
 @Injectable()
 export class CompanySetupStepRepository extends Repository<CompanySetupStepEntity> {
@@ -36,5 +36,26 @@ export class CompanySetupStepRepository extends Repository<CompanySetupStepEntit
       where: { companyId },
       order: { stepOrder: 'ASC' },
     });
+  }
+
+  async markStepCompleted(
+    tenantId: string,
+    companyId: string,
+    stepType: SetupStepType,
+    completedBy?: string,
+    manager?: EntityManager,
+  ): Promise<CompanySetupStepEntity | null> {
+    const repo = manager ? manager.getRepository(CompanySetupStepEntity) : this;
+    const step = await repo.findOne({ where: { tenantId, companyId, stepType } });
+    if (!step) {
+      return null;
+    }
+    if (step.status !== SetupStepStatus.COMPLETED) {
+      step.status = SetupStepStatus.COMPLETED;
+      step.completedAt = new Date();
+      step.completedBy = completedBy;
+      return repo.save(step);
+    }
+    return step;
   }
 }

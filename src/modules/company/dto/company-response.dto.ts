@@ -24,6 +24,11 @@ export class CompanyResponseDto {
   currencyCode?: string;
   timezone: string;
   locale?: string;
+  legalAddress?: Record<string, unknown>;
+  informationCompletedAt?: Date;
+  informationCompletedBy?: string;
+  activatedAt?: Date;
+  activatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
   setupSteps?: SetupStepResponseDto[];
