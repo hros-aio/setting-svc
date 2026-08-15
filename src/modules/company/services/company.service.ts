@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AuthContext } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
+import { isUUID } from 'class-validator';
 import { DataSource } from 'typeorm';
 import {
   AggregateType,
@@ -38,10 +39,7 @@ export class CompanyService {
   ) {}
 
   private async resolveTenantId(tenantCodeOrId: string): Promise<string> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      tenantCodeOrId,
-    );
-    if (isUuid) {
+    if (isUUID(tenantCodeOrId)) {
       return tenantCodeOrId;
     }
     const tenant = await this.tenantRepository.findByTenantCode(tenantCodeOrId);
