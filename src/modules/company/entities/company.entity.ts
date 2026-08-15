@@ -12,9 +12,9 @@ import {
 } from 'typeorm';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { CompanySetupStepEntity } from './company-setup-step.entity';
-import { CompanyStatus } from '../../../common/enums/domain-enums';
+import { CompanyStatus, TableName } from '../../../enums';
 
-@Entity('companies')
+@Entity(TableName.COMPANIES)
 @Unique('uq_companies_tenant_code', ['tenantId', 'companyCode'])
 @Check(
   'ck_companies_activation_state',

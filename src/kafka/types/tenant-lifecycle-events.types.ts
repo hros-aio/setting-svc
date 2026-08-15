@@ -1,3 +1,5 @@
+import { TenantLifecycleEventType } from '../../enums';
+
 export interface TenantCreatedPayload {
   tenantId: string;
   tenantCode: string;
@@ -10,7 +12,4 @@ export interface TenantCreatedPayload {
   sourceVersion?: number | string;
 }
 
-export enum TenantLifecycleEventType {
-  TENANT_CREATED = 'tenant.created',
-  TENANT_PROVISIONED = 'tenant.provisioned',
-}
+export { TenantLifecycleEventType };

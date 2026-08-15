@@ -10,9 +10,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { MasterDataStatus } from '../../../common/enums/domain-enums';
+import { MasterDataStatus, TableName } from '../../../enums';
 
-@Entity('locations')
+@Entity(TableName.LOCATIONS)
 @Unique('uq_locations_company_code', ['companyId', 'code'])
 export class LocationEntity {
   @PrimaryGeneratedColumn('uuid')

@@ -10,9 +10,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { ChangeOperation, EffectiveChangeStatus } from '../../../common/enums/domain-enums';
+import { ChangeOperation, EffectiveChangeStatus, TableName } from '../../../enums';
 
-@Entity('effective_changes')
+@Entity(TableName.EFFECTIVE_CHANGES)
 @Check(
   'ck_effective_changes_entity_type',
   `entity_type IN ('location', 'department', 'grade', 'job_title', 'poc')`,

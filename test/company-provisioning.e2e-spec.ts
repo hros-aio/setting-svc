@@ -3,11 +3,17 @@ import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
 import { CompanyProvisioningService } from '../src/modules/company/services/company-provisioning.service';
 import { TenantProvisioningConsumer } from '../src/kafka/consumers/tenant-provisioning.consumer';
-import { SetupStepType, SetupStepStatus, CompanyStatus } from '../src/common/enums/domain-enums';
 import {
+  SetupStepType,
+  SetupStepStatus,
+  CompanyStatus,
+  CompanyEventType,
   TenantLifecycleEventType,
-  TenantCreatedPayload,
-} from '../src/kafka/types/tenant-lifecycle-events.types';
+  KafkaTopic,
+  AggregateType,
+  OutboxStatus,
+} from '../src/enums';
+import { TenantCreatedPayload } from '../src/kafka/types/tenant-lifecycle-events.types';
 import { EventEnvelope } from '@new-hros/libs-events';
 import { TenantEntity } from '../src/modules/tenant/entities/tenant.entity';
 import { CompanyEntity } from '../src/modules/company/entities/company.entity';
@@ -186,7 +192,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       producer: 'tenant-service',
       version: '1.0',
       timestamp: new Date().toISOString(),
-      topic: 'tenant.lifecycle-events',
+      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
         tenantId: 'ext-tenant-001',
@@ -214,7 +220,9 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
     expect(mockDb.setupSteps.every((s) => s.status === SetupStepStatus.INCOMPLETE)).toBe(true);
 
     expect(mockDb.outboxEvents).toHaveLength(1);
-    expect(mockDb.outboxEvents[0].eventType).toBe('company.created');
+    expect(mockDb.outboxEvents[0].aggregateType).toBe(AggregateType.COMPANY);
+    expect(mockDb.outboxEvents[0].eventType).toBe(CompanyEventType.COMPANY_CREATED);
+    expect(mockDb.outboxEvents[0].status).toBe(OutboxStatus.PENDING);
   });
 
   it('should be idempotent and skip duplicate company creation if template company already exists for tenant', async () => {
@@ -224,7 +232,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       producer: 'tenant-service',
       version: '1.0',
       timestamp: new Date().toISOString(),
-      topic: 'tenant.lifecycle-events',
+      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
         tenantId: 'ext-tenant-001',

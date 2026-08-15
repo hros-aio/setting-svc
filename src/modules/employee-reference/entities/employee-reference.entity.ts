@@ -10,8 +10,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
+import { TableName } from '../../../enums';
 
-@Entity('employee_references')
+@Entity(TableName.EMPLOYEE_REFERENCES)
 @Unique('uq_employee_references_tenant_employee', ['tenantId', 'employeeId'])
 @Unique('uq_employee_references_company_number', ['companyId', 'employeeNumber'])
 export class EmployeeReferenceEntity {

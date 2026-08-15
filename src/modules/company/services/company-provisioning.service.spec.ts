@@ -3,7 +3,7 @@ import { CompanyProvisioningService } from './company-provisioning.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { CompanyStatus } from '../../../common/enums/domain-enums';
+import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource, Repository } from 'typeorm';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
@@ -95,7 +95,7 @@ describe('CompanyProvisioningService', () => {
 
     const result = await service.provisionCompanyOnTenantCreated(
       'evt-1',
-      'tenant.lifecycle-events',
+      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
         tenantId: 'ext-t-1',
         tenantCode: 'ACME',
@@ -111,7 +111,7 @@ describe('CompanyProvisioningService', () => {
   it('should provision tenant projection, template company (PENDING with is_template = true), 8 setup steps and outbox event', async () => {
     const result = await service.provisionCompanyOnTenantCreated(
       'evt-1',
-      'tenant.lifecycle-events',
+      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
         tenantId: 'ext-t-1',
         tenantCode: 'ACME',

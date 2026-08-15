@@ -7,8 +7,9 @@ import {
   OneToMany,
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
+import { TableName } from '../../../enums';
 
-@Entity('tenants')
+@Entity(TableName.TENANTS)
 export class TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
