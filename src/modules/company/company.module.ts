@@ -7,6 +7,9 @@ import { CompanyRepository } from './repositories/company.repository';
 import { CompanySetupStepRepository } from './repositories/company-setup-step.repository';
 import { SetupStepSeederService } from './services/setup-step-seeder.service';
 import { CompanyProvisioningService } from './services/company-provisioning.service';
+import { CompanyService } from './services/company.service';
+import { TemplateCopyService } from './services/template-copy.service';
+import { CompanyController } from './controllers/company.controller';
 import { TenantModule } from '../tenant/tenant.module';
 
 @Module({
@@ -14,16 +17,21 @@ import { TenantModule } from '../tenant/tenant.module';
     TypeOrmModule.forFeature([CompanyEntity, CompanySetupStepEntity, OutboxEventEntity]),
     TenantModule,
   ],
+  controllers: [CompanyController],
   providers: [
     CompanyRepository,
     CompanySetupStepRepository,
     SetupStepSeederService,
+    TemplateCopyService,
+    CompanyService,
     CompanyProvisioningService,
   ],
   exports: [
     CompanyRepository,
     CompanySetupStepRepository,
     SetupStepSeederService,
+    TemplateCopyService,
+    CompanyService,
     CompanyProvisioningService,
   ],
 })
