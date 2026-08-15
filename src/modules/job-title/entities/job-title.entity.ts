@@ -12,9 +12,9 @@ import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { DepartmentEntity } from '../../department/entities/department.entity';
 import { GradeEntity } from '../../grade/entities/grade.entity';
-import { MasterDataStatus } from '../../../common/enums/domain-enums';
+import { MasterDataStatus, TableName } from '../../../enums';
 
-@Entity('job_titles')
+@Entity(TableName.JOB_TITLES)
 @Unique('uq_job_titles_company_code', ['companyId', 'code'])
 export class JobTitleEntity {
   @PrimaryGeneratedColumn('uuid')

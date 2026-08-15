@@ -1,4 +1,4 @@
-import { SetupStepType } from '../../../common/enums/domain-enums';
+import { SetupStepType } from '../../../enums';
 
 export interface MandatorySetupStepDefinition {
   type: SetupStepType;

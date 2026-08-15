@@ -8,26 +8,12 @@ export class CompanyRepository extends Repository<CompanyEntity> {
     super(CompanyEntity, dataSource.createEntityManager());
   }
 
-  async findByTenantId(tenantId: string, manager?: EntityManager): Promise<CompanyEntity[]> {
-    const repo = manager ? manager.getRepository(CompanyEntity) : this;
-    return repo.find({ where: { tenantId } });
-  }
-
   async findTemplateCompanyByTenantId(
     tenantId: string,
     manager?: EntityManager,
   ): Promise<CompanyEntity | null> {
     const repo = manager ? manager.getRepository(CompanyEntity) : this;
     return repo.findOne({ where: { tenantId, isTemplate: true } });
-  }
-
-  async findOneByTenantAndCode(
-    tenantId: string,
-    companyCode: string,
-    manager?: EntityManager,
-  ): Promise<CompanyEntity | null> {
-    const repo = manager ? manager.getRepository(CompanyEntity) : this;
-    return repo.findOne({ where: { tenantId, companyCode } });
   }
 
   async createAndSave(

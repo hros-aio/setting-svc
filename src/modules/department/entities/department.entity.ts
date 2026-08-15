@@ -12,9 +12,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { MasterDataStatus } from '../../../common/enums/domain-enums';
+import { MasterDataStatus, TableName } from '../../../enums';
 
-@Entity('departments')
+@Entity(TableName.DEPARTMENTS)
 @Unique('uq_departments_company_code', ['companyId', 'code'])
 @Check(
   'ck_departments_not_self_parent',

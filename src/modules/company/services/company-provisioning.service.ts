@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
+import { OutboxEventEntity } from '../entities/outbox-event.entity';
 import { CompanyRepository } from '../repositories/company.repository';
 import { SetupStepSeederService } from './setup-step-seeder.service';
-import { OutboxEventEntity } from '../entities/outbox-event.entity';
-import { CompanyStatus } from '../../../common/enums/domain-enums';
+
+import { AggregateType, CompanyEventType, CompanyStatus, OutboxStatus } from '../../../enums';
 import { TenantCreatedPayload } from '../../../kafka/types/tenant-lifecycle-events.types';
 
 export interface ProvisioningResult {
@@ -83,9 +84,9 @@ export class CompanyProvisioningService {
       // 6. Write Transactional Outbox Event
       const outboxRepo = this.dataSource.getRepository(OutboxEventEntity);
       const outboxEvent = outboxRepo.create({
-        aggregateType: 'Company',
+        aggregateType: AggregateType.COMPANY,
         aggregateId: newCompany.id,
-        eventType: 'company.created',
+        eventType: CompanyEventType.COMPANY_CREATED,
         payload: {
           companyId: newCompany.id,
           tenantId: tenantRecord.id,
@@ -94,7 +95,7 @@ export class CompanyProvisioningService {
           status: newCompany.status,
           isTemplate: newCompany.isTemplate,
         },
-        status: 'pending',
+        status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(outboxEvent);
 

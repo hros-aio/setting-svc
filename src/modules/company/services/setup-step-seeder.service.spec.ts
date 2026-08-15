@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
-import { SetupStepSeederService } from './setup-step-seeder.service';
+import { SetupStepStatus } from '../../../enums';
 import { MANDATORY_SETUP_STEPS_SEQUENCE } from '../enums/mandatory-setup-steps.enum';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
-import { SetupStepStatus } from '../../../common/enums/domain-enums';
+import { SetupStepSeederService } from './setup-step-seeder.service';
 
 describe('SetupStepSeederService', () => {
   let service: SetupStepSeederService;

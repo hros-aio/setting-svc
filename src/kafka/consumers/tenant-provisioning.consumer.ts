@@ -6,6 +6,7 @@ import {
   TenantCreatedPayload,
   TenantLifecycleEventType,
 } from '../types/tenant-lifecycle-events.types';
+import { KafkaTopic } from '../../enums';
 import { CompanyProvisioningService } from '../../modules/company/services/company-provisioning.service';
 
 @Controller()
@@ -14,7 +15,7 @@ export class TenantProvisioningConsumer {
 
   constructor(private readonly companyProvisioningService: CompanyProvisioningService) {}
 
-  @EventPattern('tenant.lifecycle-events')
+  @EventPattern(KafkaTopic.TENANT_LIFECYCLE_EVENTS)
   async handleTenantLifecycleEvent(
     @Payload() envelope: EventEnvelope<TenantCreatedPayload> & { eventType?: string },
   ): Promise<unknown> {
@@ -57,7 +58,7 @@ export class TenantProvisioningConsumer {
       );
       return this.companyProvisioningService.provisionCompanyOnTenantCreated(
         envelope.id,
-        envelope.topic || 'tenant.lifecycle-events',
+        envelope.topic || KafkaTopic.TENANT_LIFECYCLE_EVENTS,
         payload,
       );
     });

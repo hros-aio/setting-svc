@@ -25,7 +25,6 @@ import { TenantModule } from '../tenant/tenant.module';
     CompanySetupStepRepository,
     SetupStepSeederService,
     CompanyProvisioningService,
-    TypeOrmModule,
   ],
 })
 export class CompanyModule {}

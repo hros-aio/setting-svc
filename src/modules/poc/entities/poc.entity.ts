@@ -9,9 +9,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { MasterDataStatus } from '../../../common/enums/domain-enums';
+import { MasterDataStatus, TableName } from '../../../enums';
 
-@Entity('pocs')
+@Entity(TableName.POCS)
 export class PocEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -11,9 +11,9 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from './company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { SetupStepType, SetupStepStatus } from '../../../common/enums/domain-enums';
+import { SetupStepType, SetupStepStatus, TableName } from '../../../enums';
 
-@Entity('company_setup_steps')
+@Entity(TableName.COMPANY_SETUP_STEPS)
 @Unique('uq_company_setup_step', ['companyId', 'stepType'])
 @Unique('uq_company_setup_order', ['companyId', 'stepOrder'])
 @Check('ck_company_setup_order', `step_order BETWEEN 1 AND 8`)

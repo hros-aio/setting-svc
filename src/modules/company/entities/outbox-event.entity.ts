@@ -5,8 +5,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TableName, OutboxStatus } from '../../../enums';
 
-@Entity('outbox_events')
+@Entity(TableName.OUTBOX_EVENTS)
 export class OutboxEventEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,7 +24,7 @@ export class OutboxEventEntity {
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
-  @Column({ type: 'varchar', length: 32, default: 'pending' })
+  @Column({ type: 'varchar', length: 32, default: OutboxStatus.PENDING })
   status: string;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
