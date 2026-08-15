@@ -250,4 +250,38 @@ export class CompanyService {
       return updatedCompany!;
     });
   }
+
+  async designateDefaultCompany(
+    tenantCodeOrId: string,
+    companyId: string,
+    authContext?: AuthContext | null,
+  ): Promise<CompanyEntity> {
+    const tenantId = await this.resolveTenantId(tenantCodeOrId);
+    const userId = authContext?.userId;
+
+    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    if (!company) {
+      throw new NotFoundException(`Company with ID '${companyId}' not found for this tenant`);
+    }
+
+    if (company.isTemplate) {
+      return company;
+    }
+
+    return this.transactionService.runInTransaction(async () => {
+      // 1. Clear existing template for this tenant
+      await this.companyRepository.clearTemplateDesignation(tenantId, this.dataSource.manager);
+
+      // 2. Set new template designation
+      const updated = await this.companyRepository.setTemplateDesignation(
+        companyId,
+        tenantId,
+        true,
+        userId,
+        this.dataSource.manager,
+      );
+
+      return updated;
+    });
+  }
 }

@@ -9,6 +9,7 @@ import {
   JoinColumn,
   Unique,
   Check,
+  Index,
 } from 'typeorm';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { CompanySetupStepEntity } from './company-setup-step.entity';
@@ -16,6 +17,10 @@ import { CompanyStatus, TableName } from '../../../enums';
 
 @Entity(TableName.COMPANIES)
 @Unique('uq_companies_tenant_code', ['tenantId', 'companyCode'])
+@Index('uq_companies_one_template_per_tenant', ['tenantId'], {
+  unique: true,
+  where: 'is_template = true',
+})
 @Check(
   'ck_companies_activation_state',
   `(status = 'pending' AND activated_at IS NULL) OR (status = 'active' AND activated_at IS NOT NULL)`,

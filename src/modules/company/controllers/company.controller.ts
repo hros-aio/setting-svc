@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -120,6 +121,30 @@ export class CompanyController {
     }
 
     return response;
+  }
+
+  @Put(':id/default')
+  @Patch(':id/default')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('company:update')
+  async designateDefaultCompany(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
+    const tenantCode = RequestContextService.getTenantCode();
+    const user = RequestContextService.getUser();
+
+    if (!tenantCode) {
+      throw new BadRequestException('Cannot determine tenant from request context');
+    }
+
+    const company = await this.companyService.designateDefaultCompany(tenantCode, id, user);
+
+    const responseDto = this.mapToCompanyResponseDto(company);
+
+    return {
+      success: true,
+      data: responseDto,
+    };
   }
 
   private mapToCompanyResponseDto(company: CompanyEntity): CompanyResponseDto {

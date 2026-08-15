@@ -34,6 +34,14 @@ describe('CompanyService', () => {
       findTemplateCompanyByTenantId: jest.fn(),
       findByIdAndTenant: jest.fn(),
       updateCompanyInfo: jest.fn(),
+      clearTemplateDesignation: jest.fn().mockResolvedValue(undefined),
+      setTemplateDesignation: jest.fn().mockImplementation((companyId, tenantId, isTemplate) =>
+        Promise.resolve({
+          id: companyId,
+          tenantId,
+          isTemplate,
+        } as CompanyEntity),
+      ),
       createAndSave: jest.fn().mockImplementation((data) =>
         Promise.resolve({
           id: 'new-company-id',
@@ -307,6 +315,92 @@ describe('CompanyService', () => {
           name: 'Some Name',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('designateDefaultCompany', () => {
+    it('should atomically clear old template and set new template company for tenant', async () => {
+      const companyId = 'target-company-id';
+      const authContext: AuthContext = {
+        userId: 'admin-user-1',
+        sessionId: 'session-1',
+        tenantCode: 'TEST_TENANT',
+        roles: ['admin'],
+        scopes: [],
+        permissions: ['company:update'],
+      };
+
+      const existingCompany: Partial<CompanyEntity> = {
+        id: companyId,
+        tenantId: defaultTenantId,
+        companyCode: 'TARGET_CO',
+        isTemplate: false,
+      };
+
+      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
+        existingCompany as CompanyEntity,
+      );
+
+      const result = await service.designateDefaultCompany(defaultTenantId, companyId, authContext);
+
+      expect(mockCompanyRepo.clearTemplateDesignation).toHaveBeenCalledWith(
+        defaultTenantId,
+        mockDataSource.manager,
+      );
+      expect(mockCompanyRepo.setTemplateDesignation).toHaveBeenCalledWith(
+        companyId,
+        defaultTenantId,
+        true,
+        'admin-user-1',
+        mockDataSource.manager,
+      );
+      expect(result.isTemplate).toBe(true);
+      expect(mockOutboxRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should return immediately if company is already the default template (idempotent)', async () => {
+      const companyId = 'already-template-id';
+      const existingTemplateCompany: Partial<CompanyEntity> = {
+        id: companyId,
+        tenantId: defaultTenantId,
+        companyCode: 'DEFAULT_CO',
+        isTemplate: true,
+      };
+
+      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
+        existingTemplateCompany as CompanyEntity,
+      );
+
+      const result = await service.designateDefaultCompany(defaultTenantId, companyId);
+
+      expect(result.isTemplate).toBe(true);
+      expect(mockCompanyRepo.clearTemplateDesignation).not.toHaveBeenCalled();
+      expect(mockCompanyRepo.setTemplateDesignation).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if target company does not exist for tenant', async () => {
+      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.designateDefaultCompany(defaultTenantId, 'non-existent-company'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should resolve tenant code if non-UUID is passed', async () => {
+      const companyId = 'target-company-id';
+      const existingCompany: Partial<CompanyEntity> = {
+        id: companyId,
+        tenantId: defaultTenantId,
+        isTemplate: false,
+      };
+
+      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
+        existingCompany as CompanyEntity,
+      );
+
+      await service.designateDefaultCompany('TEST_TENANT', companyId);
+
+      expect(mockTenantRepo.findByTenantCode).toHaveBeenCalledWith('TEST_TENANT');
     });
   });
 });
