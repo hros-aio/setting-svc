@@ -8,7 +8,7 @@ database:
   port: 5432
   username: "postgres"
   password: "postgres"
-  name: "hrms_setting"
+  name: "hros_setting"
 
 redis:
   host: "localhost"

@@ -1,0 +1,41 @@
+import { Injectable } from '@nestjs/common';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { CompanyEntity } from '../entities/company.entity';
+
+@Injectable()
+export class CompanyRepository extends Repository<CompanyEntity> {
+  constructor(private readonly dataSource: DataSource) {
+    super(CompanyEntity, dataSource.createEntityManager());
+  }
+
+  async findByTenantId(tenantId: string, manager?: EntityManager): Promise<CompanyEntity[]> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    return repo.find({ where: { tenantId } });
+  }
+
+  async findTemplateCompanyByTenantId(
+    tenantId: string,
+    manager?: EntityManager,
+  ): Promise<CompanyEntity | null> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    return repo.findOne({ where: { tenantId, isTemplate: true } });
+  }
+
+  async findOneByTenantAndCode(
+    tenantId: string,
+    companyCode: string,
+    manager?: EntityManager,
+  ): Promise<CompanyEntity | null> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    return repo.findOne({ where: { tenantId, companyCode } });
+  }
+
+  async createAndSave(
+    companyData: Partial<CompanyEntity>,
+    manager?: EntityManager,
+  ): Promise<CompanyEntity> {
+    const repo = manager ? manager.getRepository(CompanyEntity) : this;
+    const company = repo.create(companyData);
+    return repo.save(company);
+  }
+}
