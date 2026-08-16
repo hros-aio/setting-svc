@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  Index,
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
@@ -14,6 +15,8 @@ import { MasterDataStatus, TableName } from '../../../enums';
 
 @Entity(TableName.GRADES)
 @Unique('uq_grades_company_code', ['companyId', 'code'])
+@Index('idx_grades_tenant_company', ['tenantId', 'companyId'])
+@Index('idx_grades_company_status', ['companyId', 'status'])
 export class GradeEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
