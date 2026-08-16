@@ -1,8 +1,6 @@
 import { EventEnvelope } from '@new-hros/libs-events';
-import {
-  RoleCopyCompletedConsumer,
-  RoleCopyCompletedPayload,
-} from './role-copy-completed.consumer';
+import { RoleCopyCompletedConsumer } from './role-copy-completed.consumer';
+import { RoleCopyCompletedPayload } from '../types/setup-step-events.types';
 import { CompanySetupStepRepository } from '../../modules/company/repositories/company-setup-step.repository';
 import { KafkaTopic, SetupStepStatus, SetupStepType } from '../../enums';
 import { CompanySetupStepEntity } from '../../modules/company/entities/company-setup-step.entity';

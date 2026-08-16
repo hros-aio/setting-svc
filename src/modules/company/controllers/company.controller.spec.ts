@@ -5,11 +5,13 @@ import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
 import { CompanyResponseDto } from '../dto/company-response.dto';
 import { CompanyService } from '../services/company.service';
+import { CompanySetupQueryService } from '../services/company-setup-query.service';
 import { CompanyController } from './company.controller';
 
 describe('CompanyController', () => {
   let controller: CompanyController;
   let mockCompanyService: jest.Mocked<Partial<CompanyService>>;
+  let mockSetupQueryService: jest.Mocked<Partial<CompanySetupQueryService>>;
   let mockCacheService: jest.Mocked<Partial<CacheService>>;
 
   beforeEach(() => {
@@ -19,6 +21,11 @@ describe('CompanyController', () => {
       designateDefaultCompany: jest.fn(),
     };
 
+    mockSetupQueryService = {
+      getCompanySetupProgress: jest.fn(),
+      validateAllStepsCompleted: jest.fn(),
+    };
+
     mockCacheService = {
       get: jest.fn().mockResolvedValue(null),
       set: jest.fn().mockResolvedValue(undefined),
@@ -26,6 +33,7 @@ describe('CompanyController', () => {
 
     controller = new CompanyController(
       mockCompanyService as unknown as CompanyService,
+      mockSetupQueryService as unknown as CompanySetupQueryService,
       mockCacheService as unknown as CacheService,
     );
 
@@ -168,11 +176,37 @@ describe('CompanyController', () => {
         expect.objectContaining({ userId: 'user-uuid-1' }),
       );
     });
+  });
+
+  describe('getCompanySetupProgress', () => {
+    it('should return company setup progress from query service', async () => {
+      const companyId = 'company-uuid-1';
+      const mockProgress = {
+        companyId,
+        status: 'pending',
+        totalSteps: 8,
+        completedSteps: 3,
+        isEligibleForActivation: false,
+        incompleteSteps: [SetupStepType.GRADE],
+        steps: [],
+      };
+
+      mockSetupQueryService.getCompanySetupProgress = jest.fn().mockResolvedValue(mockProgress);
+
+      const result = await controller.getCompanySetupProgress(companyId);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockProgress);
+      expect(mockSetupQueryService.getCompanySetupProgress).toHaveBeenCalledWith(
+        'TEST_TENANT',
+        companyId,
+      );
+    });
 
     it('should throw BadRequestException if tenantCode is missing from request context', async () => {
       jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
 
-      await expect(controller.designateDefaultCompany('company-uuid-1')).rejects.toThrow(
+      await expect(controller.getCompanySetupProgress('company-uuid-1')).rejects.toThrow(
         BadRequestException,
       );
     });

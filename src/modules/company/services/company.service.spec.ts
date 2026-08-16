@@ -237,13 +237,13 @@ describe('CompanyService', () => {
       );
 
       expect(mockCompanyRepo.updateCompanyInfo).toHaveBeenCalled();
-      expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith(
-        defaultTenantId,
+      expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
+        tenantId: defaultTenantId,
         companyId,
-        SetupStepType.COMPANY_INFORMATION,
-        'user-1',
-        mockDataSource.manager,
-      );
+        stepType: SetupStepType.COMPANY_INFORMATION,
+        completedBy: 'user-1',
+        entityManager: mockDataSource.manager,
+      });
       expect(mockOutboxRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'company.updated',

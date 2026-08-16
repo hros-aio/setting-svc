@@ -91,13 +91,13 @@ export class LocationService {
       );
 
       // 5. Complete LOCATION setup step if needed
-      await this.companySetupStepRepository.markStepCompleted(
+      await this.companySetupStepRepository.markStepCompleted({
         tenantId,
         companyId,
-        SetupStepType.LOCATION,
-        userId,
-        manager,
-      );
+        stepType: SetupStepType.LOCATION,
+        completedBy: userId,
+        entityManager: manager,
+      });
 
       // 6. Write outbox event for scheduling
       const outboxRepo = manager.getRepository(OutboxEventEntity);

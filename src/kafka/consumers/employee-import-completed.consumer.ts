@@ -4,25 +4,25 @@ import { CacheService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
 import { KafkaTopic, SetupStepStatus, SetupStepType } from '../../enums';
 import { CompanySetupStepRepository } from '../../modules/company/repositories/company-setup-step.repository';
-import { RoleCopyCompletedPayload } from '../types/setup-step-events.types';
+import { EmployeeImportCompletedPayload } from '../types/setup-step-events.types';
 
 @Controller()
-export class RoleCopyCompletedConsumer {
-  private readonly logger = new Logger(RoleCopyCompletedConsumer.name);
+export class EmployeeImportCompletedConsumer {
+  private readonly logger = new Logger(EmployeeImportCompletedConsumer.name);
 
   constructor(
     private readonly setupStepRepository: CompanySetupStepRepository,
     @Optional() private readonly cacheService?: CacheService,
   ) {}
 
-  @EventPattern(KafkaTopic.AUTHORIZATION_ROLE_COPY_COMPLETED)
-  async handleRoleCopyCompleted(
-    @Payload() envelope: EventEnvelope<RoleCopyCompletedPayload>,
+  @EventPattern(KafkaTopic.EMPLOYEE_IMPORT_BATCH_COMPLETED)
+  async handleEmployeeImportCompleted(
+    @Payload() envelope: EventEnvelope<EmployeeImportCompletedPayload>,
   ): Promise<void> {
     const payload = envelope.payload;
-    if (!payload || !payload.targetCompanyId) {
+    if (!payload || !payload.companyId) {
       this.logger.warn(
-        `Received authorization.role-copy.completed event without payload or targetCompanyId: ${JSON.stringify(
+        `Received employee-import.batch.completed event without payload or companyId: ${JSON.stringify(
           envelope,
         )}`,
       );
@@ -31,29 +31,34 @@ export class RoleCopyCompletedConsumer {
 
     const eventId = envelope.id || payload.batchId;
     const tenantId = payload.tenantId;
-    const companyId = payload.targetCompanyId;
+    const companyId = payload.companyId;
 
     // Idempotency check with Redis if available
-    const idempotencyKey = `idemp:setup-step:${tenantId}:${companyId}:role-copy:${eventId}`;
+    const idempotencyKey = `idemp:setup-step:${tenantId}:${companyId}:employee-import:${eventId}`;
     if (this.cacheService) {
       const alreadyProcessed = await this.cacheService.get<boolean>(idempotencyKey);
       if (alreadyProcessed) {
         this.logger.log(
-          `Duplicate authorization.role-copy.completed event received for company ${companyId}. Skipping.`,
+          `Duplicate employee-import.batch.completed event received for company ${companyId}. Skipping.`,
         );
         return;
       }
     }
 
-    const step = await this.setupStepRepository.findByCompanyAndStep(companyId, SetupStepType.ROLE);
+    const step = await this.setupStepRepository.findByCompanyAndStep(
+      companyId,
+      SetupStepType.EMPLOYEE_IMPORT,
+    );
 
     if (!step) {
-      this.logger.warn(`Setup step ROLE not found for targetCompanyId: ${companyId}`);
+      this.logger.warn(`Setup step EMPLOYEE_IMPORT not found for company: ${companyId}`);
       return;
     }
 
     if (step.status === SetupStepStatus.COMPLETED) {
-      this.logger.log(`Setup step ROLE for company ${companyId} is already COMPLETED. Skipping.`);
+      this.logger.log(
+        `Setup step EMPLOYEE_IMPORT for company ${companyId} is already COMPLETED. Skipping.`,
+      );
       if (this.cacheService) {
         await this.cacheService.set(idempotencyKey, true, 86400);
       }
@@ -65,13 +70,13 @@ export class RoleCopyCompletedConsumer {
     step.externalReferenceId = payload.batchId;
     step.metadata = {
       ...(step.metadata || {}),
-      roleCount: payload.copiedRoleCount ?? 0,
-      sourceCompanyId: payload.sourceCompanyId,
+      importedCount: payload.importedCount ?? 0,
+      ...(payload.metadata || {}),
     };
 
     await this.setupStepRepository.save(step);
     this.logger.log(
-      `Marked setup step ROLE as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
+      `Marked setup step EMPLOYEE_IMPORT as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
     );
 
     if (this.cacheService) {

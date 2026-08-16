@@ -210,13 +210,13 @@ describe('JobTitleService - Create Job Title [US1]', () => {
     expect(result.id).toBe('job-title-1');
     expect(result.code).toBe('SWE');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
-    expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith(
-      'tenant-1',
-      'comp-1',
-      SetupStepType.JOB_TITLE,
-      'user-1',
-      mockDataSource.manager,
-    );
+    expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      companyId: 'comp-1',
+      stepType: SetupStepType.JOB_TITLE,
+      completedBy: 'user-1',
+      entityManager: mockDataSource.manager,
+    });
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });
 });

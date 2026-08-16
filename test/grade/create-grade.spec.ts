@@ -141,13 +141,13 @@ describe('GradeService - Create Grade [US1]', () => {
     expect(result.id).toBe('grade-1');
     expect(result.code).toBe('L3');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
-    expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith(
-      'tenant-1',
-      'comp-1',
-      SetupStepType.GRADE,
-      'user-1',
-      mockDataSource.manager,
-    );
+    expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      companyId: 'comp-1',
+      stepType: SetupStepType.GRADE,
+      completedBy: 'user-1',
+      entityManager: mockDataSource.manager,
+    });
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });
 });
