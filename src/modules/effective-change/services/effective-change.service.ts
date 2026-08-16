@@ -1,0 +1,31 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { TransactionService } from '@new-hros/libs-sql';
+import { EffectiveExecuteCommand, LocationApplyHandler } from '../handlers/location-apply.handler';
+
+@Injectable()
+export class EffectiveChangeService {
+  private readonly logger = new Logger(EffectiveChangeService.name);
+
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly transactionService: TransactionService,
+    private readonly locationApplyHandler: LocationApplyHandler,
+  ) {}
+
+  async executeChange(command: EffectiveExecuteCommand): Promise<void> {
+    this.logger.log(
+      `Executing effective change: ${command.changeId} (Entity: ${command.entityType}, Op: ${command.operation})`,
+    );
+
+    return this.transactionService.runInTransaction(async () => {
+      const em = this.dataSource.manager;
+
+      if (command.entityType.toLowerCase() === 'location') {
+        await this.locationApplyHandler.apply(command, em);
+      } else {
+        this.logger.warn(`Handler for entity type '${command.entityType}' not yet registered`);
+      }
+    });
+  }
+}
