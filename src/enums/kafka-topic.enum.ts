@@ -4,4 +4,6 @@ export enum KafkaTopic {
   SETTING_COMPANY_EVENTS = 'setting.company.events',
   AUTHORIZATION_ROLE_COPY_REQUESTED = 'authorization.role-copy.requested',
   AUTHORIZATION_ROLE_COPY_COMPLETED = 'authorization.role-copy.completed',
+  SETTING_EFFECTIVE_CHANGE_SCHEDULED = 'setting.effective-change.scheduled',
+  SETTING_EFFECTIVE_CHANGE_EXECUTE = 'setting.effective-change.execute',
 }

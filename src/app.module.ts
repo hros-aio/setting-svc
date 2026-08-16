@@ -12,6 +12,8 @@ import { AppLogger } from './common/logger/app-logger.service';
 import { HealthModule } from './modules/health';
 import { TenantModule } from './modules/tenant';
 import { CompanyModule } from './modules/company';
+import { LocationModule } from './modules/location';
+import { EffectiveChangeModule } from './modules/effective-change';
 import { KafkaModule } from './kafka/kafka.module';
 
 const config = new ConfigurationService({});
@@ -53,6 +55,8 @@ const config = new ConfigurationService({});
     HealthModule,
     TenantModule,
     CompanyModule,
+    LocationModule,
+    EffectiveChangeModule,
     KafkaModule,
   ],
   providers: [AppLogger],
