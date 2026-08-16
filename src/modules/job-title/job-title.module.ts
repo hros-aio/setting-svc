@@ -1,22 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SqlModule } from '@new-hros/libs-sql';
-import { JobTitleEntity } from './entities/job-title.entity';
-import { JobTitleRepository } from './repositories/job-title.repository';
-import { JobTitleService } from './services/job-title.service';
-import { JobTitleQueryService } from './services/job-title-query.service';
-import { JobTitleController } from './controllers/job-title.controller';
 import { CompanyModule } from '../company/company.module';
 import { DepartmentModule } from '../department/department.module';
-import { GradeModule } from '../grade/grade.module';
-import { EffectiveChangeEntity } from '../effective-change/entities/effective-change.entity';
-import { OutboxEventEntity } from '../company/entities/outbox-event.entity';
 import { EffectiveChangeModule } from '../effective-change/effective-change.module';
-import { EffectiveChangeRepository } from '../effective-change/repositories/effective-change.repository';
+import { GradeModule } from '../grade/grade.module';
+import { JobTitleController } from './controllers/job-title.controller';
+import { JobTitleEntity } from './entities/job-title.entity';
+import { JobTitleRepository } from './repositories/job-title.repository';
+import { JobTitleQueryService } from './services/job-title-query.service';
+import { JobTitleService } from './services/job-title.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([JobTitleEntity, EffectiveChangeEntity, OutboxEventEntity]),
+    TypeOrmModule.forFeature([JobTitleEntity]),
     SqlModule,
     CompanyModule,
     DepartmentModule,
@@ -24,7 +21,7 @@ import { EffectiveChangeRepository } from '../effective-change/repositories/effe
     EffectiveChangeModule,
   ],
   controllers: [JobTitleController],
-  providers: [JobTitleRepository, EffectiveChangeRepository, JobTitleService, JobTitleQueryService],
-  exports: [JobTitleRepository, JobTitleService, JobTitleQueryService],
+  providers: [JobTitleRepository, JobTitleService, JobTitleQueryService],
+  exports: [JobTitleRepository],
 })
 export class JobTitleModule {}
