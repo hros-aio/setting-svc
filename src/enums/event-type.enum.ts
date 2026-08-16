@@ -28,6 +28,12 @@ export enum DepartmentEventType {
   DEPARTMENT_DEACTIVATED = 'setting.department.deactivated',
 }
 
+export enum GradeEventType {
+  GRADE_CREATED = 'setting.grade.created',
+  GRADE_UPDATED = 'setting.grade.updated',
+  GRADE_DEACTIVATED = 'setting.grade.deactivated',
+}
+
 export enum EventType {
   TENANT_CREATED = 'tenant.created',
   TENANT_PROVISIONED = 'tenant.provisioned',
@@ -44,4 +50,7 @@ export enum EventType {
   DEPARTMENT_CREATED = 'setting.department.created',
   DEPARTMENT_UPDATED = 'setting.department.updated',
   DEPARTMENT_DEACTIVATED = 'setting.department.deactivated',
+  GRADE_CREATED = 'setting.grade.created',
+  GRADE_UPDATED = 'setting.grade.updated',
+  GRADE_DEACTIVATED = 'setting.grade.deactivated',
 }

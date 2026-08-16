@@ -4,10 +4,12 @@ import { SqlModule } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from './entities/effective-change.entity';
 import { LocationEntity } from '../location/entities/location.entity';
 import { DepartmentEntity } from '../department/entities/department.entity';
+import { GradeEntity } from '../grade/entities/grade.entity';
 import { OutboxEventEntity } from '../company/entities/outbox-event.entity';
 import { EffectiveChangeRepository } from './repositories/effective-change.repository';
 import { LocationApplyHandler } from './handlers/location-apply.handler';
 import { DepartmentApplyHandler } from './handlers/department-apply.handler';
+import { GradeApplyHandler } from './handlers/grade-apply.handler';
 import { EffectiveChangeService } from './services/effective-change.service';
 import { EffectiveChangeConsumer } from './consumers/effective-change.consumer';
 
@@ -17,6 +19,7 @@ import { EffectiveChangeConsumer } from './consumers/effective-change.consumer';
       EffectiveChangeEntity,
       LocationEntity,
       DepartmentEntity,
+      GradeEntity,
       OutboxEventEntity,
     ]),
     SqlModule,
@@ -26,12 +29,14 @@ import { EffectiveChangeConsumer } from './consumers/effective-change.consumer';
     EffectiveChangeRepository,
     LocationApplyHandler,
     DepartmentApplyHandler,
+    GradeApplyHandler,
     EffectiveChangeService,
   ],
   exports: [
     EffectiveChangeRepository,
     LocationApplyHandler,
     DepartmentApplyHandler,
+    GradeApplyHandler,
     EffectiveChangeService,
     EffectiveChangeConsumer,
   ],
