@@ -92,13 +92,13 @@ export class DepartmentService {
       );
 
       // 5. Complete DEPARTMENT setup step if needed
-      await this.companySetupStepRepository.markStepCompleted(
+      await this.companySetupStepRepository.markStepCompleted({
         tenantId,
         companyId,
-        SetupStepType.DEPARTMENT,
-        userId,
-        manager,
-      );
+        stepType: SetupStepType.DEPARTMENT,
+        completedBy: userId,
+        entityManager: manager,
+      });
 
       // 6. Write outbox event for scheduling
       const outboxRepo = manager.getRepository(OutboxEventEntity);

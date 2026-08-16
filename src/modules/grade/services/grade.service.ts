@@ -80,13 +80,13 @@ export class GradeService {
       );
 
       // 4. Complete GRADE setup step (Step 4)
-      await this.companySetupStepRepository.markStepCompleted(
+      await this.companySetupStepRepository.markStepCompleted({
         tenantId,
         companyId,
-        SetupStepType.GRADE,
-        userId,
-        manager,
-      );
+        stepType: SetupStepType.GRADE,
+        completedBy: userId,
+        entityManager: manager,
+      });
 
       // 5. Write outbox event for scheduling
       const outboxRepo = manager.getRepository(OutboxEventEntity);

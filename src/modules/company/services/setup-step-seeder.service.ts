@@ -14,7 +14,7 @@ export class SetupStepSeederService {
     tenantId: string,
     companyId: string,
     copiedCategories: CopyableCategory[] = [],
-    manager?: EntityManager,
+    entityManager?: EntityManager,
   ): Promise<CompanySetupStepEntity[]> {
     if (!tenantId || !companyId) {
       throw new BadRequestException('tenantId and companyId are required to seed setup steps');
@@ -46,6 +46,6 @@ export class SetupStepSeederService {
       },
     );
 
-    return this.setupStepRepository.bulkCreateAndSave(stepsToCreate, manager);
+    return this.setupStepRepository.bulkCreateAndSave(stepsToCreate, entityManager);
   }
 }

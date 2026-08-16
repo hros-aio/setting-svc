@@ -209,13 +209,13 @@ export class CompanyService {
       );
 
       // Step 1: Mark COMPANY_INFORMATION completed
-      await this.companySetupStepRepository.markStepCompleted(
+      await this.companySetupStepRepository.markStepCompleted({
         tenantId,
         companyId,
-        SetupStepType.COMPANY_INFORMATION,
-        userId,
-        this.dataSource.manager,
-      );
+        stepType: SetupStepType.COMPANY_INFORMATION,
+        completedBy: userId,
+        entityManager: this.dataSource.manager,
+      });
 
       // Outbox event for company.updated
       const outboxRepo = this.dataSource.getRepository(OutboxEventEntity);

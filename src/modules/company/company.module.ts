@@ -9,6 +9,8 @@ import { SetupStepSeederService } from './services/setup-step-seeder.service';
 import { CompanyProvisioningService } from './services/company-provisioning.service';
 import { CompanyService } from './services/company.service';
 import { TemplateCopyService } from './services/template-copy.service';
+import { CompanySetupQueryService } from './services/company-setup-query.service';
+import { CompanySetupCommandService } from './services/company-setup-command.service';
 import { CompanyController } from './controllers/company.controller';
 import { TenantModule } from '../tenant/tenant.module';
 
@@ -25,6 +27,8 @@ import { TenantModule } from '../tenant/tenant.module';
     TemplateCopyService,
     CompanyService,
     CompanyProvisioningService,
+    CompanySetupQueryService,
+    CompanySetupCommandService,
   ],
   exports: [
     CompanyRepository,
@@ -33,6 +37,8 @@ import { TenantModule } from '../tenant/tenant.module';
     TemplateCopyService,
     CompanyService,
     CompanyProvisioningService,
+    CompanySetupQueryService,
+    CompanySetupCommandService,
   ],
 })
 export class CompanyModule {}

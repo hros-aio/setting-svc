@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -19,16 +20,19 @@ import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-ap
 import { CacheService, RequestContextService } from '@new-hros/libs-core';
 import { buildIdempotencyKey } from '../../../common/utils';
 import { CompanyResponseDto, SetupStepResponseDto } from '../dto/company-response.dto';
+import { CompanySetupProgressResponseDto } from '../dto/company-setup-progress-response.dto';
 import { CreateCompanyDto } from '../dto/create-company.dto';
 import { UpdateCompanyInformationDto } from '../dto/update-company-information.dto';
 import { CompanyEntity } from '../entities/company.entity';
 import { CompanyService } from '../services/company.service';
+import { CompanySetupQueryService } from '../services/company-setup-query.service';
 
 @Controller('companies')
 @UseGuards(AuthGuard, PermissionGuard)
 export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
+    private readonly companySetupQueryService: CompanySetupQueryService,
     @Optional() private readonly cacheService?: CacheService,
   ) {}
 
@@ -121,6 +125,25 @@ export class CompanyController {
     }
 
     return response;
+  }
+
+  @Get(':id/setup')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('company:read')
+  async getCompanySetupProgress(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ success: boolean; data: CompanySetupProgressResponseDto }> {
+    const tenantCode = RequestContextService.getTenantCode();
+    if (!tenantCode) {
+      throw new BadRequestException('Cannot determine tenant from request context');
+    }
+
+    const data = await this.companySetupQueryService.getCompanySetupProgress(tenantCode, id);
+
+    return {
+      success: true,
+      data,
+    };
   }
 
   @Put(':id/default')

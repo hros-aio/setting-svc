@@ -13,7 +13,7 @@ export interface CopyResult {
 @Injectable()
 export class TemplateCopyService {
   async copyLocalMasterData(
-    em: EntityManager,
+    entityManager: EntityManager,
     tenantId: string,
     sourceCompanyId: string,
     targetCompanyId: string,
@@ -33,7 +33,7 @@ export class TemplateCopyService {
 
     // 1. Copy Grades if selected
     if (selectedSet.has(CopyableCategory.GRADES)) {
-      const sourceGrades = await em.getRepository(GradeEntity).find({
+      const sourceGrades = await entityManager.getRepository(GradeEntity).find({
         where: {
           tenantId,
           companyId: sourceCompanyId,
@@ -47,7 +47,7 @@ export class TemplateCopyService {
             throw new ForbiddenException('Cross-tenant copy violation');
           }
 
-          const newGrade = em.getRepository(GradeEntity).create({
+          const newGrade = entityManager.getRepository(GradeEntity).create({
             tenantId,
             companyId: targetCompanyId,
             code: sourceGrade.code,
@@ -59,7 +59,7 @@ export class TemplateCopyService {
             effectiveAt: new Date(),
           });
 
-          const savedGrade = await em.getRepository(GradeEntity).save(newGrade);
+          const savedGrade = await entityManager.getRepository(GradeEntity).save(newGrade);
           gradeIdMap.set(sourceGrade.id, savedGrade.id);
           result.copiedGradesCount++;
         }
@@ -68,7 +68,7 @@ export class TemplateCopyService {
 
     // 2. Copy Job Titles if selected
     if (selectedSet.has(CopyableCategory.JOB_TITLES)) {
-      const sourceJobTitles = await em.getRepository(JobTitleEntity).find({
+      const sourceJobTitles = await entityManager.getRepository(JobTitleEntity).find({
         where: {
           tenantId,
           companyId: sourceCompanyId,
@@ -86,7 +86,7 @@ export class TemplateCopyService {
             ? gradeIdMap.get(sourceJobTitle.gradeId) || sourceJobTitle.gradeId
             : undefined;
 
-          const newJobTitle = em.getRepository(JobTitleEntity).create({
+          const newJobTitle = entityManager.getRepository(JobTitleEntity).create({
             tenantId,
             companyId: targetCompanyId,
             code: sourceJobTitle.code,
@@ -99,7 +99,7 @@ export class TemplateCopyService {
             effectiveAt: new Date(),
           });
 
-          await em.getRepository(JobTitleEntity).save(newJobTitle);
+          await entityManager.getRepository(JobTitleEntity).save(newJobTitle);
           result.copiedJobTitlesCount++;
         }
       }

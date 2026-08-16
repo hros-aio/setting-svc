@@ -95,13 +95,13 @@ export class JobTitleService {
       );
 
       // 6. Complete JOB_TITLE setup step (Step 5)
-      await this.companySetupStepRepository.markStepCompleted(
+      await this.companySetupStepRepository.markStepCompleted({
         tenantId,
         companyId,
-        SetupStepType.JOB_TITLE,
-        userId,
-        manager,
-      );
+        stepType: SetupStepType.JOB_TITLE,
+        completedBy: userId,
+        entityManager: manager,
+      });
 
       // 7. Write outbox event for scheduling
       const outboxRepo = manager.getRepository(OutboxEventEntity);
