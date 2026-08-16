@@ -22,6 +22,12 @@ export enum LocationEventType {
   LOCATION_DEACTIVATED = 'setting.location.deactivated',
 }
 
+export enum DepartmentEventType {
+  DEPARTMENT_CREATED = 'setting.department.created',
+  DEPARTMENT_UPDATED = 'setting.department.updated',
+  DEPARTMENT_DEACTIVATED = 'setting.department.deactivated',
+}
+
 export enum EventType {
   TENANT_CREATED = 'tenant.created',
   TENANT_PROVISIONED = 'tenant.provisioned',
@@ -35,4 +41,7 @@ export enum EventType {
   LOCATION_CREATED = 'setting.location.created',
   LOCATION_UPDATED = 'setting.location.updated',
   LOCATION_DEACTIVATED = 'setting.location.deactivated',
+  DEPARTMENT_CREATED = 'setting.department.created',
+  DEPARTMENT_UPDATED = 'setting.department.updated',
+  DEPARTMENT_DEACTIVATED = 'setting.department.deactivated',
 }
