@@ -15,6 +15,7 @@ import { CompanyModule } from './modules/company';
 import { LocationModule } from './modules/location';
 import { DepartmentModule } from './modules/department';
 import { GradeModule } from './modules/grade';
+import { JobTitleModule } from './modules/job-title';
 import { EffectiveChangeModule } from './modules/effective-change';
 import { KafkaModule } from './kafka/kafka.module';
 
@@ -60,6 +61,7 @@ const config = new ConfigurationService({});
     LocationModule,
     DepartmentModule,
     GradeModule,
+    JobTitleModule,
     EffectiveChangeModule,
     KafkaModule,
   ],

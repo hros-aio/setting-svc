@@ -34,6 +34,12 @@ export enum GradeEventType {
   GRADE_DEACTIVATED = 'setting.grade.deactivated',
 }
 
+export enum JobTitleEventType {
+  JOB_TITLE_CREATED = 'setting.job-title.created',
+  JOB_TITLE_UPDATED = 'setting.job-title.updated',
+  JOB_TITLE_DEACTIVATED = 'setting.job-title.deactivated',
+}
+
 export enum EventType {
   TENANT_CREATED = 'tenant.created',
   TENANT_PROVISIONED = 'tenant.provisioned',
@@ -53,4 +59,7 @@ export enum EventType {
   GRADE_CREATED = 'setting.grade.created',
   GRADE_UPDATED = 'setting.grade.updated',
   GRADE_DEACTIVATED = 'setting.grade.deactivated',
+  JOB_TITLE_CREATED = 'setting.job-title.created',
+  JOB_TITLE_UPDATED = 'setting.job-title.updated',
+  JOB_TITLE_DEACTIVATED = 'setting.job-title.deactivated',
 }
