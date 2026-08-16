@@ -13,6 +13,7 @@ import { HealthModule } from './modules/health';
 import { TenantModule } from './modules/tenant';
 import { CompanyModule } from './modules/company';
 import { LocationModule } from './modules/location';
+import { DepartmentModule } from './modules/department';
 import { EffectiveChangeModule } from './modules/effective-change';
 import { KafkaModule } from './kafka/kafka.module';
 
@@ -56,6 +57,7 @@ const config = new ConfigurationService({});
     TenantModule,
     CompanyModule,
     LocationModule,
+    DepartmentModule,
     EffectiveChangeModule,
     KafkaModule,
   ],

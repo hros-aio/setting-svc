@@ -9,6 +9,7 @@ import {
   JoinColumn,
   Unique,
   Check,
+  Index,
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
@@ -20,6 +21,9 @@ import { MasterDataStatus, TableName } from '../../../enums';
   'ck_departments_not_self_parent',
   `parent_department_id IS NULL OR parent_department_id <> id`,
 )
+@Index('idx_departments_tenant_company', ['tenantId', 'companyId'])
+@Index('idx_departments_company_status', ['companyId', 'status'])
+@Index('idx_departments_parent', ['parentDepartmentId'])
 export class DepartmentEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
