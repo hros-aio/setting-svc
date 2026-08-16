@@ -4,6 +4,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { EffectiveExecuteCommand, LocationApplyHandler } from '../handlers/location-apply.handler';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { GradeApplyHandler } from '../handlers/grade-apply.handler';
+import { JobTitleApplyHandler } from '../handlers/job-title-apply.handler';
 
 @Injectable()
 export class EffectiveChangeService {
@@ -15,6 +16,7 @@ export class EffectiveChangeService {
     private readonly locationApplyHandler: LocationApplyHandler,
     private readonly departmentApplyHandler: DepartmentApplyHandler,
     private readonly gradeApplyHandler: GradeApplyHandler,
+    private readonly jobTitleApplyHandler: JobTitleApplyHandler,
   ) {}
 
   async executeChange(command: EffectiveExecuteCommand): Promise<void> {
@@ -32,6 +34,8 @@ export class EffectiveChangeService {
         await this.departmentApplyHandler.apply(command, em);
       } else if (entityType === 'grade') {
         await this.gradeApplyHandler.apply(command, em);
+      } else if (entityType === 'job_title' || entityType === 'jobtitle') {
+        await this.jobTitleApplyHandler.apply(command, em);
       } else {
         this.logger.warn(`Handler for entity type '${command.entityType}' not yet registered`);
       }
