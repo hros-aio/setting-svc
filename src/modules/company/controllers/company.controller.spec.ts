@@ -211,4 +211,47 @@ describe('CompanyController', () => {
       );
     });
   });
+
+  describe('activateCompany', () => {
+    it('should activate company and return formatted response with status: ACTIVE', async () => {
+      const companyId = 'company-uuid-1';
+      const mockActivatedCompany: Partial<CompanyEntity> = {
+        id: companyId,
+        tenantId: 'tenant-uuid-1',
+        companyCode: 'COMP_1',
+        legalName: 'Acme Corp SG Pte Ltd',
+        displayName: 'Acme SG',
+        status: CompanyStatus.ACTIVE,
+        isTemplate: false,
+        countryCode: 'SG',
+        currencyCode: 'SGD',
+        timezone: 'Asia/Singapore',
+        activatedAt: new Date(),
+        activatedBy: 'user-uuid-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        setupSteps: [],
+      };
+
+      mockCompanyService.activateCompany = jest.fn().mockResolvedValue(mockActivatedCompany);
+
+      const result = await controller.activateCompany(companyId);
+
+      expect(result.success).toBe(true);
+      expect(result.data.status).toBe(CompanyStatus.ACTIVE);
+      expect(mockCompanyService.activateCompany).toHaveBeenCalledWith(
+        'TEST_TENANT',
+        companyId,
+        expect.objectContaining({ userId: 'user-uuid-1' }),
+      );
+    });
+
+    it('should throw BadRequestException if tenantCode is missing from request context', async () => {
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+
+      await expect(controller.activateCompany('company-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 });

@@ -23,6 +23,8 @@ import { OutboxEventEntity } from '../entities/outbox-event.entity';
 import { CopyableCategory } from '../enums/copyable-category.enum';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
+import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
+import { CompanySetupQueryService } from './company-setup-query.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 import { TemplateCopyService } from './template-copy.service';
 
@@ -36,6 +38,7 @@ export class CompanyService {
     private readonly tenantRepository: TenantRepository,
     private readonly setupStepSeederService: SetupStepSeederService,
     private readonly templateCopyService: TemplateCopyService,
+    private readonly companySetupQueryService: CompanySetupQueryService,
   ) {}
 
   private async resolveTenantId(tenantCodeOrId: string): Promise<string> {
@@ -282,6 +285,84 @@ export class CompanyService {
       );
 
       return updated;
+    });
+  }
+
+  async activateCompany(
+    tenantCodeOrId: string,
+    companyId: string,
+    authContext?: AuthContext | null,
+  ): Promise<CompanyEntity> {
+    const tenantId = await this.resolveTenantId(tenantCodeOrId);
+    const userId = authContext?.userId;
+
+    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    if (!company) {
+      throw new NotFoundException(`Company with ID '${companyId}' not found for this tenant`);
+    }
+
+    if (company.status === CompanyStatus.ACTIVE) {
+      throw new UnprocessableEntityException(
+        'Company is already in ACTIVE status and cannot be re-activated',
+      );
+    }
+
+    if (company.status !== CompanyStatus.PENDING) {
+      throw new UnprocessableEntityException('Only companies in PENDING status can be activated');
+    }
+
+    const validationResult = await this.companySetupQueryService.validateAllStepsCompleted(
+      tenantId,
+      companyId,
+    );
+
+    if (!validationResult.isEligible) {
+      throw new CompanyActivationRejectedException(validationResult.incompleteSteps);
+    }
+
+    return this.transactionService.runInTransaction(async () => {
+      const now = new Date();
+      const updateData: Partial<CompanyEntity> = {
+        status: CompanyStatus.ACTIVE,
+        activatedAt: now,
+        activatedBy: userId,
+        updatedBy: userId,
+      };
+
+      await this.companyRepository.updateCompanyInfo(
+        companyId,
+        tenantId,
+        updateData,
+        this.dataSource.manager,
+      );
+
+      // Write domain outbox event for company.activated
+      const outboxRepo = this.dataSource.getRepository(OutboxEventEntity);
+      const activatedEvent = outboxRepo.create({
+        aggregateType: AggregateType.COMPANY,
+        aggregateId: companyId,
+        eventType: CompanyEventType.COMPANY_ACTIVATED,
+        payload: {
+          companyId,
+          tenantId,
+          companyCode: company.companyCode,
+          displayName: company.displayName,
+          legalName: company.legalName,
+          status: CompanyStatus.ACTIVE,
+          activatedAt: now,
+          activatedBy: userId,
+          completedStepsCount: validationResult.totalSteps,
+        },
+        status: OutboxStatus.PENDING,
+      });
+      await outboxRepo.save(activatedEvent);
+
+      const updatedCompany = await this.companyRepository.findByIdAndTenant(
+        companyId,
+        tenantId,
+        this.dataSource.manager,
+      );
+      return updatedCompany!;
     });
   }
 }
