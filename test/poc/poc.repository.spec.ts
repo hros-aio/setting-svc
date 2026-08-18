@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
-import { MasterDataStatus } from '../../../enums';
-import { PocEntity } from '../entities/poc.entity';
-import { PocRepository } from './poc.repository';
+import { MasterDataStatus } from '../../src/enums';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
+import { PocRepository } from '../../src/modules/poc/repositories/poc.repository';
 
 describe('PocRepository', () => {
   let repository: PocRepository;

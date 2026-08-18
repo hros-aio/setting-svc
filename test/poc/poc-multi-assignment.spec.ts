@@ -1,19 +1,18 @@
 import { AuthContext } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { PocType } from '../../../enums';
-import { CompanyEntity } from '../../company/entities/company.entity';
-import { CompanySetupStepEntity } from '../../company/entities/company-setup-step.entity';
-
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
-import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
-import { CompanyRepository } from '../../company/repositories/company.repository';
-import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
-import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
-import { PocEntity } from '../entities/poc.entity';
-import { PocRepository } from '../repositories/poc.repository';
-import { PocService } from '../services/poc.service';
+import { PocType } from '../../src/enums';
+import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
+import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
+import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
+import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
+import { EmployeeReferenceRepository } from '../../src/modules/employee-reference/repositories/employee-reference.repository';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
+import { PocRepository } from '../../src/modules/poc/repositories/poc.repository';
+import { PocService } from '../../src/modules/poc/services/poc.service';
 
 describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
   let service: PocService;

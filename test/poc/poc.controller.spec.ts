@@ -1,14 +1,17 @@
 import { AuthContext } from '@new-hros/libs-core';
-import { ChangeOperation, MasterDataStatus, PocType } from '../../../enums';
-import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
-import { CreatePocDto } from '../dtos/create-poc.dto';
-import { DeactivatePocDto } from '../dtos/deactivate-poc.dto';
-import { QueryPocDto } from '../dtos/query-poc.dto';
-import { ReplacePocDto } from '../dtos/replace-poc.dto';
-import { PocEntity } from '../entities/poc.entity';
-import { ActivePocResponse, PocQueryService } from '../services/poc-query.service';
-import { PocService } from '../services/poc.service';
-import { PocController } from './poc.controller';
+import { ChangeOperation, MasterDataStatus, PocType } from '../../src/enums';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { PocController } from '../../src/modules/poc/controllers/poc.controller';
+import { CreatePocDto } from '../../src/modules/poc/dtos/create-poc.dto';
+import { DeactivatePocDto } from '../../src/modules/poc/dtos/deactivate-poc.dto';
+import { QueryPocDto } from '../../src/modules/poc/dtos/query-poc.dto';
+import { ReplacePocDto } from '../../src/modules/poc/dtos/replace-poc.dto';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
+import {
+  ActivePocResponse,
+  PocQueryService,
+} from '../../src/modules/poc/services/poc-query.service';
+import { PocService } from '../../src/modules/poc/services/poc.service';
 
 describe('PocController', () => {
   let controller: PocController;

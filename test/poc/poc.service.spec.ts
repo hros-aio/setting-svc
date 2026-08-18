@@ -8,22 +8,21 @@ import {
   MasterDataStatus,
   PocType,
   SetupStepType,
-} from '../../../enums';
-
-import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
-import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
-import { CompanyRepository } from '../../company/repositories/company.repository';
-import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
-import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
-import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
-import { CreatePocDto } from '../dtos/create-poc.dto';
-import { DeactivatePocDto } from '../dtos/deactivate-poc.dto';
-import { ReplacePocDto } from '../dtos/replace-poc.dto';
-import { PocEntity } from '../entities/poc.entity';
-import { PocRepository } from '../repositories/poc.repository';
-import { PocService } from './poc.service';
+} from '../../src/enums';
+import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
+import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
+import { EmployeeReferenceRepository } from '../../src/modules/employee-reference/repositories/employee-reference.repository';
+import { CreatePocDto } from '../../src/modules/poc/dtos/create-poc.dto';
+import { DeactivatePocDto } from '../../src/modules/poc/dtos/deactivate-poc.dto';
+import { ReplacePocDto } from '../../src/modules/poc/dtos/replace-poc.dto';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
+import { PocRepository } from '../../src/modules/poc/repositories/poc.repository';
+import { PocService } from '../../src/modules/poc/services/poc.service';
 
 describe('PocService', () => {
   let service: PocService;

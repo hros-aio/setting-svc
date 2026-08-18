@@ -1,13 +1,13 @@
 import { AuthContext } from '@new-hros/libs-core';
-import { MasterDataStatus, PocType } from '../../../enums';
-import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
-import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
-import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
-import { QueryPocDto } from '../dtos/query-poc.dto';
-import { PocEntity } from '../entities/poc.entity';
-import { PocRepository } from '../repositories/poc.repository';
-import { PocQueryService } from './poc-query.service';
+import { MasterDataStatus, PocType } from '../../src/enums';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
+import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
+import { EmployeeReferenceRepository } from '../../src/modules/employee-reference/repositories/employee-reference.repository';
+import { QueryPocDto } from '../../src/modules/poc/dtos/query-poc.dto';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
+import { PocRepository } from '../../src/modules/poc/repositories/poc.repository';
+import { PocQueryService } from '../../src/modules/poc/services/poc-query.service';
 
 describe('PocQueryService', () => {
   let service: PocQueryService;

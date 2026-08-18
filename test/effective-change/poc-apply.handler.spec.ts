@@ -5,13 +5,12 @@ import {
   MasterDataStatus,
   PocEventType,
   PocType,
-} from '../../../enums';
-
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
-import { PocEntity } from '../../poc/entities/poc.entity';
-import { EffectiveChangeEntity } from '../entities/effective-change.entity';
-import { EffectiveExecuteCommand } from './location-apply.handler';
-import { PocApplyHandler } from './poc-apply.handler';
+} from '../../src/enums';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { EffectiveExecuteCommand } from '../../src/modules/effective-change/handlers/location-apply.handler';
+import { PocApplyHandler } from '../../src/modules/effective-change/handlers/poc-apply.handler';
+import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
 
 describe('PocApplyHandler', () => {
   let handler: PocApplyHandler;
