@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SqlModule } from '@new-hros/libs-sql';
 import { OutboxEventEntity } from '../company/entities/outbox-event.entity';
 import { DepartmentEntity } from '../department/entities/department.entity';
 import { GradeEntity } from '../grade/entities/grade.entity';
@@ -28,7 +27,6 @@ import { EffectiveChangeService } from './services/effective-change.service';
       PocEntity,
       OutboxEventEntity,
     ]),
-    SqlModule,
   ],
   controllers: [EffectiveChangeConsumer],
   providers: [

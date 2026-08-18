@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { CacheService, RequestContextService } from '@new-hros/libs-core';
+import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { buildIdempotencyKey } from '../../../common/utils';
 import { CompanyResponseDto, SetupStepResponseDto } from '../dto/company-response.dto';
 import { CompanySetupProgressResponseDto } from '../dto/company-setup-progress-response.dto';
@@ -28,7 +29,7 @@ import { CompanyService } from '../services/company.service';
 import { CompanySetupQueryService } from '../services/company-setup-query.service';
 
 @Controller('companies')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
 export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,

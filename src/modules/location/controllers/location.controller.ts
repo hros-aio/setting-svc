@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
+import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateLocationDto } from '../dtos/create-location.dto';
 import { DeactivateLocationDto, QueryLocationDto } from '../dtos/query-location.dto';
@@ -21,7 +22,7 @@ import { PaginatedResult } from '../repositories/location.repository.interface';
 import { LocationService } from '../services/location.service';
 
 @Controller('locations')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 

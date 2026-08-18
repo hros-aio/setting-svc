@@ -8,6 +8,7 @@ import {
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
+import { CrossCompanyReferenceException } from '../../../common/exceptions';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -329,8 +330,8 @@ export class JobTitleService {
   ): Promise<void> {
     const department = await this.departmentRepository.findById(tenantId, companyId, departmentId);
     if (!department) {
-      throw new BadRequestException(
-        `Department with ID '${departmentId}' does not exist in target company`,
+      throw new CrossCompanyReferenceException(
+        `Referenced department with ID '${departmentId}' does not exist in target company '${companyId}'`,
       );
     }
     if (department.status !== MasterDataStatus.ACTIVE) {
@@ -343,7 +344,9 @@ export class JobTitleService {
   private async verifyGrade(tenantId: string, companyId: string, gradeId: string): Promise<void> {
     const grade = await this.gradeRepository.findById(tenantId, companyId, gradeId);
     if (!grade) {
-      throw new BadRequestException(`Grade with ID '${gradeId}' does not exist in target company`);
+      throw new CrossCompanyReferenceException(
+        `Referenced grade with ID '${gradeId}' does not exist in target company '${companyId}'`,
+      );
     }
     if (grade.status !== MasterDataStatus.ACTIVE) {
       throw new BadRequestException(
