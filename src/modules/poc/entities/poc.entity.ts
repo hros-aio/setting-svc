@@ -6,12 +6,19 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { MasterDataStatus, TableName } from '../../../enums';
 
 @Entity(TableName.POCS)
+@Index('uq_pocs_one_active_per_type', ['companyId', 'pocType'], {
+  unique: true,
+  where: `"status" != 'inactive'`,
+})
+@Index('idx_pocs_tenant_company_status', ['tenantId', 'companyId', 'status'])
+@Index('idx_pocs_employee_lookup', ['tenantId', 'employeeId'])
 export class PocEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -5,6 +5,7 @@ import { EffectiveExecuteCommand, LocationApplyHandler } from '../handlers/locat
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { GradeApplyHandler } from '../handlers/grade-apply.handler';
 import { JobTitleApplyHandler } from '../handlers/job-title-apply.handler';
+import { PocApplyHandler } from '../handlers/poc-apply.handler';
 
 @Injectable()
 export class EffectiveChangeService {
@@ -17,6 +18,7 @@ export class EffectiveChangeService {
     private readonly departmentApplyHandler: DepartmentApplyHandler,
     private readonly gradeApplyHandler: GradeApplyHandler,
     private readonly jobTitleApplyHandler: JobTitleApplyHandler,
+    private readonly pocApplyHandler: PocApplyHandler,
   ) {}
 
   async executeChange(command: EffectiveExecuteCommand): Promise<void> {
@@ -36,6 +38,8 @@ export class EffectiveChangeService {
         await this.gradeApplyHandler.apply(command, em);
       } else if (entityType === 'job_title' || entityType === 'jobtitle') {
         await this.jobTitleApplyHandler.apply(command, em);
+      } else if (entityType === 'poc') {
+        await this.pocApplyHandler.apply(command, em);
       } else {
         this.logger.warn(`Handler for entity type '${command.entityType}' not yet registered`);
       }

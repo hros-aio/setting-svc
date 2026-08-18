@@ -17,6 +17,8 @@ import { DepartmentModule } from './modules/department';
 import { GradeModule } from './modules/grade';
 import { JobTitleModule } from './modules/job-title';
 import { EffectiveChangeModule } from './modules/effective-change';
+import { EmployeeReferenceModule } from './modules/employee-reference';
+import { PocModule } from './modules/poc';
 import { KafkaModule } from './kafka/kafka.module';
 
 const config = new ConfigurationService({});
@@ -63,6 +65,8 @@ const config = new ConfigurationService({});
     GradeModule,
     JobTitleModule,
     EffectiveChangeModule,
+    EmployeeReferenceModule,
+    PocModule,
     KafkaModule,
   ],
   providers: [AppLogger],
