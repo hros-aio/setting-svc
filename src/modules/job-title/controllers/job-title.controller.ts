@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
+import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateJobTitleDto } from '../dtos/create-job-title.dto';
 import { DeactivateJobTitleDto, QueryJobTitleDto } from '../dtos/query-job-title.dto';
@@ -25,7 +26,7 @@ import {
 import { JobTitleService } from '../services/job-title.service';
 
 @Controller('job-titles')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
 export class JobTitleController {
   constructor(
     private readonly jobTitleService: JobTitleService,

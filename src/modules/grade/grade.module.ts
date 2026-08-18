@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SqlModule } from '@new-hros/libs-sql';
 import { CompanyModule } from '../company/company.module';
 import { EffectiveChangeModule } from '../effective-change/effective-change.module';
 import { GradeController } from './controllers/grade.controller';
@@ -10,12 +9,7 @@ import { GradeQueryService } from './services/grade-query.service';
 import { GradeService } from './services/grade.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([GradeEntity]),
-    SqlModule,
-    CompanyModule,
-    EffectiveChangeModule,
-  ],
+  imports: [TypeOrmModule.forFeature([GradeEntity]), CompanyModule, EffectiveChangeModule],
   controllers: [GradeController],
   providers: [GradeRepository, GradeService, GradeQueryService],
   exports: [GradeRepository],
