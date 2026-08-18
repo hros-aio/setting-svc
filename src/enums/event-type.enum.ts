@@ -41,6 +41,12 @@ export enum JobTitleEventType {
   JOB_TITLE_DEACTIVATED = 'setting.job-title.deactivated',
 }
 
+export enum PocEventType {
+  POC_ASSIGNED = 'setting.poc.assigned',
+  POC_REPLACED = 'setting.poc.replaced',
+  POC_DEACTIVATED = 'setting.poc.deactivated',
+}
+
 export enum EventType {
   TENANT_CREATED = 'tenant.created',
   TENANT_PROVISIONED = 'tenant.provisioned',
@@ -64,4 +70,7 @@ export enum EventType {
   JOB_TITLE_CREATED = 'setting.job-title.created',
   JOB_TITLE_UPDATED = 'setting.job-title.updated',
   JOB_TITLE_DEACTIVATED = 'setting.job-title.deactivated',
+  POC_ASSIGNED = 'setting.poc.assigned',
+  POC_REPLACED = 'setting.poc.replaced',
+  POC_DEACTIVATED = 'setting.poc.deactivated',
 }

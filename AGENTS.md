@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/013-company-activation/plan.md
+specs/014-poc-management/plan.md
 <!-- SPECKIT END -->
