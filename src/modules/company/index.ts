@@ -15,3 +15,4 @@ export * from './dto/update-company-information.dto';
 export * from './dto/company-response.dto';
 export * from './dto/company-setup-progress-response.dto';
 export * from './enums';
+export * from './exceptions/company-activation-rejected.exception';

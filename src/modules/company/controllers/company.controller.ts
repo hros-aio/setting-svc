@@ -170,6 +170,29 @@ export class CompanyController {
     };
   }
 
+  @Post(':id/activate')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('company:activate')
+  async activateCompany(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
+    const tenantCode = RequestContextService.getTenantCode();
+    const user = RequestContextService.getUser();
+
+    if (!tenantCode) {
+      throw new BadRequestException('Cannot determine tenant from request context');
+    }
+
+    const company = await this.companyService.activateCompany(tenantCode, id, user);
+
+    const responseDto = this.mapToCompanyResponseDto(company);
+
+    return {
+      success: true,
+      data: responseDto,
+    };
+  }
+
   private mapToCompanyResponseDto(company: CompanyEntity): CompanyResponseDto {
     const setupStepsDto: SetupStepResponseDto[] = (company.setupSteps || []).map((step) => ({
       stepType: step.stepType,
