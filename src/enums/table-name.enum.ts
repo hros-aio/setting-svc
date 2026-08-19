@@ -11,4 +11,5 @@ export enum TableName {
   EFFECTIVE_CHANGES = 'effective_changes',
   OUTBOX_EVENTS = 'outbox_events',
   CONSUMED_EVENTS = 'consumed_events',
+  EMPLOYEE_TRANSFERS = 'employee_transfers',
 }

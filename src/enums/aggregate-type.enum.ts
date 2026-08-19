@@ -7,4 +7,5 @@ export enum AggregateType {
   JOB_TITLE = 'JobTitle',
   POC = 'Poc',
   EFFECTIVE_CHANGE = 'EffectiveChange',
+  EMPLOYEE_TRANSFER = 'EmployeeTransfer',
 }

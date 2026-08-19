@@ -1,6 +1,8 @@
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
+import { ChangeOperation, EffectiveEntityType } from '../../../enums';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
+import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
 import { GradeApplyHandler } from '../handlers/grade-apply.handler';
 import { JobTitleApplyHandler } from '../handlers/job-title-apply.handler';
 import { EffectiveExecuteCommand, LocationApplyHandler } from '../handlers/location-apply.handler';
@@ -14,6 +16,7 @@ describe('EffectiveChangeService - Company Scoped Execution [US4]', () => {
   let mockGradeHandler: { apply: jest.Mock };
   let mockJobTitleHandler: { apply: jest.Mock };
   let mockPocHandler: { apply: jest.Mock };
+  let mockEmployeeTransferHandler: { apply: jest.Mock };
   let mockDataSource: { manager: unknown };
   let mockTxService: { runInTransaction: jest.Mock };
 
@@ -23,6 +26,7 @@ describe('EffectiveChangeService - Company Scoped Execution [US4]', () => {
     mockGradeHandler = { apply: jest.fn().mockResolvedValue(undefined) };
     mockJobTitleHandler = { apply: jest.fn().mockResolvedValue(undefined) };
     mockPocHandler = { apply: jest.fn().mockResolvedValue(undefined) };
+    mockEmployeeTransferHandler = { apply: jest.fn().mockResolvedValue(undefined) };
 
     mockDataSource = {
       manager: {},
@@ -40,6 +44,7 @@ describe('EffectiveChangeService - Company Scoped Execution [US4]', () => {
       mockGradeHandler as unknown as GradeApplyHandler,
       mockJobTitleHandler as unknown as JobTitleApplyHandler,
       mockPocHandler as unknown as PocApplyHandler,
+      mockEmployeeTransferHandler as unknown as EmployeeTransferApplyHandler,
     );
   });
 
@@ -48,8 +53,8 @@ describe('EffectiveChangeService - Company Scoped Execution [US4]', () => {
       changeId: 'change-1',
       tenantId: 'tenant-1',
       companyId: 'comp-A',
-      entityType: 'job_title',
-      operation: 'create',
+      entityType: EffectiveEntityType.JOB_TITLE,
+      operation: ChangeOperation.CREATE,
     };
 
     await service.executeChange(command);

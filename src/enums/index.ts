@@ -1,5 +1,7 @@
 export * from './aggregate-type.enum';
 export * from './company-status.enum';
+export * from './effective-entity-type.enum';
+export * from './employee-transfer-status.enum';
 export * from './event-type.enum';
 export * from './kafka-topic.enum';
 export * from './outbox-status.enum';

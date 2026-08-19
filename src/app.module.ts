@@ -19,6 +19,7 @@ import { JobTitleModule } from './modules/job-title';
 import { EffectiveChangeModule } from './modules/effective-change';
 import { EmployeeReferenceModule } from './modules/employee-reference';
 import { PocModule } from './modules/poc';
+import { EmployeeTransferModule } from './modules/employee-transfer';
 import { KafkaModule } from './kafka/kafka.module';
 
 const config = new ConfigurationService({});
@@ -67,6 +68,7 @@ const config = new ConfigurationService({});
     EffectiveChangeModule,
     EmployeeReferenceModule,
     PocModule,
+    EmployeeTransferModule,
     KafkaModule,
   ],
   providers: [AppLogger],
