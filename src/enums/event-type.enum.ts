@@ -47,6 +47,11 @@ export enum PocEventType {
   POC_DEACTIVATED = 'setting.poc.deactivated',
 }
 
+export enum EmployeeTransferEventType {
+  SETTING_EMPLOYEE_TRANSFER_EVENTS = 'setting.employee-transfer.events',
+  EMPLOYEE_COMPANY_TRANSFERRED = 'employee.company-transferred',
+}
+
 export enum EventType {
   TENANT_CREATED = 'tenant.created',
   TENANT_PROVISIONED = 'tenant.provisioned',
@@ -73,4 +78,6 @@ export enum EventType {
   POC_ASSIGNED = 'setting.poc.assigned',
   POC_REPLACED = 'setting.poc.replaced',
   POC_DEACTIVATED = 'setting.poc.deactivated',
+  SETTING_EMPLOYEE_TRANSFER_EVENTS = 'setting.employee-transfer.events',
+  EMPLOYEE_COMPANY_TRANSFERRED = 'employee.company-transferred',
 }
