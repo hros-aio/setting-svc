@@ -1,19 +1,19 @@
 import { ConflictException } from '@nestjs/common';
+import { CrossCompanyReferenceException } from '@new-hros/libs-apis';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
-import { CrossCompanyReferenceException } from '../../../common/exceptions';
 import { MasterDataStatus } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { DepartmentEntity } from '../../department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { GradeEntity } from '../../grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../../grade/repositories/grade.repository';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../repositories/job-title.repository';
 import { JobTitleService } from './job-title.service';
 
@@ -53,9 +53,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
     mockJobTitleRepo = {
       findByCode: jest.fn(),
       findById: jest.fn(),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'jt-1', ...data }) as JobTitleEntity),
+      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'jt-1', ...data }) as JobTitle),
     };
 
     mockDeptRepo = {
@@ -111,13 +109,13 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
       companyId: 'comp-A',
       status: MasterDataStatus.ACTIVE,
       name: 'Engineering',
-    } as DepartmentEntity);
+    } as Department);
     mockGradeRepo.findById!.mockResolvedValue({
       id: 'grade-A',
       companyId: 'comp-A',
       status: MasterDataStatus.ACTIVE,
       name: 'Level 3',
-    } as GradeEntity);
+    } as Grade);
 
     const result = await service.create(
       {
@@ -139,7 +137,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
       id: 'existing-jt',
       code: 'SR_ENG',
       companyId: 'comp-A',
-    } as JobTitleEntity);
+    } as JobTitle);
 
     await expect(
       service.create(
@@ -162,7 +160,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
       companyId: 'comp-A',
       status: MasterDataStatus.ACTIVE,
       name: 'Engineering',
-    } as DepartmentEntity);
+    } as Department);
     mockGradeRepo.findById!.mockResolvedValue(null); // Grade belongs to Company B / not found in Company A
 
     await expect(
@@ -187,7 +185,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
       companyId: 'comp-A',
       status: MasterDataStatus.ACTIVE,
       name: 'Level 3',
-    } as GradeEntity);
+    } as Grade);
 
     await expect(
       service.create(

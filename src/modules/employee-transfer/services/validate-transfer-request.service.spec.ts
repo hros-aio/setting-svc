@@ -7,15 +7,15 @@ import {
 import { CompanyStatus, MasterDataStatus } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { DepartmentEntity } from '../../department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
-import { GradeEntity } from '../../grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../../grade/repositories/grade.repository';
-import { JobTitleEntity } from '../../job-title/entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../../job-title/repositories/job-title.repository';
-import { LocationEntity } from '../../location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from '../../location/repositories/location.repository';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
 import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
@@ -206,7 +206,7 @@ describe('ValidateTransferRequestService', () => {
     mockLocationRepo.findById.mockResolvedValue({
       id: 'loc-1',
       status: MasterDataStatus.INACTIVE,
-    } as unknown as LocationEntity);
+    } as unknown as Location);
 
     await expect(
       service.validate('tenant-1', 'comp-1', 'emp-1', {
@@ -234,19 +234,19 @@ describe('ValidateTransferRequestService', () => {
     mockLocationRepo.findById.mockResolvedValue({
       id: 'loc-1',
       status: MasterDataStatus.ACTIVE,
-    } as unknown as LocationEntity);
+    } as unknown as Location);
     mockDeptRepo.findById.mockResolvedValue({
       id: 'dept-1',
       status: MasterDataStatus.ACTIVE,
-    } as unknown as DepartmentEntity);
+    } as unknown as Department);
     mockGradeRepo.findById.mockResolvedValue({
       id: 'grade-1',
       status: MasterDataStatus.ACTIVE,
-    } as unknown as GradeEntity);
+    } as unknown as Grade);
     mockJobTitleRepo.findById.mockResolvedValue({
       id: 'job-1',
       status: MasterDataStatus.ACTIVE,
-    } as unknown as JobTitleEntity);
+    } as unknown as JobTitle);
 
     const result = await service.validate('tenant-1', 'comp-1', 'emp-1', {
       companyId: 'comp-1',

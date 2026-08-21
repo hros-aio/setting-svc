@@ -1,31 +1,29 @@
 import { GradeRepository } from '../../src/modules/grade/repositories/grade.repository';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
 import { DataSource, Repository } from 'typeorm';
 
 describe('GradeRepository', () => {
   let repository: GradeRepository;
-  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<GradeEntity>>>;
+  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<Grade>>>;
 
   beforeEach(() => {
     mockTypeOrmRepo = {
       findOne: jest.fn(),
       findAndCount: jest.fn().mockResolvedValue([[], 0]),
       count: jest.fn().mockResolvedValue(0),
-      create: jest.fn().mockImplementation((dto) => dto as GradeEntity),
-      save: jest
-        .fn()
-        .mockImplementation(async (entity) => ({ id: 'grade-1', ...entity }) as GradeEntity),
+      create: jest.fn().mockImplementation((dto) => dto as Grade),
+      save: jest.fn().mockImplementation(async (entity) => ({ id: 'grade-1', ...entity }) as Grade),
     };
 
     repository = new GradeRepository(
-      mockTypeOrmRepo as unknown as Repository<GradeEntity>,
+      mockTypeOrmRepo as unknown as Repository<Grade>,
       {} as unknown as DataSource,
     );
   });
 
   it('should find grade by ID and company', async () => {
-    const mockGrade = { id: 'grade-1', name: 'L3', code: 'L3' } as GradeEntity;
+    const mockGrade = { id: 'grade-1', name: 'L3', code: 'L3' } as Grade;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
     const result = await repository.findById('tenant-1', 'comp-1', 'grade-1');
@@ -37,7 +35,7 @@ describe('GradeRepository', () => {
   });
 
   it('should find grade by code within company', async () => {
-    const mockGrade = { id: 'grade-1', code: 'L3' } as GradeEntity;
+    const mockGrade = { id: 'grade-1', code: 'L3' } as Grade;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
     const result = await repository.findByCode('tenant-1', 'comp-1', 'L3');
@@ -50,7 +48,7 @@ describe('GradeRepository', () => {
   it('should find grades using TypeORM findAndCount with pagination and search', async () => {
     const mockGrades = [
       { id: 'grade-1', code: 'L3', name: 'Senior Engineer', status: MasterDataStatus.ACTIVE },
-    ] as GradeEntity[];
+    ] as Grade[];
     (mockTypeOrmRepo.findAndCount as jest.Mock).mockResolvedValue([mockGrades, 1]);
 
     const result = await repository.find('tenant-1', 'comp-1', {

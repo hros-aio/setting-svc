@@ -9,10 +9,10 @@ import {
   Index,
 } from 'typeorm';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { DepartmentEntity } from '../../department/entities/department.entity';
-import { GradeEntity } from '../../grade/entities/grade.entity';
-import { JobTitleEntity } from '../../job-title/entities/job-title.entity';
-import { LocationEntity } from '../../location/entities/location.entity';
+import { Department } from '@new-hros/libs-sql';
+import { Grade } from '@new-hros/libs-sql';
+import { JobTitle } from '@new-hros/libs-sql';
+import { Location } from '@new-hros/libs-sql';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { EmployeeTransferStatus, TableName } from '../../../enums';
 
@@ -52,30 +52,30 @@ export class EmployeeTransferEntity {
   @Column({ type: 'uuid', nullable: true, name: 'destination_location_id' })
   destinationLocationId?: string;
 
-  @ManyToOne(() => LocationEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @ManyToOne(() => Location, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'destination_location_id' })
-  destinationLocation?: LocationEntity;
+  destinationLocation?: Location;
 
   @Column({ type: 'uuid', nullable: true, name: 'destination_department_id' })
   destinationDepartmentId?: string;
 
-  @ManyToOne(() => DepartmentEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'destination_department_id' })
-  destinationDepartment?: DepartmentEntity;
+  destinationDepartment?: Department;
 
   @Column({ type: 'uuid', nullable: true, name: 'destination_grade_id' })
   destinationGradeId?: string;
 
-  @ManyToOne(() => GradeEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @ManyToOne(() => Grade, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'destination_grade_id' })
-  destinationGrade?: GradeEntity;
+  destinationGrade?: Grade;
 
   @Column({ type: 'uuid', nullable: true, name: 'destination_job_title_id' })
   destinationJobTitleId?: string;
 
-  @ManyToOne(() => JobTitleEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @ManyToOne(() => JobTitle, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'destination_job_title_id' })
-  destinationJobTitle?: JobTitleEntity;
+  destinationJobTitle?: JobTitle;
 
   @Column({
     type: 'varchar',

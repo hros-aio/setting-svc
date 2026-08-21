@@ -4,9 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
 } from 'typeorm';
-import { CompanyEntity } from '../../company/entities/company.entity';
 import { TableName } from '../../../enums';
 
 @Entity(TableName.TENANTS)
@@ -39,7 +37,4 @@ export class TenantEntity {
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
-
-  @OneToMany(() => CompanyEntity, (company) => company.tenant)
-  companies: CompanyEntity[];
 }

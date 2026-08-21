@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { LocationEntity } from '../../location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import {
@@ -44,7 +44,7 @@ export class LocationApplyHandler {
   }
 
   private async applyCreate(command: EffectiveExecuteCommand, em: EntityManager): Promise<void> {
-    const locationRepo = em.getRepository(LocationEntity);
+    const locationRepo = em.getRepository(Location);
     const location = await locationRepo.findOne({
       where: {
         id: command.changeId,
@@ -114,7 +114,7 @@ export class LocationApplyHandler {
       return;
     }
 
-    const locationRepo = em.getRepository(LocationEntity);
+    const locationRepo = em.getRepository(Location);
     const location = await locationRepo.findOne({
       where: {
         id: change.entityId,
@@ -182,7 +182,7 @@ export class LocationApplyHandler {
       return;
     }
 
-    const locationRepo = em.getRepository(LocationEntity);
+    const locationRepo = em.getRepository(Location);
     const location = await locationRepo.findOne({
       where: {
         id: change.entityId,

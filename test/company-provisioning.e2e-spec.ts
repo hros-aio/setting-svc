@@ -75,7 +75,10 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
     createAndSave: jest
       .fn()
       .mockImplementation(async (data: Partial<CompanyEntity>): Promise<CompanyEntity> => {
-        const record = { id: `company-pk-${mockDb.companies.size + 1}`, ...data } as CompanyEntity;
+        const record = {
+          id: `company-pk-${mockDb.companies.size + 1}`,
+          ...data,
+        } as CompanyEntity;
         mockDb.companies.set(record.id, record);
         return record;
       }),

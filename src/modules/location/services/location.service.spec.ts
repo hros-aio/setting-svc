@@ -6,7 +6,7 @@ import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { LocationEntity } from '../entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from '../repositories/location.repository';
 import { LocationService } from './location.service';
 
@@ -44,9 +44,7 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     mockLocationRepo = {
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'loc-1', ...data }) as LocationEntity),
+      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'loc-1', ...data }) as Location),
     };
 
     mockCompanyRepo = {

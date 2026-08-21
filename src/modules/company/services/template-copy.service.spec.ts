@@ -1,16 +1,16 @@
 import { ForbiddenException } from '@nestjs/common';
 import { EntityManager, Repository } from 'typeorm';
 import { TemplateCopyService } from './template-copy.service';
-import { GradeEntity } from '../../grade/entities/grade.entity';
-import { JobTitleEntity } from '../../job-title/entities/job-title.entity';
+import { Grade } from '@new-hros/libs-sql';
+import { JobTitle } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 import { CopyableCategory } from '../enums/copyable-category.enum';
 
 describe('TemplateCopyService', () => {
   let service: TemplateCopyService;
   let mockEntityManager: jest.Mocked<Partial<EntityManager>>;
-  let mockGradeRepo: jest.Mocked<Partial<Repository<GradeEntity>>>;
-  let mockJobTitleRepo: jest.Mocked<Partial<Repository<JobTitleEntity>>>;
+  let mockGradeRepo: jest.Mocked<Partial<Repository<Grade>>>;
+  let mockJobTitleRepo: jest.Mocked<Partial<Repository<JobTitle>>>;
 
   beforeEach(() => {
     mockGradeRepo = {
@@ -27,9 +27,9 @@ describe('TemplateCopyService', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target) => {
-        if (target === GradeEntity) return mockGradeRepo;
-        if (target === JobTitleEntity) return mockJobTitleRepo;
-        return {} as unknown as Repository<GradeEntity>;
+        if (target === Grade) return mockGradeRepo;
+        if (target === JobTitle) return mockJobTitleRepo;
+        return {} as unknown as Repository<Grade>;
       }),
     };
 
@@ -41,7 +41,7 @@ describe('TemplateCopyService', () => {
     const sourceCompanyId = 'source-comp-1';
     const targetCompanyId = 'target-comp-1';
 
-    const sourceGrades: Partial<GradeEntity>[] = [
+    const sourceGrades: Partial<Grade>[] = [
       {
         id: 'old-grade-1',
         tenantId,
@@ -52,7 +52,7 @@ describe('TemplateCopyService', () => {
       },
     ];
 
-    const sourceJobTitles: Partial<JobTitleEntity>[] = [
+    const sourceJobTitles: Partial<JobTitle>[] = [
       {
         id: 'old-jt-1',
         tenantId,
@@ -64,8 +64,8 @@ describe('TemplateCopyService', () => {
       },
     ];
 
-    (mockGradeRepo.find as jest.Mock).mockResolvedValue(sourceGrades as GradeEntity[]);
-    (mockJobTitleRepo.find as jest.Mock).mockResolvedValue(sourceJobTitles as JobTitleEntity[]);
+    (mockGradeRepo.find as jest.Mock).mockResolvedValue(sourceGrades as Grade[]);
+    (mockJobTitleRepo.find as jest.Mock).mockResolvedValue(sourceJobTitles as JobTitle[]);
 
     const result = await service.copyLocalMasterData(
       mockEntityManager as unknown as EntityManager,
@@ -101,7 +101,7 @@ describe('TemplateCopyService', () => {
     const sourceCompanyId = 'source-comp-1';
     const targetCompanyId = 'target-comp-1';
 
-    const maliciousGrades: Partial<GradeEntity>[] = [
+    const maliciousGrades: Partial<Grade>[] = [
       {
         id: 'old-grade-1',
         tenantId: 'other-tenant',
@@ -112,7 +112,7 @@ describe('TemplateCopyService', () => {
       },
     ];
 
-    (mockGradeRepo.find as jest.Mock).mockResolvedValue(maliciousGrades as GradeEntity[]);
+    (mockGradeRepo.find as jest.Mock).mockResolvedValue(maliciousGrades as Grade[]);
 
     await expect(
       service.copyLocalMasterData(

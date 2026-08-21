@@ -16,9 +16,14 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import {
+  AuthGuard,
+  CompanyScopeGuard,
+  PermissionGuard,
+  RequirePermission,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 import { CacheService, RequestContextService } from '@new-hros/libs-core';
-import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { buildIdempotencyKey } from '../../../common/utils';
 import { CompanyResponseDto, SetupStepResponseDto } from '../dto/company-response.dto';
 import { CompanySetupProgressResponseDto } from '../dto/company-setup-progress-response.dto';
@@ -207,23 +212,23 @@ export class CompanyController {
 
     return {
       id: company.id,
-      tenantId: company.tenantId,
+      tenantId: company.tenantId!,
       companyCode: company.companyCode,
       legalName: company.legalName,
-      displayName: company.displayName,
+      displayName: company.displayName ?? undefined,
       status: company.status,
       isTemplate: company.isTemplate,
-      registrationNumber: company.registrationNumber,
-      taxRegistrationNumber: company.taxRegistrationNumber,
-      countryCode: company.countryCode,
-      currencyCode: company.currencyCode,
+      registrationNumber: company.registrationNumber ?? undefined,
+      taxRegistrationNumber: company.taxRegistrationNumber ?? undefined,
+      countryCode: company.countryCode ?? undefined,
+      currencyCode: company.currencyCode ?? undefined,
       timezone: company.timezone,
-      locale: company.locale,
-      legalAddress: company.legalAddress,
-      informationCompletedAt: company.informationCompletedAt,
-      informationCompletedBy: company.informationCompletedBy,
-      activatedAt: company.activatedAt,
-      activatedBy: company.activatedBy,
+      locale: company.locale ?? undefined,
+      legalAddress: company.legalAddress ?? undefined,
+      informationCompletedAt: company.informationCompletedAt ?? undefined,
+      informationCompletedBy: company.informationCompletedBy ?? undefined,
+      activatedAt: company.activatedAt ?? undefined,
+      activatedBy: company.activatedBy ?? undefined,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
       setupSteps: setupStepsDto,

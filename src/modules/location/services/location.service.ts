@@ -26,7 +26,7 @@ import { EffectiveChangeRepository } from '../../effective-change/repositories/e
 import { CreateLocationDto } from '../dtos/create-location.dto';
 import { DeactivateLocationDto, QueryLocationDto } from '../dtos/query-location.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
-import { LocationEntity } from '../entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from '../repositories/location.repository';
 import { PaginatedResult } from '../repositories/location.repository.interface';
 
@@ -43,7 +43,7 @@ export class LocationService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(dto: CreateLocationDto, authContext?: AuthContext | null): Promise<LocationEntity> {
+  async create(dto: CreateLocationDto, authContext?: AuthContext | null): Promise<Location> {
     const userId = authContext?.userId;
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
@@ -124,7 +124,7 @@ export class LocationService {
   async findActiveLocations(
     query?: QueryLocationDto,
     authContext?: AuthContext | null,
-  ): Promise<PaginatedResult<LocationEntity>> {
+  ): Promise<PaginatedResult<Location>> {
     const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
     const companyId = RequestContextService.current()?.companyId;
 
@@ -153,7 +153,7 @@ export class LocationService {
     });
   }
 
-  async findById(id: string, authContext?: AuthContext | null): Promise<LocationEntity> {
+  async findById(id: string, authContext?: AuthContext | null): Promise<Location> {
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
     const location = await this.locationRepository.findById(tenantId, companyId, id);
@@ -167,7 +167,7 @@ export class LocationService {
     locationId: string,
     dto: UpdateLocationDto,
     authContext?: AuthContext | null,
-  ): Promise<LocationEntity> {
+  ): Promise<Location> {
     const userId = authContext?.userId;
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
@@ -367,7 +367,7 @@ export class LocationService {
     companyId: string,
     locationId: string,
     action: 'updates' | 'deactivation' = 'updates',
-  ): Promise<LocationEntity> {
+  ): Promise<Location> {
     const location = await this.locationRepository.findById(tenantId, companyId, locationId);
     if (!location) {
       throw new NotFoundException(`Location with ID '${locationId}' not found`);

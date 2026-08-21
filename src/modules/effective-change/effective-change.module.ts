@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OutboxEventEntity } from '../company/entities/outbox-event.entity';
-import { DepartmentEntity } from '../department/entities/department.entity';
-import { GradeEntity } from '../grade/entities/grade.entity';
-import { JobTitleEntity } from '../job-title/entities/job-title.entity';
-import { LocationEntity } from '../location/entities/location.entity';
+import { Department } from '@new-hros/libs-sql';
+import { Grade } from '@new-hros/libs-sql';
+import { JobTitle } from '@new-hros/libs-sql';
+import { Location } from '@new-hros/libs-sql';
 import { PocEntity } from '../poc/entities/poc.entity';
 import { EmployeeTransferEntity } from '../employee-transfer/entities/employee-transfer.entity';
 import { EffectiveChangeConsumer } from './consumers/effective-change.consumer';
@@ -22,10 +22,10 @@ import { EffectiveChangeService } from './services/effective-change.service';
   imports: [
     TypeOrmModule.forFeature([
       EffectiveChangeEntity,
-      LocationEntity,
-      DepartmentEntity,
-      GradeEntity,
-      JobTitleEntity,
+      Location,
+      Department,
+      Grade,
+      JobTitle,
       PocEntity,
       EmployeeTransferEntity,
       OutboxEventEntity,

@@ -9,7 +9,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { LocationEntity } from '../../src/modules/location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -48,9 +48,7 @@ describe('LocationService - Create Location [US1]', () => {
       findByCode: jest.fn(),
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn(),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'loc-1', ...data }) as LocationEntity),
+      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'loc-1', ...data }) as Location),
     };
 
     mockCompanyRepo = {

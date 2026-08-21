@@ -1,25 +1,25 @@
 import { JobTitleRepository } from '../../src/modules/job-title/repositories/job-title.repository';
-import { JobTitleEntity } from '../../src/modules/job-title/entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
 import { DataSource, Repository } from 'typeorm';
 
 describe('JobTitleRepository', () => {
   let repository: JobTitleRepository;
-  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<JobTitleEntity>>>;
+  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<JobTitle>>>;
 
   beforeEach(() => {
     mockTypeOrmRepo = {
       findOne: jest.fn(),
       findAndCount: jest.fn().mockResolvedValue([[], 0]),
       count: jest.fn().mockResolvedValue(0),
-      create: jest.fn().mockImplementation((dto) => dto as JobTitleEntity),
+      create: jest.fn().mockImplementation((dto) => dto as JobTitle),
       save: jest
         .fn()
-        .mockImplementation(async (entity) => ({ id: 'job-title-1', ...entity }) as JobTitleEntity),
+        .mockImplementation(async (entity) => ({ id: 'job-title-1', ...entity }) as JobTitle),
     };
 
     repository = new JobTitleRepository(
-      mockTypeOrmRepo as unknown as Repository<JobTitleEntity>,
+      mockTypeOrmRepo as unknown as Repository<JobTitle>,
       {} as unknown as DataSource,
     );
   });
@@ -29,7 +29,7 @@ describe('JobTitleRepository', () => {
       id: 'job-title-1',
       name: 'Software Engineer',
       code: 'SWE',
-    } as JobTitleEntity;
+    } as JobTitle;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
     const result = await repository.findById('tenant-1', 'comp-1', 'job-title-1');
@@ -41,7 +41,7 @@ describe('JobTitleRepository', () => {
   });
 
   it('should find job title by code within company', async () => {
-    const mockJobTitle = { id: 'job-title-1', code: 'SWE' } as JobTitleEntity;
+    const mockJobTitle = { id: 'job-title-1', code: 'SWE' } as JobTitle;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
     const result = await repository.findByCode('tenant-1', 'comp-1', 'SWE');
@@ -62,7 +62,7 @@ describe('JobTitleRepository', () => {
         gradeId: 'grade-1',
         status: MasterDataStatus.ACTIVE,
       },
-    ] as JobTitleEntity[];
+    ] as JobTitle[];
     (mockTypeOrmRepo.findAndCount as jest.Mock).mockResolvedValue([mockJobTitles, 1]);
 
     const result = await repository.find('tenant-1', 'comp-1', {

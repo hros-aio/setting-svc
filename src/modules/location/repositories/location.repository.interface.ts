@@ -1,5 +1,5 @@
 import { EntityManager } from 'typeorm';
-import { LocationEntity } from '../entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
 export interface PaginationOptions {
@@ -24,28 +24,28 @@ export interface ILocationRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity | null>;
+  ): Promise<Location | null>;
 
   findByCode(
     tenantId: string,
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity | null>;
+  ): Promise<Location | null>;
 
   findActiveLocations(
     tenantId: string,
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<LocationEntity>>;
+  ): Promise<PaginatedResult<Location>>;
 
   findAllLocations(
     tenantId: string,
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<LocationEntity>>;
+  ): Promise<PaginatedResult<Location>>;
 
   hasActiveLocations(
     tenantId: string,
@@ -66,10 +66,7 @@ export interface ILocationRepository {
     manager?: EntityManager,
   ): Promise<boolean>;
 
-  createAndSave(
-    locationData: Partial<LocationEntity>,
-    manager?: EntityManager,
-  ): Promise<LocationEntity>;
+  createAndSave(locationData: Partial<Location>, manager?: EntityManager): Promise<Location>;
 
   updateStatus(
     tenantId: string,
@@ -78,16 +75,16 @@ export interface ILocationRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity>;
+  ): Promise<Location>;
 
   updateFields(
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<LocationEntity>,
+    fields: Partial<Location>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity>;
+  ): Promise<Location>;
 
-  save(location: LocationEntity, manager?: EntityManager): Promise<LocationEntity>;
+  save(location: Location, manager?: EntityManager): Promise<Location>;
 }

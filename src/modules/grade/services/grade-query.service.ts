@@ -3,11 +3,11 @@ import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { EffectiveChangeStatus } from '../../../enums';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { QueryGradeDto } from '../dtos/query-grade.dto';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../repositories/grade.repository';
 import { PaginatedResult } from '../repositories/grade.repository.interface';
 
-export interface GradeWithPendingChange extends GradeEntity {
+export interface GradeWithPendingChange extends Grade {
   pendingChange?: {
     changeId: string;
     action: string;
@@ -29,7 +29,7 @@ export class GradeQueryService {
   async find(
     query?: QueryGradeDto,
     authContext?: AuthContext | null,
-  ): Promise<PaginatedResult<GradeEntity>> {
+  ): Promise<PaginatedResult<Grade>> {
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;

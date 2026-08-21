@@ -1,4 +1,4 @@
-export * from './entities/grade.entity';
+export { Grade } from '@new-hros/libs-sql';
 export * from './repositories/grade.repository.interface';
 export * from './repositories/grade.repository';
 export * from './services/grade.service';

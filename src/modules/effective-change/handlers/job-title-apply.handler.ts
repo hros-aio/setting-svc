@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { JobTitleEntity } from '../../job-title/entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import {
@@ -37,7 +37,7 @@ export class JobTitleApplyHandler {
   }
 
   private async applyCreate(command: EffectiveExecuteCommand, em: EntityManager): Promise<void> {
-    const jobTitleRepo = em.getRepository(JobTitleEntity);
+    const jobTitleRepo = em.getRepository(JobTitle);
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: command.changeId,
@@ -107,7 +107,7 @@ export class JobTitleApplyHandler {
       return;
     }
 
-    const jobTitleRepo = em.getRepository(JobTitleEntity);
+    const jobTitleRepo = em.getRepository(JobTitle);
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: change.entityId,
@@ -199,7 +199,7 @@ export class JobTitleApplyHandler {
       return;
     }
 
-    const jobTitleRepo = em.getRepository(JobTitleEntity);
+    const jobTitleRepo = em.getRepository(JobTitle);
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: change.entityId,

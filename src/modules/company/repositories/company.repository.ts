@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { CompanyEntity } from '../entities/company.entity';
+import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 
 @Injectable()
 export class CompanyRepository extends Repository<CompanyEntity> {
@@ -9,16 +10,31 @@ export class CompanyRepository extends Repository<CompanyEntity> {
     super(CompanyEntity, dataSource.createEntityManager());
   }
 
+  private async findOneWithSetupSteps(
+    id: string,
+    tenantId: string,
+    manager?: EntityManager,
+  ): Promise<CompanyEntity | null> {
+    const companyRepo = manager ? manager.getRepository(CompanyEntity) : this;
+    const company = await companyRepo.findOne({ where: { id, tenantId } });
+    if (!company) {
+      return null;
+    }
+
+    const setupStepRepo = (manager ?? this.manager).getRepository(CompanySetupStepEntity);
+    company.setupSteps = await setupStepRepo.find({
+      where: { companyId: id, tenantId },
+      order: { stepOrder: 'ASC' },
+    });
+    return company;
+  }
+
   async findByIdAndTenant(
     id: string,
     tenantId: string,
     manager?: EntityManager,
   ): Promise<CompanyEntity | null> {
-    const repo = manager ? manager.getRepository(CompanyEntity) : this;
-    return repo.findOne({
-      where: { id, tenantId },
-      relations: ['setupSteps'],
-    });
+    return this.findOneWithSetupSteps(id, tenantId, manager);
   }
 
   async findTemplateCompanyByTenantId(
@@ -64,10 +80,7 @@ export class CompanyRepository extends Repository<CompanyEntity> {
       { id, tenantId },
       updateData as unknown as QueryDeepPartialEntity<CompanyEntity>,
     );
-    const updated = await repo.findOne({
-      where: { id, tenantId },
-      relations: ['setupSteps'],
-    });
+    const updated = await this.findOneWithSetupSteps(id, tenantId, manager);
     return updated!;
   }
 
@@ -94,10 +107,7 @@ export class CompanyRepository extends Repository<CompanyEntity> {
       updateData.updatedBy = userId;
     }
     await repo.update({ id: companyId, tenantId }, updateData);
-    const updated = await repo.findOne({
-      where: { id: companyId, tenantId },
-      relations: ['setupSteps'],
-    });
+    const updated = await this.findOneWithSetupSteps(companyId, tenantId, manager);
     return updated!;
   }
 }

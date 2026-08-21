@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { JobTitleQueryService } from '../../src/modules/job-title/services/job-title-query.service';
 import { JobTitleRepository } from '../../src/modules/job-title/repositories/job-title.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
-import { JobTitleEntity } from '../../src/modules/job-title/entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { ChangeOperation, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
@@ -38,7 +38,7 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
             status: MasterDataStatus.ACTIVE,
             departmentId: 'dept-1',
             gradeId: 'grade-1',
-          } as JobTitleEntity,
+          } as JobTitle,
         ],
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       }),
@@ -103,7 +103,7 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
       code: 'SWE',
       name: 'Software Engineer',
       status: MasterDataStatus.ACTIVE,
-    } as JobTitleEntity;
+    } as JobTitle;
 
     const mockPending = {
       id: 'change-1',

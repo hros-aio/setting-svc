@@ -9,7 +9,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -49,7 +49,7 @@ describe('DepartmentService - Create Department [US1]', () => {
       findById: jest.fn(),
       createAndSave: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as DepartmentEntity),
+        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as Department),
     };
 
     mockCompanyRepo = {
@@ -110,7 +110,7 @@ describe('DepartmentService - Create Department [US1]', () => {
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     (mockDepartmentRepo.findByCode as jest.Mock).mockResolvedValue({
       id: 'existing-dept',
-    } as DepartmentEntity);
+    } as Department);
 
     await expect(
       service.create(
@@ -146,7 +146,7 @@ describe('DepartmentService - Create Department [US1]', () => {
     (mockDepartmentRepo.findById as jest.Mock).mockResolvedValue({
       id: 'parent-dept',
       status: MasterDataStatus.INACTIVE,
-    } as DepartmentEntity);
+    } as Department);
 
     await expect(
       service.create(
@@ -166,7 +166,7 @@ describe('DepartmentService - Create Department [US1]', () => {
     (mockDepartmentRepo.findById as jest.Mock).mockResolvedValue({
       id: 'parent-dept',
       status: MasterDataStatus.ACTIVE,
-    } as DepartmentEntity);
+    } as Department);
 
     const result = await service.create(
       {

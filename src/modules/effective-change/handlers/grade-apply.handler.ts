@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { GradeEntity } from '../../grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import {
@@ -35,7 +35,7 @@ export class GradeApplyHandler {
   }
 
   private async applyCreate(command: EffectiveExecuteCommand, em: EntityManager): Promise<void> {
-    const gradeRepo = em.getRepository(GradeEntity);
+    const gradeRepo = em.getRepository(Grade);
     const grade = await gradeRepo.findOne({
       where: {
         id: command.changeId,
@@ -104,7 +104,7 @@ export class GradeApplyHandler {
       return;
     }
 
-    const gradeRepo = em.getRepository(GradeEntity);
+    const gradeRepo = em.getRepository(Grade);
     const grade = await gradeRepo.findOne({
       where: {
         id: change.entityId,
@@ -181,7 +181,7 @@ export class GradeApplyHandler {
       return;
     }
 
-    const gradeRepo = em.getRepository(GradeEntity);
+    const gradeRepo = em.getRepository(Grade);
     const grade = await gradeRepo.findOne({
       where: {
         id: change.entityId,

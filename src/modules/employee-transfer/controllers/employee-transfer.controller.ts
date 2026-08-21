@@ -10,9 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import {
+  AuthGuard,
+  CurrentUser,
+  PermissionGuard,
+  RequirePermission,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TenantScopeGuard } from '../../../common/guards';
 import { InitiateEmployeeTransferDto } from '../dtos/initiate-employee-transfer.dto';
 import {
   QueryEmployeeTransferDto,

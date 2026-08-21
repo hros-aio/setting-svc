@@ -1,4 +1,4 @@
-export * from './entities/job-title.entity';
+export { JobTitle } from '@new-hros/libs-sql';
 export * from './repositories/job-title.repository.interface';
 export * from './repositories/job-title.repository';
 export * from './services/job-title.service';

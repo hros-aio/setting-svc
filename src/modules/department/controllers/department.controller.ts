@@ -10,14 +10,20 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import {
+  AuthGuard,
+  CompanyScopeGuard,
+  CurrentUser,
+  PermissionGuard,
+  RequirePermission,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
-import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
 import { DeactivateDepartmentDto, QueryDepartmentDto } from '../dtos/query-department.dto';
 import { UpdateDepartmentDto } from '../dtos/update-department.dto';
-import { DepartmentEntity } from '../entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import {
   DepartmentTreeNode,
   PaginatedResult,
@@ -35,7 +41,7 @@ export class DepartmentController {
   async create(
     @Body() dto: CreateDepartmentDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     return this.departmentService.create(dto, authContext);
   }
 
@@ -44,7 +50,7 @@ export class DepartmentController {
   async findActiveDepartments(
     @Query() query: QueryDepartmentDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<PaginatedResult<DepartmentEntity> | DepartmentTreeNode[]> {
+  ): Promise<PaginatedResult<Department> | DepartmentTreeNode[]> {
     return this.departmentService.findActiveDepartments(query, authContext);
   }
 
@@ -53,7 +59,7 @@ export class DepartmentController {
   async findById(
     @Param('id') id: string,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     return this.departmentService.findById(id, authContext);
   }
 

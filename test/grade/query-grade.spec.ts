@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { GradeQueryService } from '../../src/modules/grade/services/grade-query.service';
 import { GradeRepository } from '../../src/modules/grade/repositories/grade.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { ChangeOperation, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
@@ -31,7 +31,7 @@ describe('GradeQueryService - Query Grades [US2]', () => {
 
     mockGradeRepo = {
       find: jest.fn().mockResolvedValue({
-        data: [{ id: 'grade-1', code: 'L3', status: MasterDataStatus.ACTIVE } as GradeEntity],
+        data: [{ id: 'grade-1', code: 'L3', status: MasterDataStatus.ACTIVE } as Grade],
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       }),
       findById: jest.fn(),
@@ -88,7 +88,7 @@ describe('GradeQueryService - Query Grades [US2]', () => {
       code: 'L3',
       name: 'Senior Software Engineer',
       status: MasterDataStatus.ACTIVE,
-    } as GradeEntity;
+    } as Grade;
 
     const mockPending = {
       id: 'change-1',

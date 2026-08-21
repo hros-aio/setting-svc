@@ -8,7 +8,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
-import { LocationEntity } from '../../src/modules/location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
@@ -60,7 +60,7 @@ describe('LocationService - Deactivate Location [US4]', () => {
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
         updatedAt: new Date('2026-08-16T00:00:00Z'),
-      } as LocationEntity),
+      } as Location),
     };
 
     mockCompanyRepo = {
@@ -104,7 +104,7 @@ describe('LocationService - Deactivate Location [US4]', () => {
     (mockLocationRepo.findById as jest.Mock).mockResolvedValue({
       id: 'loc-1',
       status: MasterDataStatus.INACTIVE,
-    } as LocationEntity);
+    } as Location);
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(

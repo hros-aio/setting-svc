@@ -1,5 +1,5 @@
 import { EntityManager } from 'typeorm';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
 export interface PaginationOptions {
@@ -25,21 +25,21 @@ export interface IGradeRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity | null>;
+  ): Promise<Grade | null>;
 
   findByCode(
     tenantId: string,
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity | null>;
+  ): Promise<Grade | null>;
 
   find(
     tenantId: string,
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<GradeEntity>>;
+  ): Promise<PaginatedResult<Grade>>;
 
   hasActiveOrScheduled(
     tenantId: string,
@@ -53,7 +53,7 @@ export interface IGradeRepository {
     manager?: EntityManager,
   ): Promise<number>;
 
-  createAndSave(gradeData: Partial<GradeEntity>, manager?: EntityManager): Promise<GradeEntity>;
+  createAndSave(gradeData: Partial<Grade>, manager?: EntityManager): Promise<Grade>;
 
   updateStatus(
     tenantId: string,
@@ -62,16 +62,16 @@ export interface IGradeRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity>;
+  ): Promise<Grade>;
 
   updateFields(
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<GradeEntity>,
+    fields: Partial<Grade>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity>;
+  ): Promise<Grade>;
 
-  save(grade: GradeEntity, manager?: EntityManager): Promise<GradeEntity>;
+  save(grade: Grade, manager?: EntityManager): Promise<Grade>;
 }

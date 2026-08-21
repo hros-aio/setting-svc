@@ -1,5 +1,5 @@
 import { JobTitleApplyHandler } from '../../src/modules/effective-change/handlers/job-title-apply.handler';
-import { JobTitleEntity } from '../../src/modules/job-title/entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { EffectiveChangeStatus, JobTitleEventType, MasterDataStatus } from '../../src/enums';
@@ -7,7 +7,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 
 describe('JobTitleApplyHandler [US5]', () => {
   let handler: JobTitleApplyHandler;
-  let mockJobTitleRepo: jest.Mocked<Partial<Repository<JobTitleEntity>>>;
+  let mockJobTitleRepo: jest.Mocked<Partial<Repository<JobTitle>>>;
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEntityManager: jest.Mocked<Partial<EntityManager>>;
@@ -30,7 +30,7 @@ describe('JobTitleApplyHandler [US5]', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((entityClass) => {
-        if (entityClass === JobTitleEntity) return mockJobTitleRepo;
+        if (entityClass === JobTitle) return mockJobTitleRepo;
         if (entityClass === EffectiveChangeEntity) return mockChangeRepo;
         if (entityClass === OutboxEventEntity) return mockOutboxRepo;
         return null;
@@ -54,7 +54,7 @@ describe('JobTitleApplyHandler [US5]', () => {
         gradeId: 'grade-1',
         status: MasterDataStatus.SCHEDULED,
         effectiveAt: new Date('2026-08-20T00:00:00.000Z'),
-      } as JobTitleEntity;
+      } as JobTitle;
 
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
@@ -83,7 +83,7 @@ describe('JobTitleApplyHandler [US5]', () => {
       const mockJobTitle = {
         id: 'job-title-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitleEntity;
+      } as JobTitle;
 
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
@@ -124,7 +124,7 @@ describe('JobTitleApplyHandler [US5]', () => {
         name: 'Software Engineer',
         gradeId: 'grade-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitleEntity;
+      } as JobTitle;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
@@ -168,7 +168,7 @@ describe('JobTitleApplyHandler [US5]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitleEntity;
+      } as JobTitle;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);

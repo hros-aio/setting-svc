@@ -10,14 +10,20 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import {
+  AuthGuard,
+  CompanyScopeGuard,
+  CurrentUser,
+  PermissionGuard,
+  RequirePermission,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
-import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateGradeDto } from '../dtos/create-grade.dto';
 import { DeactivateGradeDto, QueryGradeDto } from '../dtos/query-grade.dto';
 import { UpdateGradeDto } from '../dtos/update-grade.dto';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { PaginatedResult } from '../repositories/grade.repository.interface';
 import { GradeQueryService, GradeWithPendingChange } from '../services/grade-query.service';
 import { GradeService } from '../services/grade.service';
@@ -36,7 +42,7 @@ export class GradeController {
   async create(
     @Body() dto: CreateGradeDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<GradeEntity> {
+  ): Promise<Grade> {
     return this.gradeService.create(dto, authContext);
   }
 
@@ -45,7 +51,7 @@ export class GradeController {
   async findAll(
     @Query() query: QueryGradeDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<PaginatedResult<GradeEntity>> {
+  ): Promise<PaginatedResult<Grade>> {
     return this.gradeQueryService.find(query, authContext);
   }
 
