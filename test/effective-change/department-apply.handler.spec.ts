@@ -1,5 +1,5 @@
 import { DepartmentApplyHandler } from '../../src/modules/effective-change/handlers/department-apply.handler';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { DepartmentEventType, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -7,7 +7,7 @@ import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-eve
 
 describe('DepartmentApplyHandler [US5]', () => {
   let handler: DepartmentApplyHandler;
-  let mockDepartmentRepo: jest.Mocked<Partial<Repository<DepartmentEntity>>>;
+  let mockDepartmentRepo: jest.Mocked<Partial<Repository<Department>>>;
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEm: jest.Mocked<Partial<EntityManager>>;
@@ -21,7 +21,7 @@ describe('DepartmentApplyHandler [US5]', () => {
 
     mockDepartmentRepo = {
       findOne: jest.fn(),
-      save: jest.fn().mockImplementation(async (dept) => dept as DepartmentEntity),
+      save: jest.fn().mockImplementation(async (dept) => dept as Department),
     };
 
     mockChangeRepo = {
@@ -31,8 +31,8 @@ describe('DepartmentApplyHandler [US5]', () => {
 
     mockEm = {
       getRepository: jest.fn().mockImplementation((entity) => {
-        if (entity === DepartmentEntity || entity.name === 'DepartmentEntity') {
-          return mockDepartmentRepo as unknown as Repository<DepartmentEntity>;
+        if (entity === Department || entity.name === 'Department') {
+          return mockDepartmentRepo as unknown as Repository<Department>;
         }
         if (entity === EffectiveChangeEntity || entity.name === 'EffectiveChangeEntity') {
           return mockChangeRepo as unknown as Repository<EffectiveChangeEntity>;
@@ -56,7 +56,7 @@ describe('DepartmentApplyHandler [US5]', () => {
       status: MasterDataStatus.SCHEDULED,
       code: 'ENG',
       name: 'Engineering',
-    } as unknown as DepartmentEntity;
+    } as unknown as Department;
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);
 
     await handler.apply(
@@ -93,7 +93,7 @@ describe('DepartmentApplyHandler [US5]', () => {
       id: 'dept-1',
       name: 'Engineering',
       updatedAt: new Date('2026-08-16T00:00:00Z'),
-    } as unknown as DepartmentEntity;
+    } as unknown as Department;
 
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);
@@ -132,7 +132,7 @@ describe('DepartmentApplyHandler [US5]', () => {
       id: 'dept-1',
       status: MasterDataStatus.ACTIVE,
       updatedAt: new Date('2026-08-16T00:00:00Z'),
-    } as unknown as DepartmentEntity;
+    } as unknown as Department;
 
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);

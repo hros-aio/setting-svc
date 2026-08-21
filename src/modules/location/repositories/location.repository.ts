@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, FindOptionsWhere, In, Not, Repository } from 'typeorm';
-import { LocationEntity } from '../entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import {
   ILocationRepository,
   PaginatedResult,
@@ -12,13 +12,13 @@ import { MasterDataStatus } from '../../../enums';
 @Injectable()
 export class LocationRepository implements ILocationRepository {
   constructor(
-    @InjectRepository(LocationEntity)
-    private readonly repo: Repository<LocationEntity>,
+    @InjectRepository(Location)
+    private readonly repo: Repository<Location>,
     private readonly dataSource: DataSource,
   ) {}
 
-  private getRepo(manager?: EntityManager): Repository<LocationEntity> {
-    return manager ? manager.getRepository(LocationEntity) : this.repo;
+  private getRepo(manager?: EntityManager): Repository<Location> {
+    return manager ? manager.getRepository(Location) : this.repo;
   }
 
   async findById(
@@ -26,7 +26,7 @@ export class LocationRepository implements ILocationRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity | null> {
+  ): Promise<Location | null> {
     return this.getRepo(manager).findOne({
       where: {
         id,
@@ -41,7 +41,7 @@ export class LocationRepository implements ILocationRepository {
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity | null> {
+  ): Promise<Location | null> {
     return this.getRepo(manager).findOne({
       where: {
         tenantId,
@@ -56,7 +56,7 @@ export class LocationRepository implements ILocationRepository {
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<LocationEntity>> {
+  ): Promise<PaginatedResult<Location>> {
     const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
     const skip = (page - 1) * limit;
@@ -93,7 +93,7 @@ export class LocationRepository implements ILocationRepository {
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<LocationEntity>> {
+  ): Promise<PaginatedResult<Location>> {
     const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
     const skip = (page - 1) * limit;
@@ -159,7 +159,7 @@ export class LocationRepository implements ILocationRepository {
     excludeLocationId?: string,
     manager?: EntityManager,
   ): Promise<boolean> {
-    const where: FindOptionsWhere<LocationEntity> = {
+    const where: FindOptionsWhere<Location> = {
       tenantId,
       companyId,
       isHeadquarter: true,
@@ -174,10 +174,7 @@ export class LocationRepository implements ILocationRepository {
     return count > 0;
   }
 
-  async createAndSave(
-    locationData: Partial<LocationEntity>,
-    manager?: EntityManager,
-  ): Promise<LocationEntity> {
+  async createAndSave(locationData: Partial<Location>, manager?: EntityManager): Promise<Location> {
     const repo = this.getRepo(manager);
     const location = repo.create(locationData);
     return repo.save(location);
@@ -190,7 +187,7 @@ export class LocationRepository implements ILocationRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity> {
+  ): Promise<Location> {
     const repo = this.getRepo(manager);
     const location = await this.findById(tenantId, companyId, id, manager);
     if (!location) {
@@ -209,10 +206,10 @@ export class LocationRepository implements ILocationRepository {
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<LocationEntity>,
+    fields: Partial<Location>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<LocationEntity> {
+  ): Promise<Location> {
     const repo = this.getRepo(manager);
     const location = await this.findById(tenantId, companyId, id, manager);
     if (!location) {
@@ -227,7 +224,7 @@ export class LocationRepository implements ILocationRepository {
     return repo.save(location);
   }
 
-  async save(location: LocationEntity, manager?: EntityManager): Promise<LocationEntity> {
+  async save(location: Location, manager?: EntityManager): Promise<Location> {
     const repo = this.getRepo(manager);
     return repo.save(location);
   }

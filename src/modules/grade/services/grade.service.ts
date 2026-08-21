@@ -26,7 +26,7 @@ import { EffectiveChangeRepository } from '../../effective-change/repositories/e
 import { CreateGradeDto } from '../dtos/create-grade.dto';
 import { DeactivateGradeDto } from '../dtos/query-grade.dto';
 import { UpdateGradeDto } from '../dtos/update-grade.dto';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../repositories/grade.repository';
 
 @Injectable()
@@ -42,7 +42,7 @@ export class GradeService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(dto: CreateGradeDto, authContext?: AuthContext | null): Promise<GradeEntity> {
+  async create(dto: CreateGradeDto, authContext?: AuthContext | null): Promise<Grade> {
     const userId = authContext?.userId;
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
@@ -301,7 +301,7 @@ export class GradeService {
     companyId: string,
     gradeId: string,
     action: 'updates' | 'deactivation' = 'updates',
-  ): Promise<GradeEntity> {
+  ): Promise<Grade> {
     const grade = await this.gradeRepository.findById(tenantId, companyId, gradeId);
     if (!grade) {
       throw new NotFoundException(`Grade with ID '${gradeId}' not found`);

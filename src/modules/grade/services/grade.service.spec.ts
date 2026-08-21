@@ -7,7 +7,7 @@ import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../repositories/grade.repository';
 import { GradeService } from './grade.service';
 
@@ -45,9 +45,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
     mockGradeRepo = {
       findByCode: jest.fn(),
       findById: jest.fn(),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'grade-1', ...data }) as GradeEntity),
+      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'grade-1', ...data }) as Grade),
     };
 
     mockCompanyRepo = {
@@ -115,7 +113,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
       id: 'existing-grade',
       code: 'L3',
       companyId: 'comp-A',
-    } as GradeEntity);
+    } as Grade);
 
     await expect(
       service.create(

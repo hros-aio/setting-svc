@@ -1,12 +1,12 @@
 import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
-import { LocationEntity } from '../../src/modules/location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 
 describe('LocationRepository', () => {
   let repository: LocationRepository;
-  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<LocationEntity>>>;
-  let mockQueryBuilder: jest.Mocked<Partial<SelectQueryBuilder<LocationEntity>>>;
+  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<Location>>>;
+  let mockQueryBuilder: jest.Mocked<Partial<SelectQueryBuilder<Location>>>;
 
   beforeEach(() => {
     mockQueryBuilder = {
@@ -22,23 +22,23 @@ describe('LocationRepository', () => {
     mockTypeOrmRepo = {
       findOne: jest.fn(),
       count: jest.fn(),
-      create: jest.fn().mockImplementation((dto) => dto as LocationEntity),
+      create: jest.fn().mockImplementation((dto) => dto as Location),
       save: jest
         .fn()
-        .mockImplementation(async (entity) => ({ id: 'loc-1', ...entity }) as LocationEntity),
+        .mockImplementation(async (entity) => ({ id: 'loc-1', ...entity }) as Location),
       createQueryBuilder: jest
         .fn()
-        .mockReturnValue(mockQueryBuilder as unknown as SelectQueryBuilder<LocationEntity>),
+        .mockReturnValue(mockQueryBuilder as unknown as SelectQueryBuilder<Location>),
     };
 
     repository = new LocationRepository(
-      mockTypeOrmRepo as unknown as Repository<LocationEntity>,
+      mockTypeOrmRepo as unknown as Repository<Location>,
       {} as unknown as DataSource,
     );
   });
 
   it('should find location by ID and company', async () => {
-    const mockLocation = { id: 'loc-1', name: 'HQ' } as LocationEntity;
+    const mockLocation = { id: 'loc-1', name: 'HQ' } as Location;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
 
     const result = await repository.findById('tenant-1', 'comp-1', 'loc-1');
@@ -51,7 +51,7 @@ describe('LocationRepository', () => {
   it('should find active locations with pagination', async () => {
     const mockLocations = [
       { id: 'loc-1', name: 'HQ', status: MasterDataStatus.ACTIVE },
-    ] as LocationEntity[];
+    ] as Location[];
     (mockQueryBuilder.getManyAndCount as jest.Mock).mockResolvedValue([mockLocations, 1]);
 
     const result = await repository.findActiveLocations('tenant-1', 'comp-1', {

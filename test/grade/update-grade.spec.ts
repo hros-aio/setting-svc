@@ -10,7 +10,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 
 describe('GradeService - Schedule Grade Update [US3]', () => {
@@ -110,7 +110,7 @@ describe('GradeService - Schedule Grade Update [US3]', () => {
     (mockGradeRepo.findById as jest.Mock).mockResolvedValue({
       id: 'grade-1',
       status: MasterDataStatus.SCHEDULED,
-    } as GradeEntity);
+    } as Grade);
 
     await expect(
       service.scheduleUpdate(
@@ -126,7 +126,7 @@ describe('GradeService - Schedule Grade Update [US3]', () => {
     (mockGradeRepo.findById as jest.Mock).mockResolvedValue({
       id: 'grade-1',
       status: MasterDataStatus.ACTIVE,
-    } as GradeEntity);
+    } as Grade);
     (mockEffectiveChangeRepo.findPendingChange as jest.Mock).mockResolvedValue({
       id: 'existing-change',
       status: EffectiveChangeStatus.SCHEDULED,
@@ -149,7 +149,7 @@ describe('GradeService - Schedule Grade Update [US3]', () => {
       name: 'Senior Software Engineer',
       status: MasterDataStatus.ACTIVE,
       updatedAt: new Date('2026-08-01T00:00:00.000Z'),
-    } as GradeEntity;
+    } as Grade;
 
     (mockGradeRepo.findById as jest.Mock).mockResolvedValue(mockGrade);
 

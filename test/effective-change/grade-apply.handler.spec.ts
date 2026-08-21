@@ -1,5 +1,5 @@
 import { GradeApplyHandler } from '../../src/modules/effective-change/handlers/grade-apply.handler';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { EffectiveChangeStatus, GradeEventType, MasterDataStatus } from '../../src/enums';
@@ -7,7 +7,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 
 describe('GradeApplyHandler [US5]', () => {
   let handler: GradeApplyHandler;
-  let mockGradeRepo: jest.Mocked<Partial<Repository<GradeEntity>>>;
+  let mockGradeRepo: jest.Mocked<Partial<Repository<Grade>>>;
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEntityManager: jest.Mocked<Partial<EntityManager>>;
@@ -30,7 +30,7 @@ describe('GradeApplyHandler [US5]', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((entityClass) => {
-        if (entityClass === GradeEntity) return mockGradeRepo;
+        if (entityClass === Grade) return mockGradeRepo;
         if (entityClass === EffectiveChangeEntity) return mockChangeRepo;
         if (entityClass === OutboxEventEntity) return mockOutboxRepo;
         return null;
@@ -52,7 +52,7 @@ describe('GradeApplyHandler [US5]', () => {
         name: 'Senior Software Engineer',
         status: MasterDataStatus.SCHEDULED,
         effectiveAt: new Date('2026-08-20T00:00:00.000Z'),
-      } as GradeEntity;
+      } as Grade;
 
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
@@ -81,7 +81,7 @@ describe('GradeApplyHandler [US5]', () => {
       const mockGrade = {
         id: 'grade-1',
         status: MasterDataStatus.ACTIVE,
-      } as GradeEntity;
+      } as Grade;
 
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
@@ -122,7 +122,7 @@ describe('GradeApplyHandler [US5]', () => {
         name: 'Senior Software Engineer',
         rankOrder: 3,
         status: MasterDataStatus.ACTIVE,
-      } as GradeEntity;
+      } as Grade;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
@@ -166,7 +166,7 @@ describe('GradeApplyHandler [US5]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as GradeEntity;
+      } as Grade;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);

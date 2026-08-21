@@ -1,5 +1,5 @@
 import { EntityManager } from 'typeorm';
-import { DepartmentEntity } from '../entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
 export interface PaginationOptions {
@@ -19,7 +19,7 @@ export interface PaginatedResult<T> {
   };
 }
 
-export interface DepartmentTreeNode extends DepartmentEntity {
+export interface DepartmentTreeNode extends Department {
   children: DepartmentTreeNode[];
 }
 
@@ -29,28 +29,28 @@ export interface IDepartmentRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity | null>;
+  ): Promise<Department | null>;
 
   findByCode(
     tenantId: string,
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity | null>;
+  ): Promise<Department | null>;
 
   findActiveDepartments(
     tenantId: string,
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<DepartmentEntity>>;
+  ): Promise<PaginatedResult<Department>>;
 
   findAllDepartments(
     tenantId: string,
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<DepartmentEntity>>;
+  ): Promise<PaginatedResult<Department>>;
 
   findActiveDepartmentTree(
     tenantId: string,
@@ -78,10 +78,7 @@ export interface IDepartmentRepository {
     manager?: EntityManager,
   ): Promise<string[]>;
 
-  createAndSave(
-    departmentData: Partial<DepartmentEntity>,
-    manager?: EntityManager,
-  ): Promise<DepartmentEntity>;
+  createAndSave(departmentData: Partial<Department>, manager?: EntityManager): Promise<Department>;
 
   updateStatus(
     tenantId: string,
@@ -90,16 +87,16 @@ export interface IDepartmentRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity>;
+  ): Promise<Department>;
 
   updateFields(
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<DepartmentEntity>,
+    fields: Partial<Department>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity>;
+  ): Promise<Department>;
 
-  save(department: DepartmentEntity, manager?: EntityManager): Promise<DepartmentEntity>;
+  save(department: Department, manager?: EntityManager): Promise<Department>;
 }

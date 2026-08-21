@@ -5,10 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { CrossCompanyReferenceException } from '@new-hros/libs-apis';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
-import { CrossCompanyReferenceException } from '../../../common/exceptions';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -29,7 +29,7 @@ import { EffectiveChangeRepository } from '../../effective-change/repositories/e
 import { CreateJobTitleDto } from '../dtos/create-job-title.dto';
 import { DeactivateJobTitleDto } from '../dtos/query-job-title.dto';
 import { UpdateJobTitleDto } from '../dtos/update-job-title.dto';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../repositories/job-title.repository';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class JobTitleService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(dto: CreateJobTitleDto, authContext?: AuthContext | null): Promise<JobTitleEntity> {
+  async create(dto: CreateJobTitleDto, authContext?: AuthContext | null): Promise<JobTitle> {
     const userId = authContext?.userId;
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
@@ -360,7 +360,7 @@ export class JobTitleService {
     companyId: string,
     jobTitleId: string,
     action: 'updates' | 'deactivation' = 'updates',
-  ): Promise<JobTitleEntity> {
+  ): Promise<JobTitle> {
     const jobTitle = await this.jobTitleRepository.findById(tenantId, companyId, jobTitleId);
     if (!jobTitle) {
       throw new NotFoundException(`Job Title with ID '${jobTitleId}' not found`);

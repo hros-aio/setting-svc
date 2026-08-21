@@ -9,7 +9,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -47,9 +47,7 @@ describe('GradeService - Create Grade [US1]', () => {
     mockGradeRepo = {
       findByCode: jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'grade-1', ...data }) as GradeEntity),
+      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'grade-1', ...data }) as Grade),
     };
 
     mockCompanyRepo = {
@@ -110,7 +108,7 @@ describe('GradeService - Create Grade [US1]', () => {
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     (mockGradeRepo.findByCode as jest.Mock).mockResolvedValue({
       id: 'existing-grade',
-    } as GradeEntity);
+    } as Grade);
 
     await expect(
       service.create(

@@ -1,4 +1,4 @@
-export * from './entities/location.entity';
+export { Location } from '@new-hros/libs-sql';
 export * from './repositories/location.repository.interface';
 export * from './repositories/location.repository';
 export * from './services/location.service';

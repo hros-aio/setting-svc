@@ -10,14 +10,20 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import {
+  AuthGuard,
+  CompanyScopeGuard,
+  CurrentUser,
+  PermissionGuard,
+  RequirePermission,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
-import { CompanyScopeGuard, TenantScopeGuard } from '../../../common/guards';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateJobTitleDto } from '../dtos/create-job-title.dto';
 import { DeactivateJobTitleDto, QueryJobTitleDto } from '../dtos/query-job-title.dto';
 import { UpdateJobTitleDto } from '../dtos/update-job-title.dto';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitlePaginatedResult } from '../repositories/job-title.repository.interface';
 import {
   JobTitleQueryService,
@@ -39,7 +45,7 @@ export class JobTitleController {
   async create(
     @Body() dto: CreateJobTitleDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<JobTitleEntity> {
+  ): Promise<JobTitle> {
     return this.jobTitleService.create(dto, authContext);
   }
 
@@ -48,7 +54,7 @@ export class JobTitleController {
   async findAll(
     @Query() query: QueryJobTitleDto,
     @CurrentUser() authContext?: AuthContext,
-  ): Promise<JobTitlePaginatedResult<JobTitleEntity>> {
+  ): Promise<JobTitlePaginatedResult<JobTitle>> {
     return this.jobTitleQueryService.find(query, authContext);
   }
 

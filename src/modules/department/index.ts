@@ -1,4 +1,4 @@
-export * from './entities/department.entity';
+export { Department } from '@new-hros/libs-sql';
 export * from './repositories/department.repository.interface';
 export * from './repositories/department.repository';
 export * from './services/department.service';

@@ -6,7 +6,7 @@ import { CompanyRepository } from '../../src/modules/company/repositories/compan
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
-import { LocationEntity } from '../../src/modules/location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -52,9 +52,7 @@ describe('LocationService - Query Locations [US2]', () => {
 
   it('should return paginated active locations for company', async () => {
     const mockResult = {
-      data: [
-        { id: 'loc-1', name: 'Tokyo Office', status: MasterDataStatus.ACTIVE } as LocationEntity,
-      ],
+      data: [{ id: 'loc-1', name: 'Tokyo Office', status: MasterDataStatus.ACTIVE } as Location],
       meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
     };
     (mockLocationRepo.findActiveLocations as jest.Mock).mockResolvedValue(mockResult);
@@ -115,7 +113,7 @@ describe('LocationService - Query Locations [US2]', () => {
   });
 
   it('should return location by id', async () => {
-    const mockLoc = { id: 'loc-1', name: 'Tokyo Office' } as LocationEntity;
+    const mockLoc = { id: 'loc-1', name: 'Tokyo Office' } as Location;
     (mockLocationRepo.findById as jest.Mock).mockResolvedValue(mockLoc);
 
     const result = await service.findById('loc-1', mockAuthContext);

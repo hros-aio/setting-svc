@@ -6,7 +6,7 @@ import { CompanyRepository } from '../../src/modules/company/repositories/compan
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -53,9 +53,7 @@ describe('DepartmentService - Query Departments [US2]', () => {
 
   it('should return paginated active departments for company', async () => {
     const mockResult = {
-      data: [
-        { id: 'dept-1', name: 'Engineering', status: MasterDataStatus.ACTIVE } as DepartmentEntity,
-      ],
+      data: [{ id: 'dept-1', name: 'Engineering', status: MasterDataStatus.ACTIVE } as Department],
       meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
     };
     (mockDepartmentRepo.findActiveDepartments as jest.Mock).mockResolvedValue(mockResult);
@@ -102,7 +100,7 @@ describe('DepartmentService - Query Departments [US2]', () => {
   });
 
   it('should return department by id', async () => {
-    const mockDept = { id: 'dept-1', name: 'Engineering' } as DepartmentEntity;
+    const mockDept = { id: 'dept-1', name: 'Engineering' } as Department;
     (mockDepartmentRepo.findById as jest.Mock).mockResolvedValue(mockDept);
 
     const result = await service.findById('dept-1', mockAuthContext);

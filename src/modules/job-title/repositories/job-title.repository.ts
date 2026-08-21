@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import {
   IJobTitleRepository,
   JobTitlePaginatedResult,
@@ -12,13 +12,13 @@ import { MasterDataStatus } from '../../../enums';
 @Injectable()
 export class JobTitleRepository implements IJobTitleRepository {
   constructor(
-    @InjectRepository(JobTitleEntity)
-    private readonly repo: Repository<JobTitleEntity>,
+    @InjectRepository(JobTitle)
+    private readonly repo: Repository<JobTitle>,
     private readonly dataSource: DataSource,
   ) {}
 
-  private getRepo(manager?: EntityManager): Repository<JobTitleEntity> {
-    return manager ? manager.getRepository(JobTitleEntity) : this.repo;
+  private getRepo(manager?: EntityManager): Repository<JobTitle> {
+    return manager ? manager.getRepository(JobTitle) : this.repo;
   }
 
   async findById(
@@ -26,7 +26,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity | null> {
+  ): Promise<JobTitle | null> {
     return this.getRepo(manager).findOne({
       where: {
         id,
@@ -42,7 +42,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity | null> {
+  ): Promise<JobTitle | null> {
     return this.getRepo(manager).findOne({
       where: {
         tenantId,
@@ -58,12 +58,12 @@ export class JobTitleRepository implements IJobTitleRepository {
     companyId: string,
     pagination?: JobTitlePaginationOptions,
     manager?: EntityManager,
-  ): Promise<JobTitlePaginatedResult<JobTitleEntity>> {
+  ): Promise<JobTitlePaginatedResult<JobTitle>> {
     const page = pagination?.page && pagination.page > 0 ? Number(pagination.page) : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? Number(pagination.limit) : 20;
     const skip = (page - 1) * limit;
 
-    const baseWhere: FindOptionsWhere<JobTitleEntity> = {
+    const baseWhere: FindOptionsWhere<JobTitle> = {
       tenantId,
       companyId,
     };
@@ -82,7 +82,7 @@ export class JobTitleRepository implements IJobTitleRepository {
       baseWhere.gradeId = pagination.gradeId;
     }
 
-    let where: FindOptionsWhere<JobTitleEntity> | FindOptionsWhere<JobTitleEntity>[] = baseWhere;
+    let where: FindOptionsWhere<JobTitle> | FindOptionsWhere<JobTitle>[] = baseWhere;
     if (pagination?.search) {
       where = [
         { ...baseWhere, name: ILike(`%${pagination.search}%`) },
@@ -140,10 +140,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     });
   }
 
-  async createAndSave(
-    jobTitleData: Partial<JobTitleEntity>,
-    manager?: EntityManager,
-  ): Promise<JobTitleEntity> {
+  async createAndSave(jobTitleData: Partial<JobTitle>, manager?: EntityManager): Promise<JobTitle> {
     const repo = this.getRepo(manager);
     const jobTitle = repo.create(jobTitleData);
     return repo.save(jobTitle);
@@ -156,7 +153,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity> {
+  ): Promise<JobTitle> {
     const repo = this.getRepo(manager);
     const jobTitle = await this.findById(tenantId, companyId, id, manager);
     if (!jobTitle) {
@@ -175,10 +172,10 @@ export class JobTitleRepository implements IJobTitleRepository {
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<JobTitleEntity>,
+    fields: Partial<JobTitle>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity> {
+  ): Promise<JobTitle> {
     const repo = this.getRepo(manager);
     const jobTitle = await this.findById(tenantId, companyId, id, manager);
     if (!jobTitle) {
@@ -193,7 +190,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     return repo.save(jobTitle);
   }
 
-  async save(jobTitle: JobTitleEntity, manager?: EntityManager): Promise<JobTitleEntity> {
+  async save(jobTitle: JobTitle, manager?: EntityManager): Promise<JobTitle> {
     const repo = this.getRepo(manager);
     return repo.save(jobTitle);
   }

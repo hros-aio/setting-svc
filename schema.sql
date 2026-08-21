@@ -100,6 +100,9 @@ CREATE TABLE IF NOT EXISTS tenants (
 CREATE TABLE IF NOT EXISTS companies (
     id                      uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id               uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    tenant_code             varchar(64) NOT NULL,
+    deleted_at              timestamptz,
+    version                 integer NOT NULL DEFAULT 1,
  
     company_code            varchar(64) NOT NULL,
     legal_name              varchar(255) NOT NULL,
@@ -191,6 +194,9 @@ CREATE INDEX IF NOT EXISTS idx_company_setup_steps_progress
 CREATE TABLE IF NOT EXISTS locations (
     id              uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id       uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    tenant_code     varchar(64) NOT NULL,
+    deleted_at      timestamptz,
+    version         integer NOT NULL DEFAULT 1,
     company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
  
     code            varchar(64) NOT NULL,
@@ -231,6 +237,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_locations_one_headquarter_per_company
 CREATE TABLE IF NOT EXISTS departments (
     id                  uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id           uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    tenant_code         varchar(64) NOT NULL,
+    deleted_at          timestamptz,
+    version             integer NOT NULL DEFAULT 1,
     company_id          uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
  
     code                varchar(64) NOT NULL,
@@ -263,6 +272,9 @@ CREATE INDEX IF NOT EXISTS idx_departments_company_status
 CREATE TABLE IF NOT EXISTS grades (
     id              uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id       uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    tenant_code     varchar(64) NOT NULL,
+    deleted_at      timestamptz,
+    version         integer NOT NULL DEFAULT 1,
     company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
  
     code            varchar(64) NOT NULL,
@@ -296,6 +308,9 @@ CREATE INDEX IF NOT EXISTS idx_grades_company_status
 CREATE TABLE IF NOT EXISTS job_titles (
     id              uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id       uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    tenant_code     varchar(64) NOT NULL,
+    deleted_at      timestamptz,
+    version         integer NOT NULL DEFAULT 1,
     company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
  
     department_id   uuid NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
@@ -326,6 +341,39 @@ CREATE INDEX IF NOT EXISTS idx_job_titles_company_grade
  
 CREATE INDEX IF NOT EXISTS idx_job_titles_company_status
     ON job_titles (company_id, status);
+
+CREATE OR REPLACE FUNCTION set_shared_entity_tenant_code()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.tenant_code IS NULL THEN
+        SELECT tenant_code INTO NEW.tenant_code
+        FROM tenants
+        WHERE id = NEW.tenant_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_companies_tenant_code ON companies;
+CREATE TRIGGER trg_companies_tenant_code
+    BEFORE INSERT OR UPDATE OF tenant_id ON companies
+    FOR EACH ROW EXECUTE FUNCTION set_shared_entity_tenant_code();
+DROP TRIGGER IF EXISTS trg_locations_tenant_code ON locations;
+CREATE TRIGGER trg_locations_tenant_code
+    BEFORE INSERT OR UPDATE OF tenant_id ON locations
+    FOR EACH ROW EXECUTE FUNCTION set_shared_entity_tenant_code();
+DROP TRIGGER IF EXISTS trg_departments_tenant_code ON departments;
+CREATE TRIGGER trg_departments_tenant_code
+    BEFORE INSERT OR UPDATE OF tenant_id ON departments
+    FOR EACH ROW EXECUTE FUNCTION set_shared_entity_tenant_code();
+DROP TRIGGER IF EXISTS trg_grades_tenant_code ON grades;
+CREATE TRIGGER trg_grades_tenant_code
+    BEFORE INSERT OR UPDATE OF tenant_id ON grades
+    FOR EACH ROW EXECUTE FUNCTION set_shared_entity_tenant_code();
+DROP TRIGGER IF EXISTS trg_job_titles_tenant_code ON job_titles;
+CREATE TRIGGER trg_job_titles_tenant_code
+    BEFORE INSERT OR UPDATE OF tenant_id ON job_titles
+    FOR EACH ROW EXECUTE FUNCTION set_shared_entity_tenant_code();
  
 -- ============================================================
 -- EMPLOYEE REFERENCE

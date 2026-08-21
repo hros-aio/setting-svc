@@ -5,14 +5,14 @@ import { DepartmentModule } from '../department/department.module';
 import { EffectiveChangeModule } from '../effective-change/effective-change.module';
 import { GradeModule } from '../grade/grade.module';
 import { JobTitleController } from './controllers/job-title.controller';
-import { JobTitleEntity } from './entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from './repositories/job-title.repository';
 import { JobTitleQueryService } from './services/job-title-query.service';
 import { JobTitleService } from './services/job-title.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([JobTitleEntity]),
+    TypeOrmModule.forFeature([JobTitle]),
     CompanyModule,
     DepartmentModule,
     GradeModule,

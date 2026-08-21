@@ -11,9 +11,9 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { JobTitleEntity } from '../../src/modules/job-title/entities/job-title.entity';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { JobTitle } from '@new-hros/libs-sql';
+import { Department } from '@new-hros/libs-sql';
+import { Grade } from '@new-hros/libs-sql';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -55,7 +55,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
       findById: jest.fn(),
       createAndSave: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'job-title-1', ...data }) as JobTitleEntity),
+        .mockImplementation((data) => ({ id: 'job-title-1', ...data }) as JobTitle),
     };
 
     mockDepartmentRepo = {
@@ -65,7 +65,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as DepartmentEntity),
+      } as Department),
     };
 
     mockGradeRepo = {
@@ -75,7 +75,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as GradeEntity),
+      } as Grade),
     };
 
     mockCompanyRepo = {
@@ -140,7 +140,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     (mockJobTitleRepo.findByCode as jest.Mock).mockResolvedValue({
       id: 'existing-jt',
-    } as JobTitleEntity);
+    } as JobTitle);
 
     await expect(
       service.create(

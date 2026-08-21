@@ -33,8 +33,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3)))
       '@new-hros/libs-apis':
-        specifier: ^1.1.1
-        version: 1.1.1(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(@nestjs/swagger@7.4.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        specifier: ^1.1.2
+        version: 1.1.2(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(@nestjs/swagger@7.4.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@new-hros/libs-core':
         specifier: ^1.1.1
         version: 1.1.2(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)
@@ -42,8 +42,8 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(ioredis@5.11.1)(reflect-metadata@0.2.2)
       '@new-hros/libs-sql':
-        specifier: ^1.1.1
-        version: 1.1.1(@nestjs/core@10.4.22)(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(ioredis@5.11.1)(pg@8.22.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))
+        specifier: ^1.1.2
+        version: 1.1.2(@nestjs/core@10.4.22)(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(ioredis@5.11.1)(pg@8.22.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -670,8 +670,8 @@ packages:
       rxjs: ^7.2.0
       typeorm: ^0.3.0
 
-  '@new-hros/libs-apis@1.1.1':
-    resolution: {integrity: sha512-iTZIFwwtGvuRkhxV02NAg7VdXBSkYlmbeQ6WcMyhu81CHBiVGj4bw4BcnsUvzU52h+y0UklbovIUNXJSp0xddA==}
+  '@new-hros/libs-apis@1.1.2':
+    resolution: {integrity: sha512-hr5x06ixI2B7BHVIqxujqo7TTtd8HCwexQUkw/fWppLrVSkI1SjJocy8e9f48/a5bnn8tnrOsHu/ygL4Q6kvgA==}
     peerDependencies:
       '@nestjs/swagger': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
 
@@ -681,8 +681,8 @@ packages:
   '@new-hros/libs-events@1.0.1':
     resolution: {integrity: sha512-yQS7CK45tM6MHzmrydv0ycznzYpXG+2njPlRMDLzdFgrKyFZYa4apqJqczGYeb+Ka3yVVStwXW4dNnwjUHP2CA==}
 
-  '@new-hros/libs-sql@1.1.1':
-    resolution: {integrity: sha512-HbuIQmIUQvPCgafPe8ADAkjLA5Mw2XngvU7M0sUlQ/VPkIYnLCM/yhFDPEoCIABFGegaOPjU7nRaQYoDi934Ig==}
+  '@new-hros/libs-sql@1.1.2':
+    resolution: {integrity: sha512-h1KW/0dRI9J9ghFH5SfD1dDyCbjgkF/ekye71j1fOp+WhzIh+bz6UIMbicibhxabKNa+R2S+3f8CHzz3lIZlkg==}
 
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -4005,7 +4005,7 @@ snapshots:
       typeorm: 0.3.31(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))
       uuid: 9.0.1
 
-  '@new-hros/libs-apis@1.1.1(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(@nestjs/swagger@7.4.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@new-hros/libs-apis@1.1.2(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(@nestjs/swagger@7.4.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 10.4.22(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -4066,7 +4066,7 @@ snapshots:
       - reflect-metadata
       - supports-color
 
-  '@new-hros/libs-sql@1.1.1(@nestjs/core@10.4.22)(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(ioredis@5.11.1)(pg@8.22.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))':
+  '@new-hros/libs-sql@1.1.2(@nestjs/core@10.4.22)(@nestjs/microservices@10.4.22)(@nestjs/platform-express@10.4.22)(class-transformer@0.5.1)(class-validator@0.14.4)(ioredis@5.11.1)(pg@8.22.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3))':
     dependencies:
       '@nestjs/common': 10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/typeorm': 10.0.2(@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.31(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.9.3)))

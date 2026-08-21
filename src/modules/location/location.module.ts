@@ -3,12 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CompanyModule } from '../company/company.module';
 import { EffectiveChangeModule } from '../effective-change/effective-change.module';
 import { LocationController } from './controllers/location.controller';
-import { LocationEntity } from './entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from './repositories/location.repository';
 import { LocationService } from './services/location.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LocationEntity]), CompanyModule, EffectiveChangeModule],
+  imports: [TypeOrmModule.forFeature([Location]), CompanyModule, EffectiveChangeModule],
   controllers: [LocationController],
   providers: [LocationRepository, LocationService],
   exports: [LocationRepository],

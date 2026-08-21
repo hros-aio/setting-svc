@@ -1,12 +1,12 @@
 import { DepartmentRepository } from '../../src/modules/department/repositories/department.repository';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 
 describe('DepartmentRepository', () => {
   let repository: DepartmentRepository;
-  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<DepartmentEntity>>>;
-  let mockQueryBuilder: jest.Mocked<Partial<SelectQueryBuilder<DepartmentEntity>>>;
+  let mockTypeOrmRepo: jest.Mocked<Partial<Repository<Department>>>;
+  let mockQueryBuilder: jest.Mocked<Partial<SelectQueryBuilder<Department>>>;
 
   beforeEach(() => {
     mockQueryBuilder = {
@@ -24,23 +24,23 @@ describe('DepartmentRepository', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       count: jest.fn(),
-      create: jest.fn().mockImplementation((dto) => dto as DepartmentEntity),
+      create: jest.fn().mockImplementation((dto) => dto as Department),
       save: jest
         .fn()
-        .mockImplementation(async (entity) => ({ id: 'dept-1', ...entity }) as DepartmentEntity),
+        .mockImplementation(async (entity) => ({ id: 'dept-1', ...entity }) as Department),
       createQueryBuilder: jest
         .fn()
-        .mockReturnValue(mockQueryBuilder as unknown as SelectQueryBuilder<DepartmentEntity>),
+        .mockReturnValue(mockQueryBuilder as unknown as SelectQueryBuilder<Department>),
     };
 
     repository = new DepartmentRepository(
-      mockTypeOrmRepo as unknown as Repository<DepartmentEntity>,
+      mockTypeOrmRepo as unknown as Repository<Department>,
       {} as unknown as DataSource,
     );
   });
 
   it('should find department by ID and company', async () => {
-    const mockDept = { id: 'dept-1', name: 'Engineering' } as DepartmentEntity;
+    const mockDept = { id: 'dept-1', name: 'Engineering' } as Department;
     (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(mockDept);
 
     const result = await repository.findById('tenant-1', 'comp-1', 'dept-1');
@@ -54,7 +54,7 @@ describe('DepartmentRepository', () => {
   it('should find active departments with pagination', async () => {
     const mockDepts = [
       { id: 'dept-1', name: 'Engineering', status: MasterDataStatus.ACTIVE },
-    ] as DepartmentEntity[];
+    ] as Department[];
     (mockQueryBuilder.getManyAndCount as jest.Mock).mockResolvedValue([mockDepts, 1]);
 
     const result = await repository.findActiveDepartments('tenant-1', 'comp-1', {
@@ -86,7 +86,7 @@ describe('DepartmentRepository', () => {
         parentDepartmentId: 'dept-eng',
         status: MasterDataStatus.ACTIVE,
       },
-    ] as DepartmentEntity[];
+    ] as Department[];
     (mockTypeOrmRepo.find as jest.Mock).mockResolvedValue(depts);
 
     const tree = await repository.findActiveDepartmentTree('tenant-1', 'comp-1');
@@ -103,15 +103,15 @@ describe('DepartmentRepository', () => {
       .mockResolvedValueOnce({
         id: 'dept-child',
         parentDepartmentId: 'dept-parent',
-      } as DepartmentEntity)
+      } as Department)
       .mockResolvedValueOnce({
         id: 'dept-parent',
         parentDepartmentId: 'dept-root',
-      } as DepartmentEntity)
+      } as Department)
       .mockResolvedValueOnce({
         id: 'dept-root',
         parentDepartmentId: undefined,
-      } as DepartmentEntity);
+      } as Department);
 
     const chain = await repository.findAncestorChain('tenant-1', 'comp-1', 'dept-child');
     expect(chain).toEqual(['dept-child', 'dept-parent', 'dept-root']);
@@ -119,8 +119,8 @@ describe('DepartmentRepository', () => {
 
   it('should detect cycles during ancestor chain traversal and break', async () => {
     (mockTypeOrmRepo.findOne as jest.Mock)
-      .mockResolvedValueOnce({ id: 'dept-a', parentDepartmentId: 'dept-b' } as DepartmentEntity)
-      .mockResolvedValueOnce({ id: 'dept-b', parentDepartmentId: 'dept-a' } as DepartmentEntity);
+      .mockResolvedValueOnce({ id: 'dept-a', parentDepartmentId: 'dept-b' } as Department)
+      .mockResolvedValueOnce({ id: 'dept-b', parentDepartmentId: 'dept-a' } as Department);
 
     const chain = await repository.findAncestorChain('tenant-1', 'comp-1', 'dept-a');
     expect(chain).toEqual(['dept-a', 'dept-b', 'dept-a']);

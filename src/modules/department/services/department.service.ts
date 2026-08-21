@@ -26,7 +26,7 @@ import { EffectiveChangeRepository } from '../../effective-change/repositories/e
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
 import { DeactivateDepartmentDto, QueryDepartmentDto } from '../dtos/query-department.dto';
 import { UpdateDepartmentDto } from '../dtos/update-department.dto';
-import { DepartmentEntity } from '../entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../repositories/department.repository';
 import {
   DepartmentTreeNode,
@@ -46,10 +46,7 @@ export class DepartmentService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(
-    dto: CreateDepartmentDto,
-    authContext?: AuthContext | null,
-  ): Promise<DepartmentEntity> {
+  async create(dto: CreateDepartmentDto, authContext?: AuthContext | null): Promise<Department> {
     const userId = authContext?.userId;
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
@@ -125,7 +122,7 @@ export class DepartmentService {
   async findActiveDepartments(
     query?: QueryDepartmentDto,
     authContext?: AuthContext | null,
-  ): Promise<PaginatedResult<DepartmentEntity> | DepartmentTreeNode[]> {
+  ): Promise<PaginatedResult<Department> | DepartmentTreeNode[]> {
     const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
     const companyId = RequestContextService.current()?.companyId;
 
@@ -161,7 +158,7 @@ export class DepartmentService {
     });
   }
 
-  async findById(id: string, authContext?: AuthContext | null): Promise<DepartmentEntity> {
+  async findById(id: string, authContext?: AuthContext | null): Promise<Department> {
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
     const department = await this.departmentRepository.findById(tenantId, companyId, id);
     if (!department) {
@@ -387,7 +384,7 @@ export class DepartmentService {
     companyId: string,
     departmentId: string,
     action: 'updates' | 'deactivation' = 'updates',
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     const department = await this.departmentRepository.findById(tenantId, companyId, departmentId);
     if (!department) {
       throw new NotFoundException(`Department with ID '${departmentId}' not found`);
@@ -406,7 +403,7 @@ export class DepartmentService {
     tenantId: string,
     companyId: string,
     parentDepartmentId: string,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     const parent = await this.departmentRepository.findById(
       tenantId,
       companyId,

@@ -9,8 +9,7 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
-import { TenantEntity } from '../../src/modules/tenant/entities/tenant.entity';
+import { Department } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 
@@ -32,8 +31,10 @@ describe('DepartmentService - Update Department [US3]', () => {
     permissions: ['department:update'],
   };
 
-  const activeDepartment: DepartmentEntity = {
+  const activeDepartment: Department = {
     id: 'dept-1',
+    tenantCode: 'tenant-1',
+    version: 1,
     tenantId: 'tenant-1',
     companyId: 'comp-1',
     code: 'ENG',
@@ -43,7 +44,6 @@ describe('DepartmentService - Update Department [US3]', () => {
     createdAt: new Date(),
     updatedAt: new Date('2026-01-01'),
     children: [],
-    tenant: {} as TenantEntity,
     company: {} as CompanyEntity,
   };
 

@@ -1,5 +1,5 @@
 import { EntityManager } from 'typeorm';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
 export interface JobTitlePaginationOptions {
@@ -27,21 +27,21 @@ export interface IJobTitleRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity | null>;
+  ): Promise<JobTitle | null>;
 
   findByCode(
     tenantId: string,
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity | null>;
+  ): Promise<JobTitle | null>;
 
   find(
     tenantId: string,
     companyId: string,
     pagination?: JobTitlePaginationOptions,
     manager?: EntityManager,
-  ): Promise<JobTitlePaginatedResult<JobTitleEntity>>;
+  ): Promise<JobTitlePaginatedResult<JobTitle>>;
 
   hasActiveOrScheduled(
     tenantId: string,
@@ -55,10 +55,7 @@ export interface IJobTitleRepository {
     manager?: EntityManager,
   ): Promise<number>;
 
-  createAndSave(
-    jobTitleData: Partial<JobTitleEntity>,
-    manager?: EntityManager,
-  ): Promise<JobTitleEntity>;
+  createAndSave(jobTitleData: Partial<JobTitle>, manager?: EntityManager): Promise<JobTitle>;
 
   updateStatus(
     tenantId: string,
@@ -67,16 +64,16 @@ export interface IJobTitleRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity>;
+  ): Promise<JobTitle>;
 
   updateFields(
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<JobTitleEntity>,
+    fields: Partial<JobTitle>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<JobTitleEntity>;
+  ): Promise<JobTitle>;
 
-  save(jobTitle: JobTitleEntity, manager?: EntityManager): Promise<JobTitleEntity>;
+  save(jobTitle: JobTitle, manager?: EntityManager): Promise<JobTitle>;
 }

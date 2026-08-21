@@ -1,20 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
-import { GradeEntity } from '../entities/grade.entity';
+import { Grade } from '@new-hros/libs-sql';
 import { IGradeRepository, PaginatedResult, PaginationOptions } from './grade.repository.interface';
 import { MasterDataStatus } from '../../../enums';
 
 @Injectable()
 export class GradeRepository implements IGradeRepository {
   constructor(
-    @InjectRepository(GradeEntity)
-    private readonly repo: Repository<GradeEntity>,
+    @InjectRepository(Grade)
+    private readonly repo: Repository<Grade>,
     private readonly dataSource: DataSource,
   ) {}
 
-  private getRepo(manager?: EntityManager): Repository<GradeEntity> {
-    return manager ? manager.getRepository(GradeEntity) : this.repo;
+  private getRepo(manager?: EntityManager): Repository<Grade> {
+    return manager ? manager.getRepository(Grade) : this.repo;
   }
 
   async findById(
@@ -22,7 +22,7 @@ export class GradeRepository implements IGradeRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity | null> {
+  ): Promise<Grade | null> {
     return this.getRepo(manager).findOne({
       where: {
         id,
@@ -38,7 +38,7 @@ export class GradeRepository implements IGradeRepository {
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity | null> {
+  ): Promise<Grade | null> {
     return this.getRepo(manager).findOne({
       where: {
         tenantId,
@@ -53,12 +53,12 @@ export class GradeRepository implements IGradeRepository {
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<GradeEntity>> {
+  ): Promise<PaginatedResult<Grade>> {
     const page = pagination?.page && pagination.page > 0 ? Number(pagination.page) : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? Number(pagination.limit) : 20;
     const skip = (page - 1) * limit;
 
-    const baseWhere: FindOptionsWhere<GradeEntity> = {
+    const baseWhere: FindOptionsWhere<Grade> = {
       tenantId,
       companyId,
     };
@@ -69,7 +69,7 @@ export class GradeRepository implements IGradeRepository {
       baseWhere.status = MasterDataStatus.ACTIVE;
     }
 
-    let where: FindOptionsWhere<GradeEntity> | FindOptionsWhere<GradeEntity>[] = baseWhere;
+    let where: FindOptionsWhere<Grade> | FindOptionsWhere<Grade>[] = baseWhere;
     if (pagination?.search) {
       where = [
         { ...baseWhere, name: ILike(`%${pagination.search}%`) },
@@ -128,10 +128,7 @@ export class GradeRepository implements IGradeRepository {
     });
   }
 
-  async createAndSave(
-    gradeData: Partial<GradeEntity>,
-    manager?: EntityManager,
-  ): Promise<GradeEntity> {
+  async createAndSave(gradeData: Partial<Grade>, manager?: EntityManager): Promise<Grade> {
     const repo = this.getRepo(manager);
     const grade = repo.create(gradeData);
     return repo.save(grade);
@@ -144,7 +141,7 @@ export class GradeRepository implements IGradeRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity> {
+  ): Promise<Grade> {
     const repo = this.getRepo(manager);
     const grade = await this.findById(tenantId, companyId, id, manager);
     if (!grade) {
@@ -163,10 +160,10 @@ export class GradeRepository implements IGradeRepository {
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<GradeEntity>,
+    fields: Partial<Grade>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<GradeEntity> {
+  ): Promise<Grade> {
     const repo = this.getRepo(manager);
     const grade = await this.findById(tenantId, companyId, id, manager);
     if (!grade) {
@@ -181,7 +178,7 @@ export class GradeRepository implements IGradeRepository {
     return repo.save(grade);
   }
 
-  async save(grade: GradeEntity, manager?: EntityManager): Promise<GradeEntity> {
+  async save(grade: Grade, manager?: EntityManager): Promise<Grade> {
     const repo = this.getRepo(manager);
     return repo.save(grade);
   }

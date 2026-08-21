@@ -3,11 +3,11 @@ import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { EffectiveChangeStatus } from '../../../enums';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { QueryJobTitleDto } from '../dtos/query-job-title.dto';
-import { JobTitleEntity } from '../entities/job-title.entity';
+import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../repositories/job-title.repository';
 import { JobTitlePaginatedResult } from '../repositories/job-title.repository.interface';
 
-export interface JobTitleWithPendingChange extends JobTitleEntity {
+export interface JobTitleWithPendingChange extends JobTitle {
   pendingChange?: {
     changeId: string;
     action: string;
@@ -29,7 +29,7 @@ export class JobTitleQueryService {
   async find(
     query?: QueryJobTitleDto,
     authContext?: AuthContext | null,
-  ): Promise<JobTitlePaginatedResult<JobTitleEntity>> {
+  ): Promise<JobTitlePaginatedResult<JobTitle>> {
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;

@@ -12,9 +12,9 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { JobTitleEntity } from '../../src/modules/job-title/entities/job-title.entity';
-import { DepartmentEntity } from '../../src/modules/department/entities/department.entity';
-import { GradeEntity } from '../../src/modules/grade/entities/grade.entity';
+import { JobTitle } from '@new-hros/libs-sql';
+import { Department } from '@new-hros/libs-sql';
+import { Grade } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 
 describe('JobTitleService - Schedule Job Title Update [US3]', () => {
@@ -62,7 +62,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as DepartmentEntity),
+      } as Department),
     };
 
     mockGradeRepo = {
@@ -72,7 +72,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
         tenantId: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as GradeEntity),
+      } as Grade),
     };
 
     mockCompanyRepo = {
@@ -138,7 +138,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
     (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue({
       id: 'job-title-1',
       status: MasterDataStatus.SCHEDULED,
-    } as JobTitleEntity);
+    } as JobTitle);
 
     await expect(
       service.scheduleUpdate(
@@ -154,7 +154,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
     (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue({
       id: 'job-title-1',
       status: MasterDataStatus.ACTIVE,
-    } as JobTitleEntity);
+    } as JobTitle);
     (mockEffectiveChangeRepo.findPendingChange as jest.Mock).mockResolvedValue({
       id: 'existing-change',
       status: EffectiveChangeStatus.SCHEDULED,
@@ -174,7 +174,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
     (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue({
       id: 'job-title-1',
       status: MasterDataStatus.ACTIVE,
-    } as JobTitleEntity);
+    } as JobTitle);
     (mockDepartmentRepo.findById as jest.Mock).mockResolvedValue(null);
 
     await expect(
@@ -196,7 +196,7 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
       gradeId: 'grade-1',
       status: MasterDataStatus.ACTIVE,
       updatedAt: new Date('2026-08-01T00:00:00.000Z'),
-    } as JobTitleEntity;
+    } as JobTitle;
 
     (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue(mockJobTitle);
 

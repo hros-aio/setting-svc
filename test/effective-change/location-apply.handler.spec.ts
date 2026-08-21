@@ -1,5 +1,5 @@
 import { LocationApplyHandler } from '../../src/modules/effective-change/handlers/location-apply.handler';
-import { LocationEntity } from '../../src/modules/location/entities/location.entity';
+import { Location } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeStatus, LocationEventType, MasterDataStatus } from '../../src/enums';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -7,7 +7,7 @@ import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-eve
 
 describe('LocationApplyHandler [US5]', () => {
   let handler: LocationApplyHandler;
-  let mockLocationRepo: jest.Mocked<Partial<Repository<LocationEntity>>>;
+  let mockLocationRepo: jest.Mocked<Partial<Repository<Location>>>;
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEm: jest.Mocked<Partial<EntityManager>>;
@@ -21,7 +21,7 @@ describe('LocationApplyHandler [US5]', () => {
 
     mockLocationRepo = {
       findOne: jest.fn(),
-      save: jest.fn().mockImplementation(async (loc) => loc as LocationEntity),
+      save: jest.fn().mockImplementation(async (loc) => loc as Location),
     };
 
     mockChangeRepo = {
@@ -31,8 +31,8 @@ describe('LocationApplyHandler [US5]', () => {
 
     mockEm = {
       getRepository: jest.fn().mockImplementation((entity) => {
-        if (entity === LocationEntity || entity.name === 'LocationEntity') {
-          return mockLocationRepo as unknown as Repository<LocationEntity>;
+        if (entity === Location || entity.name === 'Location') {
+          return mockLocationRepo as unknown as Repository<Location>;
         }
         if (entity === EffectiveChangeEntity || entity.name === 'EffectiveChangeEntity') {
           return mockChangeRepo as unknown as Repository<EffectiveChangeEntity>;
@@ -56,7 +56,7 @@ describe('LocationApplyHandler [US5]', () => {
       status: MasterDataStatus.SCHEDULED,
       code: 'HQ-TYO',
       name: 'Tokyo HQ',
-    } as unknown as LocationEntity;
+    } as unknown as Location;
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
 
     await handler.apply(
@@ -89,7 +89,7 @@ describe('LocationApplyHandler [US5]', () => {
       id: 'loc-1',
       name: 'Tokyo Office',
       updatedAt: new Date('2026-08-16T00:00:00Z'),
-    } as unknown as LocationEntity;
+    } as unknown as Location;
 
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
@@ -127,7 +127,7 @@ describe('LocationApplyHandler [US5]', () => {
       id: 'loc-1',
       status: MasterDataStatus.ACTIVE,
       updatedAt: new Date('2026-08-16T00:00:00Z'),
-    } as unknown as LocationEntity;
+    } as unknown as Location;
 
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);

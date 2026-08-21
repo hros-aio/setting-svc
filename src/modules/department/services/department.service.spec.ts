@@ -7,7 +7,7 @@ import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { DepartmentEntity } from '../entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../repositories/department.repository';
 import { DepartmentService } from './department.service';
 
@@ -47,7 +47,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       findById: jest.fn(),
       createAndSave: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as DepartmentEntity),
+        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as Department),
     };
 
     mockCompanyRepo = {
@@ -107,7 +107,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       id: 'existing-dept',
       code: 'ENG',
       companyId: 'comp-A',
-    } as DepartmentEntity);
+    } as Department);
 
     await expect(
       service.create(

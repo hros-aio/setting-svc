@@ -1,6 +1,9 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { CompanyScopeGuard, TenantScopeGuard } from '../src/common/guards';
-import { CrossCompanyReferenceException } from '../src/common/exceptions';
+import {
+  CompanyScopeGuard,
+  CrossCompanyReferenceException,
+  TenantScopeGuard,
+} from '@new-hros/libs-apis';
 
 describe('Multi-Company Isolation & Security Specification [US1 - US4]', () => {
   describe('Company Scope Guarding & Boundary Protection [US3]', () => {

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { DepartmentEntity } from '../entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import {
   DepartmentTreeNode,
   IDepartmentRepository,
@@ -13,13 +13,13 @@ import { MasterDataStatus } from '../../../enums';
 @Injectable()
 export class DepartmentRepository implements IDepartmentRepository {
   constructor(
-    @InjectRepository(DepartmentEntity)
-    private readonly repo: Repository<DepartmentEntity>,
+    @InjectRepository(Department)
+    private readonly repo: Repository<Department>,
     private readonly dataSource: DataSource,
   ) {}
 
-  private getRepo(manager?: EntityManager): Repository<DepartmentEntity> {
-    return manager ? manager.getRepository(DepartmentEntity) : this.repo;
+  private getRepo(manager?: EntityManager): Repository<Department> {
+    return manager ? manager.getRepository(Department) : this.repo;
   }
 
   async findById(
@@ -27,7 +27,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     companyId: string,
     id: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity | null> {
+  ): Promise<Department | null> {
     return this.getRepo(manager).findOne({
       where: {
         id,
@@ -43,7 +43,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     companyId: string,
     code: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity | null> {
+  ): Promise<Department | null> {
     return this.getRepo(manager).findOne({
       where: {
         tenantId,
@@ -58,7 +58,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<DepartmentEntity>> {
+  ): Promise<PaginatedResult<Department>> {
     const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
     const skip = (page - 1) * limit;
@@ -96,7 +96,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     companyId: string,
     pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<PaginatedResult<DepartmentEntity>> {
+  ): Promise<PaginatedResult<Department>> {
     const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
     const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
     const skip = (page - 1) * limit;
@@ -222,9 +222,9 @@ export class DepartmentRepository implements IDepartmentRepository {
   }
 
   async createAndSave(
-    departmentData: Partial<DepartmentEntity>,
+    departmentData: Partial<Department>,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     const repo = this.getRepo(manager);
     const department = repo.create(departmentData);
     return repo.save(department);
@@ -237,7 +237,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     status: MasterDataStatus,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     const repo = this.getRepo(manager);
     const department = await this.findById(tenantId, companyId, id, manager);
     if (!department) {
@@ -256,10 +256,10 @@ export class DepartmentRepository implements IDepartmentRepository {
     tenantId: string,
     companyId: string,
     id: string,
-    fields: Partial<DepartmentEntity>,
+    fields: Partial<Department>,
     userId?: string,
     manager?: EntityManager,
-  ): Promise<DepartmentEntity> {
+  ): Promise<Department> {
     const repo = this.getRepo(manager);
     const department = await this.findById(tenantId, companyId, id, manager);
     if (!department) {
@@ -274,7 +274,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     return repo.save(department);
   }
 
-  async save(department: DepartmentEntity, manager?: EntityManager): Promise<DepartmentEntity> {
+  async save(department: Department, manager?: EntityManager): Promise<Department> {
     const repo = this.getRepo(manager);
     return repo.save(department);
   }

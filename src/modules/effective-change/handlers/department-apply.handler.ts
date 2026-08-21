@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { DepartmentEntity } from '../../department/entities/department.entity';
+import { Department } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import {
@@ -37,7 +37,7 @@ export class DepartmentApplyHandler {
   }
 
   private async applyCreate(command: EffectiveExecuteCommand, em: EntityManager): Promise<void> {
-    const departmentRepo = em.getRepository(DepartmentEntity);
+    const departmentRepo = em.getRepository(Department);
     const department = await departmentRepo.findOne({
       where: {
         id: command.changeId,
@@ -106,7 +106,7 @@ export class DepartmentApplyHandler {
       return;
     }
 
-    const departmentRepo = em.getRepository(DepartmentEntity);
+    const departmentRepo = em.getRepository(Department);
     const department = await departmentRepo.findOne({
       where: {
         id: change.entityId,
@@ -199,7 +199,7 @@ export class DepartmentApplyHandler {
       return;
     }
 
-    const departmentRepo = em.getRepository(DepartmentEntity);
+    const departmentRepo = em.getRepository(Department);
     const department = await departmentRepo.findOne({
       where: {
         id: change.entityId,
