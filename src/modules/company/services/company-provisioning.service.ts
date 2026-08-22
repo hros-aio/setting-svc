@@ -95,6 +95,7 @@ export class CompanyProvisioningService {
           status: newCompany.status,
           isTemplate: newCompany.isTemplate,
         },
+        executionTime: new Date(),
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(outboxEvent);

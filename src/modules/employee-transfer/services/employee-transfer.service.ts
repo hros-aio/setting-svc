@@ -79,6 +79,7 @@ export class EmployeeTransferService {
           destinationJobTitleId: dto.destinationJobTitleId,
           effectiveAt: savedTransfer.effectiveAt,
         },
+        executionTime: savedTransfer.effectiveAt,
         status: OutboxStatus.PENDING,
       });
 

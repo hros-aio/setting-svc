@@ -73,7 +73,8 @@ export class PocApplyHandler {
         status: poc.status,
         effectiveAt: poc.effectiveAt,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
 
@@ -168,7 +169,8 @@ export class PocApplyHandler {
         newEmployeeId: savedNewPoc.employeeId,
         effectiveAt: change.effectiveAt,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
 
@@ -240,7 +242,8 @@ export class PocApplyHandler {
         employeeId: poc.employeeId,
         effectiveAt: change.effectiveAt,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
 

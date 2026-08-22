@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EffectiveChangeScheduledEvent",
+  "description": "Schema for incoming EFFECTIVE_CHANGE_SCHEDULED event consumed by setting-svc",
+  "type": "object",
+  "required": ["eventId", "eventType", "timestamp", "payload"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier of the event for idempotency and tracing"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": ["setting.effective-change.scheduled"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object",
+      "required": ["changeId", "entityType", "operation", "effectiveAt", "targetCompanyId", "tenantId"],
+      "properties": {
+        "changeId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entityType": {
+          "type": "string",
+          "enum": ["location", "department", "grade", "job_title", "poc", "employee_transfer"]
+        },
+        "operation": {
+          "type": "string",
+          "enum": ["CREATE", "UPDATE", "DELETE", "TRANSFER"]
+        },
+        "effectiveAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "targetCompanyId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

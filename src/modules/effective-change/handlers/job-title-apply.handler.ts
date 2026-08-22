@@ -77,7 +77,8 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         effectiveAt: jobTitle.effectiveAt,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied CREATE for Job Title ${jobTitle.id}`);
@@ -169,7 +170,8 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         updatedFields: change.payload,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied UPDATE for Job Title ${jobTitle.id}`);
@@ -235,7 +237,8 @@ export class JobTitleApplyHandler {
         code: jobTitle.code,
         status: jobTitle.status,
       },
-      status: OutboxStatus.PENDING,
+      executionTime: new Date(),
+        status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied DEACTIVATE for Job Title ${jobTitle.id}`);

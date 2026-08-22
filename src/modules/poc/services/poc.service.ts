@@ -121,6 +121,7 @@ export class PocService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: poc.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -198,6 +199,7 @@ export class PocService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -271,6 +273,7 @@ export class PocService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);

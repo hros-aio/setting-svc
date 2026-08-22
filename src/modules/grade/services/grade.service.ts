@@ -102,6 +102,7 @@ export class GradeService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: grade.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -179,6 +180,7 @@ export class GradeService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -241,6 +243,7 @@ export class GradeService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
