@@ -88,6 +88,16 @@ export class EffectiveChangeService {
   }
 
   async scheduleExecution(command: EffectiveScheduledCommand): Promise<void> {
+    const effectiveAtDate = new Date(command.effectiveAt);
+    const now = new Date();
+
+    if (effectiveAtDate.getTime() > now.getTime()) {
+      this.logger.log(
+        `Skipping scheduleExecution for change ${command.changeId}: effectiveAt (${effectiveAtDate.toISOString()}) is in the future compared to current time (${now.toISOString()})`,
+      );
+      return;
+    }
+
     const normalizedEntityType = this.normalizeEntityType(command.entityType);
     const normalizedOperation = this.normalizeOperation(command.operation);
 
