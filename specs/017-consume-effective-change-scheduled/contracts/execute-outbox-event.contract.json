@@ -3,7 +3,7 @@
   "title": "EffectiveChangeExecuteOutboxEvent",
   "description": "Schema for generated EFFECTIVE_CHANGE_EXECUTE outbox record persisted in outbox_events table",
   "type": "object",
-  "required": ["aggregateType", "aggregateId", "eventType", "payload", "status"],
+  "required": ["aggregateType", "aggregateId", "eventType", "payload", "executionTime", "status"],
   "properties": {
     "aggregateType": {
       "type": "string",
@@ -19,7 +19,7 @@
     },
     "payload": {
       "type": "object",
-      "required": ["changeId", "entityType", "operation", "effectiveAt", "targetCompanyId", "tenantId"],
+      "required": ["changeId", "entityType", "operation", "effectiveAt", "companyId", "tenantId"],
       "properties": {
         "changeId": {
           "type": "string",
@@ -35,7 +35,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "targetCompanyId": {
+        "companyId": {
           "type": "string",
           "format": "uuid"
         },
@@ -46,6 +46,11 @@
           "type": "object"
         }
       }
+    },
+    "executionTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp indicating when the outbox event is eligible for dispatch/execution"
     },
     "status": {
       "type": "string",

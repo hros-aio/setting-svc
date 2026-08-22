@@ -12,7 +12,8 @@ Stores asynchronous events generated within domain transaction boundaries.
 | `aggregateType` | VARCHAR(64) | No | Aggregate category (`location`, `department`, `grade`, `job_title`, `poc`, `employee_transfer`) |
 | `aggregateId` | UUID | No | ID of the aggregate root / entity being changed |
 | `eventType` | VARCHAR(128) | No | `setting.effective-change.execute` |
-| `payload` | JSONB / Object | No | Serialized execution payload containing changeId, entityType, operation, effectiveAt, targetCompanyId, tenantId |
+| `payload` | JSONB / Object | No | Serialized execution payload containing changeId, entityType, operation, effectiveAt, companyId, tenantId |
+| `executionTime` | TIMESTAMPTZ | No | Timestamp indicating when the relay worker should dispatch/execute the event |
 | `status` | VARCHAR(32) | No | Defaults to `PENDING` (`PENDING`, `PROCESSING`, `PUBLISHED`, `FAILED`) |
 | `retryCount` | INT | No | Number of publish retries (default: 0) |
 | `createdAt` | TIMESTAMP | No | Record creation timestamp |

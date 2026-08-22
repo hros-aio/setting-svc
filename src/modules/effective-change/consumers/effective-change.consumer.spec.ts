@@ -65,6 +65,18 @@ describe('EffectiveChangeConsumer', () => {
       expect(mockService.scheduleExecution).not.toHaveBeenCalled();
     });
 
+    it('should skip processing on event missing eventId', async () => {
+      const invalidEvent = {
+        ...validScheduledEvent,
+        eventId: '',
+      };
+
+      await consumer.handleEffectiveChangeScheduled(invalidEvent);
+
+      expect(mockCacheService.has).not.toHaveBeenCalled();
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+    });
+
     it('should skip processing and log warning on malformed payload missing changeId [US3]', async () => {
       const invalidEvent: EffectiveScheduledEventPayload = {
         eventId: 'event-uuid-2',
@@ -94,8 +106,105 @@ describe('EffectiveChangeConsumer', () => {
           changeId: 'change-123',
           entityType: '' as unknown as EffectiveEntityType,
           operation: ChangeOperation.CREATE,
+          effectiveAt: '2026-09-01T00:00:00Z',
           targetCompanyId: 'comp-1',
           tenantId: '',
+        },
+      } as unknown as EffectiveScheduledEventPayload;
+
+      await consumer.handleEffectiveChangeScheduled(invalidEvent);
+
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing on missing operation [US3]', async () => {
+      const invalidEvent = {
+        eventId: 'event-uuid-4',
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+        timestamp: '2026-08-22T10:00:00Z',
+        payload: {
+          changeId: 'change-123',
+          entityType: EffectiveEntityType.DEPARTMENT,
+          operation: '' as unknown as ChangeOperation,
+          effectiveAt: '2026-09-01T00:00:00Z',
+          targetCompanyId: 'comp-1',
+          tenantId: 'tenant-1',
+        },
+      } as unknown as EffectiveScheduledEventPayload;
+
+      await consumer.handleEffectiveChangeScheduled(invalidEvent);
+
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing on missing effectiveAt or invalid effectiveAt [US3]', async () => {
+      const missingEffectiveAtEvent = {
+        eventId: 'event-uuid-5',
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+        timestamp: '2026-08-22T10:00:00Z',
+        payload: {
+          changeId: 'change-123',
+          entityType: EffectiveEntityType.DEPARTMENT,
+          operation: ChangeOperation.CREATE,
+          effectiveAt: '',
+          targetCompanyId: 'comp-1',
+          tenantId: 'tenant-1',
+        },
+      } as unknown as EffectiveScheduledEventPayload;
+
+      await consumer.handleEffectiveChangeScheduled(missingEffectiveAtEvent);
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+
+      const invalidDateEvent = {
+        eventId: 'event-uuid-6',
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+        timestamp: '2026-08-22T10:00:00Z',
+        payload: {
+          changeId: 'change-123',
+          entityType: EffectiveEntityType.DEPARTMENT,
+          operation: ChangeOperation.CREATE,
+          effectiveAt: 'invalid-date',
+          targetCompanyId: 'comp-1',
+          tenantId: 'tenant-1',
+        },
+      } as unknown as EffectiveScheduledEventPayload;
+
+      await consumer.handleEffectiveChangeScheduled(invalidDateEvent);
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing on missing targetCompanyId [US3]', async () => {
+      const invalidEvent = {
+        eventId: 'event-uuid-7',
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+        timestamp: '2026-08-22T10:00:00Z',
+        payload: {
+          changeId: 'change-123',
+          entityType: EffectiveEntityType.DEPARTMENT,
+          operation: ChangeOperation.CREATE,
+          effectiveAt: '2026-09-01T00:00:00Z',
+          targetCompanyId: '',
+          tenantId: 'tenant-1',
+        },
+      } as unknown as EffectiveScheduledEventPayload;
+
+      await consumer.handleEffectiveChangeScheduled(invalidEvent);
+
+      expect(mockService.scheduleExecution).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing on unsupported entityType or operation enum values [US3]', async () => {
+      const invalidEvent = {
+        eventId: 'event-uuid-8',
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+        timestamp: '2026-08-22T10:00:00Z',
+        payload: {
+          changeId: 'change-123',
+          entityType: 'unsupported_entity' as unknown as EffectiveEntityType,
+          operation: 'UNSUPPORTED_OP' as unknown as ChangeOperation,
+          effectiveAt: '2026-09-01T00:00:00Z',
+          targetCompanyId: 'comp-1',
+          tenantId: 'tenant-1',
         },
       } as unknown as EffectiveScheduledEventPayload;
 

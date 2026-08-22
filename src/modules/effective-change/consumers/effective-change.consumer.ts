@@ -1,7 +1,7 @@
 import { Controller, Logger, Optional } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { CacheService } from '@new-hros/libs-core';
-import { EffectiveChangeEventType } from '../../../enums';
+import { ChangeOperation, EffectiveChangeEventType, EffectiveEntityType } from '../../../enums';
 import { EffectiveScheduledEventPayload } from '../dto/effective-scheduled-event.dto';
 import { EffectiveExecuteCommand } from '../handlers/location-apply.handler';
 import { EffectiveChangeService } from '../services/effective-change.service';
@@ -12,6 +12,9 @@ export interface ExecuteEventPayload {
   timestamp: string;
   payload: EffectiveExecuteCommand;
 }
+
+const VALID_ENTITY_TYPES = new Set(Object.values(EffectiveEntityType));
+const VALID_OPERATIONS = new Set(Object.values(ChangeOperation));
 
 @Controller()
 export class EffectiveChangeConsumer {
@@ -54,25 +57,86 @@ export class EffectiveChangeConsumer {
     @Payload() data: EffectiveScheduledEventPayload,
   ): Promise<void> {
     const eventId = data?.eventId;
-    const command = data?.payload;
 
-    this.logger.log(`Received effective-change.scheduled event: ${eventId}`);
+    // Runtime validation of eventId before deduplication
+    if (!eventId || typeof eventId !== 'string' || eventId.trim().length === 0) {
+      this.logger.warn(
+        JSON.stringify({
+          message: 'Malformed scheduled event missing eventId',
+          eventType: data?.eventType,
+        }),
+      );
+      return;
+    }
 
     if (await this.isDuplicateEvent(eventId)) {
       return;
     }
 
-    if (
-      !command ||
-      !command.changeId ||
-      !command.entityType ||
-      !command.operation ||
-      !command.targetCompanyId ||
-      !command.tenantId
-    ) {
-      this.logger.warn(`Malformed scheduled event payload: ${JSON.stringify(data)}`);
+    const command = data?.payload;
+    if (!command) {
+      this.logger.warn(
+        JSON.stringify({
+          message: 'Malformed scheduled event missing payload',
+          eventId,
+        }),
+      );
       return;
     }
+
+    const { changeId, entityType, operation, effectiveAt, targetCompanyId, tenantId } = command;
+
+    const isEffectiveAtValid =
+      effectiveAt &&
+      (typeof effectiveAt === 'string' || effectiveAt instanceof Date) &&
+      !isNaN(new Date(effectiveAt).getTime());
+
+    const opUpper = (operation as string).toUpperCase();
+    const opLower = (operation as string).toLowerCase();
+    const isValidOp =
+      VALID_OPERATIONS.has(opLower as ChangeOperation) ||
+      VALID_OPERATIONS.has(opUpper as ChangeOperation) ||
+      opUpper === 'CREATE' ||
+      opUpper === 'UPDATE' ||
+      opUpper === 'DEACTIVATE' ||
+      opUpper === 'DELETE' ||
+      opUpper === 'TRANSFER';
+
+    if (
+      !changeId ||
+      !entityType ||
+      !operation ||
+      !targetCompanyId ||
+      !tenantId ||
+      !isEffectiveAtValid ||
+      !VALID_ENTITY_TYPES.has(entityType.toLowerCase() as EffectiveEntityType) ||
+      !isValidOp
+    ) {
+      this.logger.warn(
+        JSON.stringify({
+          message: 'Malformed scheduled event payload',
+          eventId,
+          changeId: changeId || null,
+          entityType: entityType || null,
+          operation: operation || null,
+          targetCompanyId: targetCompanyId || null,
+          tenantId: tenantId || null,
+        }),
+      );
+      return;
+    }
+
+    this.logger.log(
+      JSON.stringify({
+        message: 'Processing effective-change.scheduled event',
+        eventId,
+        changeId,
+        entityType,
+        operation,
+        targetCompanyId,
+        tenantId,
+      }),
+    );
 
     await this.effectiveChangeService.scheduleExecution(command);
   }
@@ -80,18 +144,44 @@ export class EffectiveChangeConsumer {
   @EventPattern(EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE)
   async handleEffectiveChangeExecute(@Payload() data: ExecuteEventPayload): Promise<void> {
     const eventId = data?.eventId;
-    const command = data?.payload;
 
-    this.logger.log(`Received effective-change.execute event: ${eventId}`);
+    if (!eventId || typeof eventId !== 'string' || eventId.trim().length === 0) {
+      this.logger.warn(
+        JSON.stringify({
+          message: 'Malformed execute event missing eventId',
+          eventType: data?.eventType,
+        }),
+      );
+      return;
+    }
 
     if (await this.isDuplicateEvent(eventId)) {
       return;
     }
 
+    const command = data?.payload;
     if (!command || !command.changeId || !command.entityType) {
-      this.logger.warn(`Malformed execute event payload: ${JSON.stringify(data)}`);
+      this.logger.warn(
+        JSON.stringify({
+          message: 'Malformed execute event payload',
+          eventId,
+          changeId: command?.changeId || null,
+          entityType: command?.entityType || null,
+          tenantId: command?.tenantId || null,
+        }),
+      );
       return;
     }
+
+    this.logger.log(
+      JSON.stringify({
+        message: 'Processing effective-change.execute event',
+        eventId,
+        changeId: command.changeId,
+        entityType: command.entityType,
+        tenantId: command.tenantId,
+      }),
+    );
 
     await this.effectiveChangeService.executeChange(command);
   }

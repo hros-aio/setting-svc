@@ -12,9 +12,15 @@ describe('EffectiveDateUtil', () => {
       expect(result.toISOString()).toBe('2026-08-24T17:00:00.000Z');
     });
 
-    it('should default to UTC if no timezone is provided', () => {
-      const result = EffectiveDateUtil.parseToStartOfDayInTimezone('2026-08-25');
-      expect(result.toISOString()).toBe('2026-08-25T00:00:00.000Z');
+    it('should default to UTC if no timezone is provided or invalid timezone provided', () => {
+      const result1 = EffectiveDateUtil.parseToStartOfDayInTimezone('2026-08-25');
+      expect(result1.toISOString()).toBe('2026-08-25T00:00:00.000Z');
+
+      const result2 = EffectiveDateUtil.parseToStartOfDayInTimezone(
+        '2026-08-25',
+        'Invalid/Timezone',
+      );
+      expect(result2.toISOString()).toBe('2026-08-25T00:00:00.000Z');
     });
   });
 
@@ -43,6 +49,20 @@ describe('EffectiveDateUtil', () => {
     it('should throw BadRequestException on invalid date string', () => {
       expect(() =>
         EffectiveDateUtil.validateCompanyEffectiveDate('invalid-date', {
+          timezone: 'Asia/Ho_Chi_Minh',
+        }),
+      ).toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException on invalid calendar rollover dates (e.g. 2027-02-29, 2027-04-31)', () => {
+      expect(() =>
+        EffectiveDateUtil.validateCompanyEffectiveDate('2027-02-29', {
+          timezone: 'Asia/Ho_Chi_Minh',
+        }),
+      ).toThrow(BadRequestException);
+
+      expect(() =>
+        EffectiveDateUtil.validateCompanyEffectiveDate('2027-04-31', {
           timezone: 'Asia/Ho_Chi_Minh',
         }),
       ).toThrow(BadRequestException);
