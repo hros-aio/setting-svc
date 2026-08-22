@@ -76,6 +76,7 @@ export class DepartmentApplyHandler {
         status: department.status,
         effectiveAt: department.effectiveAt,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -169,6 +170,7 @@ export class DepartmentApplyHandler {
         status: department.status,
         updatedFields: change.payload,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -235,6 +237,7 @@ export class DepartmentApplyHandler {
         code: department.code,
         status: department.status,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

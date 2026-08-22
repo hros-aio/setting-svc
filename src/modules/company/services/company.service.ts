@@ -129,6 +129,7 @@ export class CompanyService {
           status: newCompany.status,
           createdAt: newCompany.createdAt || new Date(),
         },
+        executionTime: new Date(),
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(companyCreatedEvent);
@@ -148,6 +149,7 @@ export class CompanyService {
             sourceCompanyId: defaultCompany.id,
             targetCompanyId: newCompany.id,
           },
+          executionTime: new Date(),
           status: OutboxStatus.PENDING,
         });
         await outboxRepo.save(roleCopyEvent);
@@ -241,6 +243,7 @@ export class CompanyService {
           informationCompletedBy: company.informationCompletedBy || userId,
           updatedAt: now,
         },
+        executionTime: new Date(),
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(updateEvent);
@@ -353,6 +356,7 @@ export class CompanyService {
           activatedBy: userId,
           completedStepsCount: validationResult.totalSteps,
         },
+        executionTime: new Date(),
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(activatedEvent);

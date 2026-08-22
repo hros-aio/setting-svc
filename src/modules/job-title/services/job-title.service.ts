@@ -118,6 +118,7 @@ export class JobTitleService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: jobTitle.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -206,6 +207,7 @@ export class JobTitleService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -268,6 +270,7 @@ export class JobTitleService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);

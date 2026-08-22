@@ -90,6 +90,7 @@ export class EmployeeTransferApplyHandler {
         completedAt: transfer.completedAt,
         continuousEmployment: true,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
 

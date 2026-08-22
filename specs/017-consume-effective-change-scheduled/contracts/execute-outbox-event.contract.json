@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EffectiveChangeExecuteOutboxEvent",
+  "description": "Schema for generated EFFECTIVE_CHANGE_EXECUTE outbox record persisted in outbox_events table",
+  "type": "object",
+  "required": ["aggregateType", "aggregateId", "eventType", "payload", "executionTime", "status"],
+  "properties": {
+    "aggregateType": {
+      "type": "string",
+      "enum": ["location", "department", "grade", "job_title", "poc", "employee_transfer", "company"]
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": ["setting.effective-change.execute"]
+    },
+    "payload": {
+      "type": "object",
+      "required": ["changeId", "entityType", "operation", "effectiveAt", "companyId", "tenantId"],
+      "properties": {
+        "changeId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entityType": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "effectiveAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "companyId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        }
+      }
+    },
+    "executionTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp indicating when the outbox event is eligible for dispatch/execution"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PENDING", "PROCESSING", "PUBLISHED", "FAILED"]
+    }
+  }
+}

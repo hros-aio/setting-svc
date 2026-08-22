@@ -24,6 +24,9 @@ export class OutboxEventEntity {
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
+  @Column({ type: 'timestamptz', name: 'execution_time' })
+  executionTime: Date;
+
   @Column({ type: 'varchar', length: 32, default: OutboxStatus.PENDING })
   status: string;
 

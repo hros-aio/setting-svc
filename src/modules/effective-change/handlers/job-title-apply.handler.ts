@@ -77,6 +77,7 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         effectiveAt: jobTitle.effectiveAt,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -169,6 +170,7 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         updatedFields: change.payload,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -235,6 +237,7 @@ export class JobTitleApplyHandler {
         code: jobTitle.code,
         status: jobTitle.status,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

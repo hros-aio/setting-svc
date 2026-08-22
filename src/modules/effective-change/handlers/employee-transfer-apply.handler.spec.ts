@@ -145,6 +145,7 @@ describe('EmployeeTransferApplyHandler', () => {
         destinationCompanyId: 'comp-2',
         continuousEmployment: true,
       }),
+      executionTime: expect.any(Date),
       status: OutboxStatus.PENDING,
     });
     expect(mockOutboxRepo.save).toHaveBeenCalled();

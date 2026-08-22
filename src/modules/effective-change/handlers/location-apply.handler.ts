@@ -84,6 +84,7 @@ export class LocationApplyHandler {
         status: location.status,
         effectiveAt: location.effectiveAt,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -152,6 +153,7 @@ export class LocationApplyHandler {
         status: location.status,
         updatedFields: change.payload,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -218,6 +220,7 @@ export class LocationApplyHandler {
         code: location.code,
         status: location.status,
       },
+      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

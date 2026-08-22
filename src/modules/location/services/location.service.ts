@@ -113,6 +113,7 @@ export class LocationService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: location.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -241,6 +242,7 @@ export class LocationService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
@@ -307,6 +309,7 @@ export class LocationService {
           targetCompanyId: companyId,
           tenantId,
         },
+        executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
       await outboxRepo.save(scheduledEvent);
