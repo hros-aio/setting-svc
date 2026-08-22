@@ -85,7 +85,7 @@ export class LocationApplyHandler {
         effectiveAt: location.effectiveAt,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied CREATE for Location ${location.id}`);
@@ -154,7 +154,7 @@ export class LocationApplyHandler {
         updatedFields: change.payload,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied UPDATE for Location ${location.id}`);
@@ -221,7 +221,7 @@ export class LocationApplyHandler {
         status: location.status,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied DEACTIVATE for Location ${location.id}`);

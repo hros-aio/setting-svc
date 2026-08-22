@@ -91,7 +91,7 @@ export class EmployeeTransferApplyHandler {
         continuousEmployment: true,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
 
     await outboxRepo.save(domainEvent);

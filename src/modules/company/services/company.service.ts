@@ -150,7 +150,7 @@ export class CompanyService {
             targetCompanyId: newCompany.id,
           },
           executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+          status: OutboxStatus.PENDING,
         });
         await outboxRepo.save(roleCopyEvent);
       }

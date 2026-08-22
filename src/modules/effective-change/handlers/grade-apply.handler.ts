@@ -75,7 +75,7 @@ export class GradeApplyHandler {
         effectiveAt: grade.effectiveAt,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied CREATE for Grade ${grade.id}`);
@@ -153,7 +153,7 @@ export class GradeApplyHandler {
         updatedFields: change.payload,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied UPDATE for Grade ${grade.id}`);
@@ -220,7 +220,7 @@ export class GradeApplyHandler {
         status: grade.status,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied DEACTIVATE for Grade ${grade.id}`);

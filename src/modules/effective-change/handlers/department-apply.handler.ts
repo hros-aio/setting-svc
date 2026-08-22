@@ -77,7 +77,7 @@ export class DepartmentApplyHandler {
         effectiveAt: department.effectiveAt,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied CREATE for Department ${department.id}`);
@@ -171,7 +171,7 @@ export class DepartmentApplyHandler {
         updatedFields: change.payload,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied UPDATE for Department ${department.id}`);
@@ -238,7 +238,7 @@ export class DepartmentApplyHandler {
         status: department.status,
       },
       executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
     this.logger.log(`Successfully applied DEACTIVATE for Department ${department.id}`);
