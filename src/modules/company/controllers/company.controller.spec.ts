@@ -135,7 +135,7 @@ describe('CompanyController', () => {
     });
 
     it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null as unknown as string);
 
       await expect(
         controller.updateCompanyInformation('company-uuid-1', { legalName: 'Acme' }),
@@ -204,7 +204,7 @@ describe('CompanyController', () => {
     });
 
     it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null as unknown as string);
 
       await expect(controller.getCompanySetupProgress('company-uuid-1')).rejects.toThrow(
         BadRequestException,
@@ -247,7 +247,7 @@ describe('CompanyController', () => {
     });
 
     it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null as unknown as string);
 
       await expect(controller.activateCompany('company-uuid-1')).rejects.toThrow(
         BadRequestException,

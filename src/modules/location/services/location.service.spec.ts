@@ -44,7 +44,7 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     mockLocationRepo = {
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'loc-1', ...data }) as Location),
+      create: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>),
     };
 
     mockCompanyRepo = {
@@ -95,14 +95,13 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     );
 
     expect(result).toBeDefined();
-    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('tenant-1', 'comp-A');
-    expect(mockLocationRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('comp-A');
+    expect(mockLocationRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
         companyId: 'comp-A',
         code: 'LO00001',
       }),
-      expect.anything(),
     );
   });
 
@@ -128,14 +127,13 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     );
 
     expect(result).toBeDefined();
-    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('tenant-1', 'comp-B');
-    expect(mockLocationRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('comp-B');
+    expect(mockLocationRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
         companyId: 'comp-B',
         code: 'LO00001',
       }),
-      expect.anything(),
     );
   });
 });

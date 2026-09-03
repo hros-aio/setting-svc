@@ -1,21 +1,11 @@
+import { Location, PaginatedResult } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
-import { Location } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
 export interface PaginationOptions {
   page?: number;
   limit?: number;
   search?: string;
-}
-
-export interface PaginatedResult<T> {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export interface ILocationRepository {

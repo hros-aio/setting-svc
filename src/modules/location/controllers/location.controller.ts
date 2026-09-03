@@ -23,8 +23,7 @@ import { EffectiveChangeEntity } from '../../effective-change/entities/effective
 import { CreateLocationDto } from '../dtos/create-location.dto';
 import { DeactivateLocationDto, QueryLocationDto } from '../dtos/query-location.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
-import { Location } from '@new-hros/libs-sql';
-import { PaginatedResult } from '../repositories/location.repository.interface';
+import { Location, PaginatedResult } from '@new-hros/libs-sql';
 import { LocationService } from '../services/location.service';
 
 @Controller('locations')
@@ -46,18 +45,16 @@ export class LocationController {
   @RequirePermission('location:read')
   async findActiveLocations(
     @Query() query: QueryLocationDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<PaginatedResult<Location>> {
-    return this.locationService.findActiveLocations(query, authContext);
+    return this.locationService.findActiveLocations(query);
   }
 
   @Get(':id')
   @RequirePermission('location:read')
   async findById(
     @Param('id') id: string,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<Location> {
-    return this.locationService.findById(id, authContext);
+    return this.locationService.findById(id);
   }
 
   @Patch(':id')

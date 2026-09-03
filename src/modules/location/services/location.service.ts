@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
+import { Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
@@ -26,9 +26,7 @@ import { EffectiveChangeRepository } from '../../effective-change/repositories/e
 import { CreateLocationDto } from '../dtos/create-location.dto';
 import { DeactivateLocationDto, QueryLocationDto } from '../dtos/query-location.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
-import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from '../repositories/location.repository';
-import { PaginatedResult } from '../repositories/location.repository.interface';
 
 @Injectable()
 export class LocationService {
@@ -55,40 +53,34 @@ export class LocationService {
     );
 
     // 2. Auto-generate location code by rule "LO00001" based on total count in company (including deleted)
-    const existingCount = await this.locationRepository.countAllLocationsByCompany(
-      tenantId,
-      companyId,
-    );
+    const existingCount = await this.locationRepository.countAllLocationsByCompany(companyId);
     const nextSeq = existingCount + 1;
     const generatedCode = `LO${String(nextSeq).padStart(5, '0')}`;
 
     // 3. Headquarter pre-check
     if (dto.isHeadquarter) {
-      await this.verifyHeadquarterUniqueness(tenantId, companyId);
+      await this.verifyHeadquarterUniqueness(companyId);
     }
 
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
       // 4. Persist Location in scheduled status
-      const location = await this.locationRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          code: generatedCode,
-          name: dto.name,
-          description: dto.description,
-          countryCode: dto.countryCode,
-          timezone: dto.timezone || companyTimezone,
-          address: dto.address,
-          isHeadquarter: dto.isHeadquarter ?? false,
-          status: MasterDataStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        manager,
-      );
+      const location = await this.locationRepository.create({
+        tenantId,
+        companyId,
+        code: generatedCode,
+        name: dto.name,
+        description: dto.description,
+        countryCode: dto.countryCode,
+        timezone: dto.timezone || companyTimezone,
+        address: dto.address,
+        isHeadquarter: dto.isHeadquarter ?? false,
+        status: MasterDataStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
       // 5. Complete LOCATION setup step if needed
       await this.companySetupStepRepository.markStepCompleted({
@@ -122,46 +114,21 @@ export class LocationService {
     });
   }
 
-  async findActiveLocations(
-    query?: QueryLocationDto,
-    authContext?: AuthContext | null,
-  ): Promise<PaginatedResult<Location>> {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
+  async findActiveLocations(query?: QueryLocationDto): Promise<PaginatedResult<Location>> {
+    const companyId = RequestContextService.current()?.companyId || '';
 
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;
     const limit = query?.limit && query.limit > 0 ? Math.min(Number(query.limit), 100) : 20;
 
-    if (!tenantId || !companyId) {
-      this.logger.warn(
-        `Cannot find active locations: missing ${!tenantId ? 'tenantId' : 'companyId'} from request context`,
-      );
-      return {
-        data: [],
-        meta: {
-          total: 0,
-          page,
-          limit,
-          totalPages: 0,
-        },
-      };
-    }
-
-    return this.locationRepository.findActiveLocations(tenantId, companyId, {
+    return this.locationRepository.findActiveLocations(companyId, {
       page,
       limit,
       search: query?.search,
     });
   }
 
-  async findById(id: string, authContext?: AuthContext | null): Promise<Location> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
-    const location = await this.locationRepository.findById(tenantId, companyId, id);
-    if (!location) {
-      throw new NotFoundException(`Location with ID '${id}' not found`);
-    }
-    return location;
+  async findById(id: string): Promise<Location> {
+    return this.locationRepository.findById(id, { required: true });
   }
 
   async scheduleUpdate(
@@ -173,7 +140,7 @@ export class LocationService {
     const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
 
     // 1. Verify location exists and is active
-    const location = await this.verifyActiveLocation(tenantId, companyId, locationId, 'updates');
+    const location = await this.verifyActiveLocation(locationId, 'updates');
 
     // 2. Resolve company timezone and validate effectiveAt
     const { effectiveAtDate } = await this.validateEffectiveDate(
@@ -184,7 +151,7 @@ export class LocationService {
 
     // 3. Headquarter pre-check if updating isHeadquarter to true
     if (dto.isHeadquarter === true) {
-      await this.verifyHeadquarterUniqueness(tenantId, companyId, locationId);
+      await this.verifyHeadquarterUniqueness(companyId, locationId);
     }
 
     // 4. Single pending change check (INV-007)
@@ -202,7 +169,7 @@ export class LocationService {
       if (dto.isHeadquarter !== undefined) location.isHeadquarter = dto.isHeadquarter;
       location.updatedBy = userId;
 
-      const updatedLocation = await this.locationRepository.save(location, manager);
+      const updatedLocation = await this.locationRepository.update(location.id, location);
 
       const payload: Record<string, unknown> = {};
       if (dto.name !== undefined) payload.name = dto.name;
@@ -260,12 +227,7 @@ export class LocationService {
     const userId = authContext?.userId;
 
     // 1. Verify location exists and is active
-    const location = await this.verifyActiveLocation(
-      tenantId,
-      companyId,
-      locationId,
-      'deactivation',
-    );
+    const location = await this.verifyActiveLocation(locationId, 'deactivation');
 
     // 2. Resolve company timezone and validate effectiveAt
     const { effectiveAtDate } = await this.validateEffectiveDate(
@@ -366,15 +328,10 @@ export class LocationService {
   }
 
   private async verifyActiveLocation(
-    tenantId: string,
-    companyId: string,
     locationId: string,
     action: 'updates' | 'deactivation' = 'updates',
   ): Promise<Location> {
-    const location = await this.locationRepository.findById(tenantId, companyId, locationId);
-    if (!location) {
-      throw new NotFoundException(`Location with ID '${locationId}' not found`);
-    }
+    const location = await this.locationRepository.findById(locationId, { required: true });
     if (location.status !== MasterDataStatus.ACTIVE) {
       throw new BadRequestException(
         action === 'deactivation'
@@ -386,12 +343,10 @@ export class LocationService {
   }
 
   private async verifyHeadquarterUniqueness(
-    tenantId: string,
     companyId: string,
     excludeLocationId?: string,
   ): Promise<void> {
     const hasOtherHq = await this.locationRepository.hasActiveOrScheduledHeadquarter(
-      tenantId,
       companyId,
       excludeLocationId,
     );

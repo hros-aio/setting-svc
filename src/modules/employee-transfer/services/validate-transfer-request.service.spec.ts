@@ -233,6 +233,7 @@ describe('ValidateTransferRequestService', () => {
     mockTransferRepo.findPendingByEmployeeId.mockResolvedValue(null);
     mockLocationRepo.findById.mockResolvedValue({
       id: 'loc-1',
+      companyId: 'comp-2',
       status: MasterDataStatus.ACTIVE,
     } as unknown as Location);
     mockDeptRepo.findById.mockResolvedValue({

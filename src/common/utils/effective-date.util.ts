@@ -8,7 +8,7 @@ export class EffectiveDateUtil {
   /**
    * Validates if a given timezone string is a valid IANA timezone.
    */
-  static isValidTimezone(timezone?: string | null): boolean {
+  static isValidTimezone(timezone?: string | null): timezone is string {
     if (!timezone || typeof timezone !== 'string' || timezone.trim().length === 0) {
       return false;
     }
@@ -49,7 +49,7 @@ export class EffectiveDateUtil {
    * Example: '2026-08-25' in 'Asia/Ho_Chi_Minh' (UTC+7) -> '2026-08-24T17:00:00.000Z'
    */
   static parseToStartOfDayInTimezone(effectiveAt: Date | string, timezone?: string | null): Date {
-    const tz = this.isValidTimezone(timezone) ? timezone!.trim() : 'UTC';
+    const tz = this.isValidTimezone(timezone) ? timezone.trim() : 'UTC';
 
     let dateStr = '';
     if (typeof effectiveAt === 'string') {
@@ -86,7 +86,7 @@ export class EffectiveDateUtil {
     effectiveAt: Date | string,
     timezone?: string | null,
   ): { isValid: boolean; cutoff: Date; normalizedEffectiveAt: Date } {
-    const tz = this.isValidTimezone(timezone) ? timezone!.trim() : 'UTC';
+    const tz = this.isValidTimezone(timezone) ? timezone.trim() : 'UTC';
     const normalizedEffectiveAt = this.parseToStartOfDayInTimezone(effectiveAt, tz);
 
     // Format current date in target timezone to obtain YYYY-MM-DD
@@ -155,7 +155,7 @@ export class EffectiveDateUtil {
       throw new BadRequestException('Invalid effectiveAt date format');
     }
 
-    const tz = this.isValidTimezone(company?.timezone) ? company.timezone!.trim() : 'UTC';
+    const tz = this.isValidTimezone(company?.timezone) ? company.timezone.trim() : 'UTC';
     const { isValid, cutoff, normalizedEffectiveAt } = this.validateFutureEffectiveDate(
       effectiveAt,
       tz,

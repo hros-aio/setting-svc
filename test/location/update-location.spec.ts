@@ -63,7 +63,7 @@ describe('LocationService - Update Location [US3]', () => {
         updatedAt: new Date('2026-08-16T00:00:00Z'),
       } as Location),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      save: jest.fn().mockImplementation(async (entity) => entity as Location),
+      update: jest.fn().mockImplementation(async (id, entity) => entity as Location),
     };
 
     mockCompanyRepo = {
@@ -155,7 +155,7 @@ describe('LocationService - Update Location [US3]', () => {
 
     expect(result.id).toBe('loc-1');
     expect(result.name).toBe('Updated Name');
-    expect(mockLocationRepo.save).toHaveBeenCalled();
+    expect(mockLocationRepo.update).toHaveBeenCalled();
     expect(mockEffectiveChangeRepo.createAndSave).toHaveBeenCalled();
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });
