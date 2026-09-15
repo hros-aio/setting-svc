@@ -65,16 +65,16 @@ export class EmployeeImportCompletedConsumer {
       return;
     }
 
-    step.status = SetupStepStatus.COMPLETED;
-    step.completedAt = envelope.timestamp ? new Date(envelope.timestamp) : new Date();
-    step.externalReferenceId = payload.batchId;
-    step.metadata = {
-      ...(step.metadata || {}),
-      importedCount: payload.importedCount ?? 0,
-      ...(payload.metadata || {}),
-    };
-
-    await this.setupStepRepository.save(step);
+    await this.setupStepRepository.markStepCompleted({
+      companyId,
+      stepType: SetupStepType.EMPLOYEE_IMPORT,
+      externalReferenceId: payload.batchId,
+      metadata: {
+        ...(step.metadata || {}),
+        importedCount: payload.importedCount ?? 0,
+        ...(payload.metadata || {}),
+      },
+    });
     this.logger.log(
       `Marked setup step EMPLOYEE_IMPORT as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
     );

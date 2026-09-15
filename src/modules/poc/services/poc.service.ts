@@ -100,11 +100,9 @@ export class PocService {
 
       // 6. Complete POC setup step (Step 8)
       await this.companySetupStepRepository.markStepCompleted({
-        tenantId,
         companyId,
         stepType: SetupStepType.POC,
         completedBy: userId,
-        entityManager: manager,
       });
 
       // 7. Write outbox event for scheduling
@@ -165,25 +163,22 @@ export class PocService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'poc',
-          entityId: poc.id,
-          operation: ChangeOperation.UPDATE,
-          payload: {
-            newEmployeeId: dto.newEmployeeId,
-            reason: dto.reason,
-            pocType: poc.pocType,
-          },
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: poc.updatedAt,
-          createdBy: userId,
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'poc',
+        entityId: poc.id,
+        operation: ChangeOperation.UPDATE,
+        payload: {
+          newEmployeeId: dto.newEmployeeId,
+          reason: dto.reason,
+          pocType: poc.pocType,
         },
-        manager,
-      );
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: poc.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -240,24 +235,21 @@ export class PocService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'poc',
-          entityId: poc.id,
-          operation: ChangeOperation.DEACTIVATE,
-          payload: {
-            reason: dto.reason,
-            pocType: poc.pocType,
-          },
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: poc.updatedAt,
-          createdBy: userId,
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'poc',
+        entityId: poc.id,
+        operation: ChangeOperation.DEACTIVATE,
+        payload: {
+          reason: dto.reason,
+          pocType: poc.pocType,
         },
-        manager,
-      );
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: poc.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -299,7 +291,7 @@ export class PocService {
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; timezone: string }> {
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new NotFoundException(`Company '${companyId}' not found for tenant '${tenantId}'`);
     }

@@ -32,7 +32,9 @@ describe('LocationRepository', () => {
     };
 
     repository = new LocationRepository(mockTxService as unknown as TransactionService);
-    jest.spyOn(repository as any, 'tenantCode', 'get').mockReturnValue('tenant-1');
+    jest
+      .spyOn(repository as unknown as { tenantCode: string }, 'tenantCode', 'get')
+      .mockReturnValue('tenant-1');
   });
 
   afterEach(() => {

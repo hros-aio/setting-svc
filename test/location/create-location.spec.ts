@@ -1,47 +1,43 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { LocationService } from '../../src/modules/location/services/location.service';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Location, TransactionService } from '@new-hros/libs-sql';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { MasterDataStatus, SetupStepType } from '../../src/enums';
-import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
-import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
-import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
-import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { Location } from '@new-hros/libs-sql';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
+import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
+import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
+import { LocationService } from '../../src/modules/location/services/location.service';
 
 describe('LocationService - Create Location [US1]', () => {
   let service: LocationService;
   let mockLocationRepo: jest.Mocked<Partial<LocationRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['location:create'],
-  };
+  let mockOutboxEventRepo: { create: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['location:create'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventRepo = {
+      create: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockLocationRepo = {
@@ -56,25 +52,14 @@ describe('LocationService - Create Location [US1]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
       markStepCompleted: jest.fn().mockResolvedValue({} as CompanySetupStepEntity),
-    };
-
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
     };
 
     mockTxService = {
@@ -82,8 +67,8 @@ describe('LocationService - Create Location [US1]', () => {
     };
 
     service = new LocationService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxEventRepo as unknown as OutboxEventRepository,
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
@@ -103,7 +88,7 @@ describe('LocationService - Create Location [US1]', () => {
           name: 'Tokyo HQ',
           effectiveAt: pastDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -118,7 +103,7 @@ describe('LocationService - Create Location [US1]', () => {
         name: 'Tokyo HQ',
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.code).toBe('LO00001');
@@ -137,7 +122,7 @@ describe('LocationService - Create Location [US1]', () => {
         name: 'Osaka Branch',
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.code).toBe('LO00005');
@@ -155,7 +140,7 @@ describe('LocationService - Create Location [US1]', () => {
           isHeadquarter: true,
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -171,19 +156,17 @@ describe('LocationService - Create Location [US1]', () => {
         isHeadquarter: true,
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('loc-1');
     expect(result.code).toBe('LO00001');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
     expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
       companyId: 'comp-1',
       stepType: SetupStepType.LOCATION,
       completedBy: 'user-1',
-      entityManager: mockDataSource.manager,
     });
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxEventRepo.create).toHaveBeenCalled();
   });
 });

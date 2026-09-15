@@ -31,7 +31,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     return this.getRepo(manager).findOne({
       where: {
         id,
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
       relations: ['parentDepartment'],
@@ -46,7 +46,7 @@ export class DepartmentRepository implements IDepartmentRepository {
   ): Promise<Department | null> {
     return this.getRepo(manager).findOne({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         code,
       },
@@ -66,7 +66,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     const queryBuilder = this.getRepo(manager)
       .createQueryBuilder('dept')
       .leftJoinAndSelect('dept.parentDepartment', 'parent')
-      .where('dept.tenant_id = :tenantId', { tenantId })
+      .where('dept.tenant_code = :tenantId', { tenantId })
       .andWhere('dept.company_id = :companyId', { companyId })
       .andWhere('dept.status = :status', { status: MasterDataStatus.ACTIVE });
 
@@ -104,7 +104,7 @@ export class DepartmentRepository implements IDepartmentRepository {
     const queryBuilder = this.getRepo(manager)
       .createQueryBuilder('dept')
       .leftJoinAndSelect('dept.parentDepartment', 'parent')
-      .where('dept.tenant_id = :tenantId', { tenantId })
+      .where('dept.tenant_code = :tenantId', { tenantId })
       .andWhere('dept.company_id = :companyId', { companyId });
 
     if (pagination?.search) {
@@ -135,7 +135,7 @@ export class DepartmentRepository implements IDepartmentRepository {
   ): Promise<DepartmentTreeNode[]> {
     const allActive = await this.getRepo(manager).find({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         status: MasterDataStatus.ACTIVE,
       },
@@ -170,7 +170,7 @@ export class DepartmentRepository implements IDepartmentRepository {
   ): Promise<boolean> {
     const count = await this.getRepo(manager)
       .createQueryBuilder('dept')
-      .where('dept.tenant_id = :tenantId', { tenantId })
+      .where('dept.tenant_code = :tenantId', { tenantId })
       .andWhere('dept.company_id = :companyId', { companyId })
       .andWhere('dept.status IN (:...statuses)', {
         statuses: [MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED],
@@ -187,7 +187,7 @@ export class DepartmentRepository implements IDepartmentRepository {
   ): Promise<number> {
     return this.getRepo(manager).count({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
     });

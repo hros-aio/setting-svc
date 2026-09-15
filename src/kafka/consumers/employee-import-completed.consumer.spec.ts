@@ -14,7 +14,7 @@ describe('EmployeeImportCompletedConsumer', () => {
   beforeEach(() => {
     mockStepRepo = {
       findByCompanyAndStep: jest.fn(),
-      save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+      markStepCompleted: jest.fn().mockResolvedValue(null),
     };
     mockCacheService = {
       get: jest.fn().mockResolvedValue(null),
@@ -58,10 +58,12 @@ describe('EmployeeImportCompletedConsumer', () => {
       'company-1',
       SetupStepType.EMPLOYEE_IMPORT,
     );
-    expect(mockStep.status).toBe(SetupStepStatus.COMPLETED);
-    expect(mockStep.externalReferenceId).toBe('batch-import-123');
-    expect(mockStep.metadata).toEqual({ importedCount: 50 });
-    expect(mockStepRepo.save).toHaveBeenCalledTimes(1);
+    expect(mockStepRepo.markStepCompleted).toHaveBeenCalledWith({
+      companyId: 'company-1',
+      stepType: SetupStepType.EMPLOYEE_IMPORT,
+      externalReferenceId: 'batch-import-123',
+      metadata: { importedCount: 50 },
+    });
     expect(mockCacheService.set).toHaveBeenCalledTimes(1);
   });
 

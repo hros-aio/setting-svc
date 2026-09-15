@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger } from '@nes
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
 import { isDateString } from 'class-validator';
-import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -243,7 +243,7 @@ export class LocationService {
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
     const company = await this.companyRepository.findById(companyId, { required: true });
 
-    if (isDateString(effectiveAt)) {
+    if (!isDateString(effectiveAt)) {
       throw new BadRequestException('Invalid effectiveAt date format');
     }
 

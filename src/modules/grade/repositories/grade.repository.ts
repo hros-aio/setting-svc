@@ -26,7 +26,7 @@ export class GradeRepository implements IGradeRepository {
     return this.getRepo(manager).findOne({
       where: {
         id,
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
       relations: ['sourceGrade'],
@@ -41,7 +41,7 @@ export class GradeRepository implements IGradeRepository {
   ): Promise<Grade | null> {
     return this.getRepo(manager).findOne({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         code,
       },
@@ -59,7 +59,7 @@ export class GradeRepository implements IGradeRepository {
     const skip = (page - 1) * limit;
 
     const baseWhere: FindOptionsWhere<Grade> = {
-      tenantId,
+      tenantCode: tenantId,
       companyId,
     };
 
@@ -106,7 +106,7 @@ export class GradeRepository implements IGradeRepository {
   ): Promise<boolean> {
     const count = await this.getRepo(manager).count({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         status: In([MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED]),
       },
@@ -122,7 +122,7 @@ export class GradeRepository implements IGradeRepository {
   ): Promise<number> {
     return this.getRepo(manager).count({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
     });

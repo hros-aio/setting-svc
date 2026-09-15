@@ -59,35 +59,36 @@ describe('JobTitleService - Schedule Job Title Update [US3]', () => {
       findById: jest.fn().mockResolvedValue({
         id: 'dept-1',
         name: 'Engineering',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as Department),
+      } as unknown as Department),
     };
 
     mockGradeRepo = {
       findById: jest.fn().mockResolvedValue({
         id: 'grade-1',
         name: 'L3',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as Grade),
+      } as unknown as Grade),
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn().mockResolvedValue(null),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'change-1', ...data }) as EffectiveChangeEntity),
+        .mockImplementation((data) =>
+          Promise.resolve({ id: 'change-1', ...data } as unknown as EffectiveChangeEntity),
+        ),
     };
 
     const mockManager: Partial<EntityManager> = {

@@ -51,18 +51,19 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn().mockResolvedValue(null),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'change-1', ...data }) as EffectiveChangeEntity),
+        .mockImplementation((data) =>
+          Promise.resolve({ id: 'change-1', ...data } as unknown as EffectiveChangeEntity),
+        ),
     };
 
     const mockManager: Partial<EntityManager> = {

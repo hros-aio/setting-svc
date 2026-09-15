@@ -12,7 +12,7 @@ describe('RoleCopyCompletedConsumer', () => {
   beforeEach(() => {
     mockStepRepo = {
       findByCompanyAndStep: jest.fn(),
-      save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+      markStepCompleted: jest.fn().mockResolvedValue(null),
     };
     consumer = new RoleCopyCompletedConsumer(mockStepRepo as unknown as CompanySetupStepRepository);
   });
@@ -50,9 +50,15 @@ describe('RoleCopyCompletedConsumer', () => {
       'target-company-1',
       SetupStepType.ROLE,
     );
-    expect(mockStep.status).toBe(SetupStepStatus.COMPLETED);
-    expect(mockStep.externalReferenceId).toBe('batch-123');
-    expect(mockStepRepo.save).toHaveBeenCalledTimes(1);
+    expect(mockStepRepo.markStepCompleted).toHaveBeenCalledWith({
+      companyId: 'target-company-1',
+      stepType: SetupStepType.ROLE,
+      externalReferenceId: 'batch-123',
+      metadata: {
+        roleCount: 5,
+        sourceCompanyId: 'source-1',
+      },
+    });
   });
 
   it('should be idempotent and not re-save if step is already COMPLETED', async () => {
@@ -82,6 +88,6 @@ describe('RoleCopyCompletedConsumer', () => {
 
     await consumer.handleRoleCopyCompleted(eventEnvelope);
 
-    expect(mockStepRepo.save).not.toHaveBeenCalled();
+    expect(mockStepRepo.markStepCompleted).not.toHaveBeenCalled();
   });
 });

@@ -51,11 +51,10 @@ describe('GradeService - Create Grade [US1]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
@@ -140,11 +139,9 @@ describe('GradeService - Create Grade [US1]', () => {
     expect(result.code).toBe('L3');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
     expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
       companyId: 'comp-1',
       stepType: SetupStepType.GRADE,
       completedBy: 'user-1',
-      entityManager: mockDataSource.manager,
     });
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });

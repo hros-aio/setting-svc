@@ -80,7 +80,7 @@ export class JobTitleService {
       // 5. Persist Job Title in scheduled status
       const jobTitle = await this.jobTitleRepository.createAndSave(
         {
-          tenantId,
+          tenantCode: tenantId,
           companyId,
           code: dto.code,
           name: dto.name,
@@ -97,11 +97,9 @@ export class JobTitleService {
 
       // 6. Complete JOB_TITLE setup step (Step 5)
       await this.companySetupStepRepository.markStepCompleted({
-        tenantId,
         companyId,
         stepType: SetupStepType.JOB_TITLE,
         completedBy: userId,
-        entityManager: manager,
       });
 
       // 7. Write outbox event for scheduling
@@ -177,21 +175,18 @@ export class JobTitleService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'job_title',
-          entityId: jobTitle.id,
-          operation: ChangeOperation.UPDATE,
-          payload: updatePayload,
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: jobTitle.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'job_title',
+        entityId: jobTitle.id,
+        operation: ChangeOperation.UPDATE,
+        payload: updatePayload,
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: jobTitle.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -240,21 +235,18 @@ export class JobTitleService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'job_title',
-          entityId: jobTitle.id,
-          operation: ChangeOperation.DEACTIVATE,
-          payload: {},
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: jobTitle.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'job_title',
+        entityId: jobTitle.id,
+        operation: ChangeOperation.DEACTIVATE,
+        payload: {},
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: jobTitle.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -303,7 +295,7 @@ export class JobTitleService {
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new NotFoundException(`Company with ID '${companyId}' not found`);
     }

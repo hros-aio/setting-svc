@@ -40,10 +40,11 @@ describe('PocApplyHandler', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === PocEntity || (target as any)?.name === 'PocEntity') return mockPocRepo;
-        if (target === EffectiveChangeEntity || (target as any)?.name === 'EffectiveChangeEntity')
+        const targetName = typeof target === 'function' ? target.name : undefined;
+        if (target === PocEntity || targetName === 'PocEntity') return mockPocRepo;
+        if (target === EffectiveChangeEntity || targetName === 'EffectiveChangeEntity')
           return mockChangeRepo;
-        if (target === OutboxEventEntity || (target as any)?.name === 'OutboxEventEntity')
+        if (target === OutboxEventEntity || targetName === 'OutboxEventEntity')
           return mockOutboxRepo;
         return null;
       }),

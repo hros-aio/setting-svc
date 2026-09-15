@@ -37,14 +37,12 @@ describe('EmployeeTransferApplyHandler', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === EmployeeTransferEntity || (target as any)?.name === 'EmployeeTransferEntity')
+        const targetName = typeof target === 'function' ? target.name : undefined;
+        if (target === EmployeeTransferEntity || targetName === 'EmployeeTransferEntity')
           return mockTransferRepo;
-        if (
-          target === EmployeeReferenceEntity ||
-          (target as any)?.name === 'EmployeeReferenceEntity'
-        )
+        if (target === EmployeeReferenceEntity || targetName === 'EmployeeReferenceEntity')
           return mockEmployeeRefRepo;
-        if (target === OutboxEventEntity || (target as any)?.name === 'OutboxEventEntity')
+        if (target === OutboxEventEntity || targetName === 'OutboxEventEntity')
           return mockOutboxRepo;
         return null;
       }),

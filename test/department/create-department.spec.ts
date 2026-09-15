@@ -53,11 +53,10 @@ describe('DepartmentService - Create Department [US1]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
@@ -182,11 +181,9 @@ describe('DepartmentService - Create Department [US1]', () => {
     expect(result.code).toBe('ENG-BE');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
     expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
       companyId: 'comp-1',
       stepType: SetupStepType.DEPARTMENT,
       completedBy: 'user-1',
-      entityManager: mockDataSource.manager,
     });
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });

@@ -65,11 +65,7 @@ export class ValidateTransferRequestService {
     }
 
     // 3. Validate destination company exists in tenant and is ACTIVE
-    const destinationCompany = await this.companyRepository.findByIdAndTenant(
-      dto.destinationCompanyId,
-      tenantId,
-      manager,
-    );
+    const destinationCompany = await this.companyRepository.findById(dto.destinationCompanyId);
 
     if (!destinationCompany) {
       throw new NotFoundException('Destination company not found in tenant');

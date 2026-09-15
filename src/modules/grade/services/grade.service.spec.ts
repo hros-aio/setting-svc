@@ -49,11 +49,10 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-A',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
@@ -100,7 +99,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
     expect(mockGradeRepo.findByCode).toHaveBeenCalledWith('tenant-1', 'comp-A', 'L3');
     expect(mockGradeRepo.createAndSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-A',
         code: 'L3',
       }),
@@ -133,11 +132,10 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
       .mockReturnValue({ companyId: 'comp-B' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
-    mockCompanyRepo.findByIdAndTenant!.mockResolvedValue({
+    mockCompanyRepo.findById!.mockResolvedValue({
       id: 'comp-B',
-      tenantId: 'tenant-1',
       timezone: 'UTC',
-    } as CompanyEntity);
+    } as unknown as CompanyEntity);
     mockGradeRepo.findByCode!.mockResolvedValue(null);
 
     const result = await service.create(
@@ -153,7 +151,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
     expect(mockGradeRepo.findByCode).toHaveBeenCalledWith('tenant-1', 'comp-B', 'L3');
     expect(mockGradeRepo.createAndSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-B',
         code: 'L3',
       }),

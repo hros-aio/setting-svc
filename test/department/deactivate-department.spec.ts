@@ -35,7 +35,6 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
     id: 'dept-1',
     tenantCode: 'tenant-1',
     version: 1,
-    tenantId: 'tenant-1',
     companyId: 'comp-1',
     code: 'ENG',
     name: 'Engineering',
@@ -65,21 +64,19 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn().mockResolvedValue(null),
-      createAndSave: jest.fn().mockImplementation(
-        (dto) =>
-          ({
-            id: 'change-1',
-            ...dto,
-          }) as EffectiveChangeEntity,
+      create: jest.fn().mockImplementation((dto) =>
+        Promise.resolve({
+          id: 'change-1',
+          ...dto,
+        } as unknown as EffectiveChangeEntity),
       ),
     };
 
@@ -127,7 +124,7 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
     (mockEffectiveChangeRepo.findPendingChange as jest.Mock).mockResolvedValue({
       id: 'existing-change',
       status: EffectiveChangeStatus.SCHEDULED,
-    } as EffectiveChangeEntity);
+    } as unknown as EffectiveChangeEntity);
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(
@@ -147,13 +144,12 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
     expect(result.id).toBe('change-1');
     expect(result.operation).toBe(ChangeOperation.DEACTIVATE);
     expect(result.status).toBe(EffectiveChangeStatus.SCHEDULED);
-    expect(mockEffectiveChangeRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockEffectiveChangeRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         entityType: 'department',
         entityId: 'dept-1',
         operation: ChangeOperation.DEACTIVATE,
       }),
-      mockDataSource.manager,
     );
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });

@@ -1,4 +1,5 @@
 import { AuthContext } from '@new-hros/libs-core';
+import { TransactionService } from '@new-hros/libs-sql';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   CompanyStatus,
@@ -66,13 +67,12 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
     } as EmployeeReferenceEntity);
 
     const mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockImplementation((id: string, tId: string) => {
-        if (tId === tenantId && (id === sourceCompanyId || id === destinationCompanyId)) {
+      findById: jest.fn().mockImplementation((id: string) => {
+        if (id === sourceCompanyId || id === destinationCompanyId) {
           return Promise.resolve({
             id,
-            tenantId: tId,
             status: CompanyStatus.ACTIVE,
-          } as CompanyEntity);
+          } as unknown as CompanyEntity);
         }
         return Promise.resolve(null);
       }),
@@ -221,7 +221,15 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
 
     controller = new EmployeeTransferController(transferService, queryService);
 
-    applyHandler = new EmployeeTransferApplyHandler(mockDataSource);
+    const mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+      defaultManager: mockEntityManager,
+      runInTransaction: jest
+        .fn()
+        .mockImplementation((cb: (em: EntityManager) => Promise<unknown>) => cb(mockEntityManager)),
+    } as unknown as TransactionService;
+
+    applyHandler = new EmployeeTransferApplyHandler(mockTxService);
   });
 
   describe('Full Inter-Company Employee Transfer Lifecycle', () => {

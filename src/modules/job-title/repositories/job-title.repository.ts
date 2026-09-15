@@ -30,7 +30,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     return this.getRepo(manager).findOne({
       where: {
         id,
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
       relations: ['department', 'grade', 'sourceJobTitle'],
@@ -45,7 +45,7 @@ export class JobTitleRepository implements IJobTitleRepository {
   ): Promise<JobTitle | null> {
     return this.getRepo(manager).findOne({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         code,
       },
@@ -64,7 +64,7 @@ export class JobTitleRepository implements IJobTitleRepository {
     const skip = (page - 1) * limit;
 
     const baseWhere: FindOptionsWhere<JobTitle> = {
-      tenantId,
+      tenantCode: tenantId,
       companyId,
     };
 
@@ -118,7 +118,7 @@ export class JobTitleRepository implements IJobTitleRepository {
   ): Promise<boolean> {
     const count = await this.getRepo(manager).count({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
         status: In([MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED]),
       },
@@ -134,7 +134,7 @@ export class JobTitleRepository implements IJobTitleRepository {
   ): Promise<number> {
     return this.getRepo(manager).count({
       where: {
-        tenantId,
+        tenantCode: tenantId,
         companyId,
       },
     });

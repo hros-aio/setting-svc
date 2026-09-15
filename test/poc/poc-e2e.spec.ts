@@ -172,7 +172,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
           }
           return Promise.resolve(null);
         }),
-      createAndSave: jest.fn().mockImplementation((changeData: Partial<EffectiveChangeEntity>) => {
+      create: jest.fn().mockImplementation((changeData: Partial<EffectiveChangeEntity>) => {
         const entity = {
           id: 'change-' + Math.random(),
           createdAt: new Date(),
@@ -215,11 +215,11 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     } as unknown as EmployeeReferenceRepository;
 
     const mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: companyId,
-        tenantId,
+        tenantCode: tenantId,
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     } as unknown as CompanyRepository;
 
     const mockCompanySetupStepRepo = {
@@ -230,7 +230,13 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     } as unknown as CompanySetupStepRepository;
 
     const transactionService = {
-      runInTransaction: jest.fn().mockImplementation(async (cb: () => Promise<unknown>) => cb()),
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+      defaultManager: mockEntityManager,
+      runInTransaction: jest
+        .fn()
+        .mockImplementation((cb: (em?: EntityManager) => Promise<unknown>) =>
+          cb(mockEntityManager),
+        ),
     } as unknown as TransactionService;
 
     pocService = new PocService(
@@ -249,7 +255,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
       effectiveChangeRepository,
     );
 
-    pocApplyHandler = new PocApplyHandler(mockDataSource);
+    pocApplyHandler = new PocApplyHandler(transactionService);
   });
 
   it('should execute full lifecycle: create -> activate -> replace -> apply replace -> query -> deactivate -> apply deactivate', async () => {

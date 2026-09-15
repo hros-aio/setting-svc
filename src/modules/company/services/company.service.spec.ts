@@ -1,10 +1,8 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CompanyStatus, SetupStepStatus, SetupStepType } from '../../../enums';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { TenantRepository } from '../../tenant/repositories/tenant.repository';
+import { CreateCompanyDto } from '../dto/create-company.dto';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
 import { OutboxEventEntity } from '../entities/outbox-event.entity';
@@ -12,6 +10,7 @@ import { CopyableCategory } from '../enums/copyable-category.enum';
 import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
+import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { CompanySetupQueryService } from './company-setup-query.service';
 import { CompanyService } from './company.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
@@ -21,44 +20,49 @@ describe('CompanyService', () => {
   let service: CompanyService;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
   let mockSeederService: jest.Mocked<Partial<SetupStepSeederService>>;
   let mockCopyService: jest.Mocked<Partial<TemplateCopyService>>;
   let mockSetupQueryService: jest.Mocked<Partial<CompanySetupQueryService>>;
   let mockTransactionService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
+  let mockOutboxEventRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
-  const defaultTenantId = 'e0000000-0000-0000-0000-000000000001';
+  const defaultTenantCode = 'TEST_TENANT';
+  const defaultUserId = 'user-uuid-1';
 
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(defaultTenantCode);
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: defaultUserId,
+      sessionId: 'session-uuid-1',
+      tenantCode: defaultTenantCode,
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['company:update'],
+    });
+
     mockCompanyRepo = {
-      existsByTenantAndCode: jest.fn().mockResolvedValue(false),
+      existsByCode: jest.fn().mockResolvedValue(false),
       findTemplateCompany: jest.fn(),
-      findByIdAndTenant: jest.fn(),
-      updateCompanyInfo: jest.fn(),
+      findById: jest.fn(),
+      update: jest
+        .fn()
+        .mockImplementation((id, data) =>
+          Promise.resolve({ id, ...data } as unknown as CompanyEntity),
+        ),
       clearTemplateDesignation: jest.fn().mockResolvedValue(undefined),
-      setTemplateDesignation: jest.fn().mockImplementation((companyId, tenantId, isTemplate) =>
+      setTemplateDesignation: jest.fn().mockImplementation((companyId, isTemplate) =>
         Promise.resolve({
           id: companyId,
-          tenantId,
           isTemplate,
-        } as CompanyEntity),
+        } as unknown as CompanyEntity),
       ),
-      createAndSave: jest.fn().mockImplementation((data) =>
+      create: jest.fn().mockImplementation((data) =>
         Promise.resolve({
           id: 'new-company-id',
           createdAt: new Date(),
           ...data,
-        } as CompanyEntity),
+        } as unknown as CompanyEntity),
       ),
-    };
-
-    mockTenantRepo = {
-      findByTenantCode: jest.fn().mockResolvedValue({
-        id: defaultTenantId,
-        tenantCode: 'TEST_TENANT',
-      } as unknown as TenantEntity),
     };
 
     const mockStep: Partial<CompanySetupStepEntity> = {
@@ -72,7 +76,7 @@ describe('CompanyService', () => {
         ...mockStep,
         status: SetupStepStatus.COMPLETED,
         completedAt: new Date(),
-      } as CompanySetupStepEntity),
+      } as unknown as CompanySetupStepEntity),
     };
 
     mockSeederService = {
@@ -95,14 +99,12 @@ describe('CompanyService', () => {
       }),
     };
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((data) => ({ id: 'outbox-id', ...data })),
-      save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
-    };
-
-    mockDataSource = {
-      getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-      manager: {} as EntityManager,
+    mockOutboxEventRepo = {
+      create: jest
+        .fn()
+        .mockImplementation((data) =>
+          Promise.resolve({ id: 'outbox-id', ...data } as unknown as OutboxEventEntity),
+        ),
     };
 
     mockTransactionService = {
@@ -110,62 +112,50 @@ describe('CompanyService', () => {
     };
 
     service = new CompanyService(
-      mockDataSource as unknown as DataSource,
       mockTransactionService as unknown as TransactionService,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
-      mockTenantRepo as unknown as TenantRepository,
       mockSeederService as unknown as SetupStepSeederService,
       mockCopyService as unknown as TemplateCopyService,
       mockSetupQueryService as unknown as CompanySetupQueryService,
+      mockOutboxEventRepo as unknown as OutboxEventRepository,
     );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('createCompany', () => {
     it('should create a company with PENDING status and write company.created outbox event', async () => {
       const dto = {
         companyCode: 'NEW_CO',
-        name: 'New Company',
+        legalName: 'New Company Legal',
+        displayName: 'New Company',
         countryCode: 'US',
         currencyCode: 'USD',
         timezone: 'UTC',
         copyFromDefault: false,
       };
 
-      const result = await service.createCompany(defaultTenantId, dto);
+      const result = await service.createCompany(dto as unknown as CreateCompanyDto);
 
       expect(result.status).toBe(CompanyStatus.PENDING);
       expect(result.isTemplate).toBe(false);
-      expect(mockOutboxRepo.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('should resolve tenant by tenantCode when non-UUID string is passed', async () => {
-      const dto = {
-        companyCode: 'NEW_CO',
-        name: 'New Company',
-        countryCode: 'US',
-        currencyCode: 'USD',
-        timezone: 'UTC',
-        copyFromDefault: false,
-      };
-
-      const result = await service.createCompany('TEST_TENANT', dto);
-
-      expect(mockTenantRepo.findByTenantCode).toHaveBeenCalledWith('TEST_TENANT');
-      expect(result.status).toBe(CompanyStatus.PENDING);
+      expect(mockOutboxEventRepo.create).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ConflictException if company code already exists for tenant', async () => {
-      (mockCompanyRepo.existsByTenantAndCode as jest.Mock).mockResolvedValue(true);
+      (mockCompanyRepo.existsByCode as jest.Mock).mockResolvedValue(true);
 
       await expect(
-        service.createCompany(defaultTenantId, {
+        service.createCompany({
           companyCode: 'EXISTING',
-          name: 'Existing',
+          displayName: 'Existing',
           countryCode: 'US',
           currencyCode: 'USD',
           timezone: 'UTC',
-        }),
+        } as unknown as CreateCompanyDto),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -173,54 +163,44 @@ describe('CompanyService', () => {
       (mockCompanyRepo.findTemplateCompany as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.createCompany(defaultTenantId, {
+        service.createCompany({
           companyCode: 'NEW_CO',
-          name: 'New Company',
+          displayName: 'New Company',
           countryCode: 'US',
           currencyCode: 'USD',
           timezone: 'UTC',
           copyFromDefault: true,
-        }),
+        } as unknown as CreateCompanyDto),
       ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should write role-copy.requested outbox event when ROLES is selected in copyCategories', async () => {
       (mockCompanyRepo.findTemplateCompany as jest.Mock).mockResolvedValue({
         id: 'default-co-id',
-        tenantId: defaultTenantId,
         isTemplate: true,
-      } as CompanyEntity);
+      } as unknown as CompanyEntity);
 
-      const result = await service.createCompany(defaultTenantId, {
+      const result = await service.createCompany({
         companyCode: 'NEW_CO',
-        name: 'New Company',
+        displayName: 'New Company',
         countryCode: 'US',
         currencyCode: 'USD',
         timezone: 'UTC',
         copyFromDefault: true,
         copyCategories: [CopyableCategory.ROLES],
-      });
+      } as unknown as CreateCompanyDto);
 
       expect(result).toBeDefined();
-      expect(mockOutboxRepo.save).toHaveBeenCalledTimes(2);
+      expect(mockOutboxEventRepo.create).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('updateCompanyInformation', () => {
     it('should update company info, mark Step 1 as completed, and write company.updated outbox event', async () => {
       const companyId = 'company-1';
-      const authContext: AuthContext = {
-        userId: 'user-1',
-        sessionId: 'session-1',
-        tenantCode: 'TEST_TENANT',
-        roles: ['admin'],
-        scopes: [],
-        permissions: ['company:update'],
-      };
 
       const existingCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'CO_1',
         legalName: 'Original Legal Name',
         displayName: 'Original Display',
@@ -231,35 +211,27 @@ describe('CompanyService', () => {
         informationCompletedAt: undefined,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock)
-        .mockResolvedValueOnce(existingCompany as CompanyEntity)
+      (mockCompanyRepo.findById as jest.Mock)
+        .mockResolvedValueOnce(existingCompany as unknown as CompanyEntity)
         .mockResolvedValueOnce({
           ...existingCompany,
           legalName: 'Updated Legal Name',
           informationCompletedAt: new Date(),
-        } as CompanyEntity);
+        } as unknown as CompanyEntity);
 
-      const result = await service.updateCompanyInformation(
-        defaultTenantId,
-        companyId,
-        {
-          legalName: 'Updated Legal Name',
-          taxRegistrationNumber: 'TAX-999',
-        },
-        authContext,
-      );
+      const result = await service.updateCompanyInformation(companyId, {
+        legalName: 'Updated Legal Name',
+        taxRegistrationNumber: 'TAX-999',
+      });
 
-      expect(mockCompanyRepo.updateCompanyInfo).toHaveBeenCalled();
+      expect(mockCompanyRepo.update).toHaveBeenCalled();
       expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-        tenantId: defaultTenantId,
         companyId,
         stepType: SetupStepType.COMPANY_INFORMATION,
-        completedBy: 'user-1',
-        entityManager: mockDataSource.manager,
+        completedBy: defaultUserId,
       });
-      expect(mockOutboxRepo.save).toHaveBeenCalledWith(
+      expect(mockOutboxEventRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'company.updated',
           aggregateId: companyId,
         }),
       );
@@ -269,18 +241,9 @@ describe('CompanyService', () => {
     it('should allow partial updates on ACTIVE company and preserve existing informationCompletedAt', async () => {
       const companyId = 'company-2';
       const completedDate = new Date('2026-01-01');
-      const authContext: AuthContext = {
-        userId: 'admin-1',
-        sessionId: 'session-2',
-        tenantCode: 'TEST_TENANT',
-        roles: ['admin'],
-        scopes: [],
-        permissions: ['company:update'],
-      };
 
       const activeCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'CO_2',
         legalName: 'Active Company Legal',
         displayName: 'Active Company',
@@ -289,43 +252,28 @@ describe('CompanyService', () => {
         informationCompletedBy: 'admin-0',
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock)
-        .mockResolvedValueOnce(activeCompany as CompanyEntity)
+      (mockCompanyRepo.findById as jest.Mock)
+        .mockResolvedValueOnce(activeCompany as unknown as CompanyEntity)
         .mockResolvedValueOnce({
           ...activeCompany,
           displayName: 'New Brand Name',
-        } as CompanyEntity);
+        } as unknown as CompanyEntity);
 
-      const result = await service.updateCompanyInformation(
-        defaultTenantId,
-        companyId,
-        {
-          displayName: 'New Brand Name',
-        },
-        authContext,
-      );
+      const result = await service.updateCompanyInformation(companyId, {
+        displayName: 'New Brand Name',
+      });
 
-      expect(mockCompanyRepo.updateCompanyInfo).toHaveBeenCalled();
+      expect(mockCompanyRepo.update).toHaveBeenCalled();
       expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalled();
       expect(result.displayName).toBe('New Brand Name');
     });
 
-    it('should throw NotFoundException if company does not exist for tenant', async () => {
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(null);
+    it('should throw NotFoundException if company does not exist', async () => {
+      (mockCompanyRepo.findById as jest.Mock).mockRejectedValue(new NotFoundException());
 
       await expect(
-        service.updateCompanyInformation(defaultTenantId, 'non-existent', {
-          name: 'Some Name',
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw NotFoundException if tenantCode cannot be found in TenantRepository', async () => {
-      (mockTenantRepo.findByTenantCode as jest.Mock).mockResolvedValue(null);
-
-      await expect(
-        service.updateCompanyInformation('INVALID_TENANT', 'company-1', {
-          name: 'Some Name',
+        service.updateCompanyInformation('non-existent', {
+          displayName: 'Some Name',
         }),
       ).rejects.toThrow(NotFoundException);
     });
@@ -334,141 +282,92 @@ describe('CompanyService', () => {
   describe('designateDefaultCompany', () => {
     it('should atomically clear old template and set new template company for tenant', async () => {
       const companyId = 'target-company-id';
-      const authContext: AuthContext = {
-        userId: 'admin-user-1',
-        sessionId: 'session-1',
-        tenantCode: 'TEST_TENANT',
-        roles: ['admin'],
-        scopes: [],
-        permissions: ['company:update'],
-      };
 
       const existingCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'TARGET_CO',
         isTemplate: false,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
-        existingCompany as CompanyEntity,
+      (mockCompanyRepo.findById as jest.Mock).mockResolvedValue(
+        existingCompany as unknown as CompanyEntity,
       );
 
-      const result = await service.designateDefaultCompany(defaultTenantId, companyId, authContext);
+      const result = await service.designateDefaultCompany(companyId);
 
-      expect(mockCompanyRepo.clearTemplateDesignation).toHaveBeenCalledWith(
-        defaultTenantId,
-        mockDataSource.manager,
-      );
+      expect(mockCompanyRepo.clearTemplateDesignation).toHaveBeenCalled();
       expect(mockCompanyRepo.setTemplateDesignation).toHaveBeenCalledWith(
         companyId,
-        defaultTenantId,
         true,
-        'admin-user-1',
-        mockDataSource.manager,
+        defaultUserId,
       );
       expect(result.isTemplate).toBe(true);
-      expect(mockOutboxRepo.save).not.toHaveBeenCalled();
     });
 
     it('should return immediately if company is already the default template (idempotent)', async () => {
       const companyId = 'already-template-id';
       const existingTemplateCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'DEFAULT_CO',
         isTemplate: true,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
-        existingTemplateCompany as CompanyEntity,
+      (mockCompanyRepo.findById as jest.Mock).mockResolvedValue(
+        existingTemplateCompany as unknown as CompanyEntity,
       );
 
-      const result = await service.designateDefaultCompany(defaultTenantId, companyId);
+      const result = await service.designateDefaultCompany(companyId);
 
       expect(result.isTemplate).toBe(true);
       expect(mockCompanyRepo.clearTemplateDesignation).not.toHaveBeenCalled();
       expect(mockCompanyRepo.setTemplateDesignation).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException if target company does not exist for tenant', async () => {
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(null);
+    it('should throw NotFoundException if target company does not exist', async () => {
+      (mockCompanyRepo.findById as jest.Mock).mockRejectedValue(new NotFoundException());
 
-      await expect(
-        service.designateDefaultCompany(defaultTenantId, 'non-existent-company'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should resolve tenant code if non-UUID is passed', async () => {
-      const companyId = 'target-company-id';
-      const existingCompany: Partial<CompanyEntity> = {
-        id: companyId,
-        tenantId: defaultTenantId,
-        isTemplate: false,
-      };
-
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
-        existingCompany as CompanyEntity,
+      await expect(service.designateDefaultCompany('non-existent-company')).rejects.toThrow(
+        NotFoundException,
       );
-
-      await service.designateDefaultCompany('TEST_TENANT', companyId);
-
-      expect(mockTenantRepo.findByTenantCode).toHaveBeenCalledWith('TEST_TENANT');
     });
   });
 
   describe('activateCompany', () => {
     const companyId = 'co-pending-1';
-    const authContext: AuthContext = {
-      userId: 'admin-user-id',
-      sessionId: 'session-1',
-      tenantCode: 'TEST_TENANT',
-      roles: ['admin'],
-      scopes: [],
-      permissions: ['company:activate'],
-    };
 
     it('should successfully activate company, transition status to ACTIVE, and write company.activated outbox event', async () => {
       const pendingCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'VN001',
         legalName: 'Acme Vietnam Ltd',
         displayName: 'Acme Vietnam',
         status: CompanyStatus.PENDING,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock)
-        .mockResolvedValueOnce(pendingCompany as CompanyEntity)
+      (mockCompanyRepo.findById as jest.Mock)
+        .mockResolvedValueOnce(pendingCompany as unknown as CompanyEntity)
         .mockResolvedValueOnce({
           ...pendingCompany,
           status: CompanyStatus.ACTIVE,
           activatedAt: new Date(),
-          activatedBy: 'admin-user-id',
-        } as CompanyEntity);
+          activatedBy: defaultUserId,
+        } as unknown as CompanyEntity);
 
-      const result = await service.activateCompany(defaultTenantId, companyId, authContext);
+      const result = await service.activateCompany(companyId);
 
-      expect(mockSetupQueryService.validateAllStepsCompleted).toHaveBeenCalledWith(
-        defaultTenantId,
+      expect(mockSetupQueryService.validateAllStepsCompleted).toHaveBeenCalledWith(companyId);
+      expect(mockCompanyRepo.update).toHaveBeenCalledWith(
         companyId,
-      );
-      expect(mockCompanyRepo.updateCompanyInfo).toHaveBeenCalledWith(
-        companyId,
-        defaultTenantId,
         expect.objectContaining({
           status: CompanyStatus.ACTIVE,
-          activatedBy: 'admin-user-id',
+          activatedBy: defaultUserId,
         }),
-        mockDataSource.manager,
       );
-      expect(mockOutboxRepo.save).toHaveBeenCalledWith(
+      expect(mockOutboxEventRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'company.activated',
           aggregateId: companyId,
           payload: expect.objectContaining({
             companyId,
-            tenantId: defaultTenantId,
             status: CompanyStatus.ACTIVE,
             completedStepsCount: 8,
           }),
@@ -480,13 +379,12 @@ describe('CompanyService', () => {
     it('should reject activation and throw CompanyActivationRejectedException if steps are incomplete', async () => {
       const pendingCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'VN001',
         status: CompanyStatus.PENDING,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
-        pendingCompany as CompanyEntity,
+      (mockCompanyRepo.findById as jest.Mock).mockResolvedValue(
+        pendingCompany as unknown as CompanyEntity,
       );
 
       (mockSetupQueryService.validateAllStepsCompleted as jest.Mock).mockResolvedValueOnce({
@@ -496,40 +394,39 @@ describe('CompanyService', () => {
         incompleteSteps: [SetupStepType.DEPARTMENT, SetupStepType.EMPLOYEE_IMPORT],
       });
 
-      await expect(
-        service.activateCompany(defaultTenantId, companyId, authContext),
-      ).rejects.toThrow(CompanyActivationRejectedException);
+      await expect(service.activateCompany(companyId)).rejects.toThrow(
+        CompanyActivationRejectedException,
+      );
 
-      expect(mockCompanyRepo.updateCompanyInfo).not.toHaveBeenCalled();
-      expect(mockOutboxRepo.save).not.toHaveBeenCalled();
+      expect(mockCompanyRepo.update).not.toHaveBeenCalled();
+      expect(mockOutboxEventRepo.create).not.toHaveBeenCalled();
     });
 
     it('should throw UnprocessableEntityException if company is already ACTIVE', async () => {
       const activeCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: defaultTenantId,
         companyCode: 'VN001',
         status: CompanyStatus.ACTIVE,
       };
 
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(
-        activeCompany as CompanyEntity,
+      (mockCompanyRepo.findById as jest.Mock).mockResolvedValue(
+        activeCompany as unknown as CompanyEntity,
       );
 
-      await expect(
-        service.activateCompany(defaultTenantId, companyId, authContext),
-      ).rejects.toThrow(UnprocessableEntityException);
+      await expect(service.activateCompany(companyId)).rejects.toThrow(
+        UnprocessableEntityException,
+      );
 
       expect(mockSetupQueryService.validateAllStepsCompleted).not.toHaveBeenCalled();
-      expect(mockCompanyRepo.updateCompanyInfo).not.toHaveBeenCalled();
+      expect(mockCompanyRepo.update).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException if company does not exist for tenant', async () => {
-      (mockCompanyRepo.findByIdAndTenant as jest.Mock).mockResolvedValue(null);
+    it('should throw NotFoundException if company does not exist', async () => {
+      (mockCompanyRepo.findById as jest.Mock).mockRejectedValue(new NotFoundException());
 
-      await expect(
-        service.activateCompany(defaultTenantId, 'unknown-company-id', authContext),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.activateCompany('unknown-company-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

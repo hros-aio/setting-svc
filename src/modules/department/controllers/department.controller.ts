@@ -10,14 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  AuthGuard,
-  CompanyScopeGuard,
-  CurrentUser,
-  PermissionGuard,
-  RequirePermission,
-  TenantScopeGuard,
-} from '@new-hros/libs-apis';
+import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
@@ -31,7 +24,7 @@ import {
 import { DepartmentService } from '../services/department.service';
 
 @Controller('departments')
-@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 

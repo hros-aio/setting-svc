@@ -1,7 +1,5 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { SetupStepStatus, SetupStepType } from '../../../enums';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
-import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
@@ -12,38 +10,29 @@ describe('CompanySetupQueryService', () => {
   let service: CompanySetupQueryService;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
 
-  const tenantId = 'e0000000-0000-0000-0000-000000000001';
   const companyId = 'c0000000-0000-0000-0000-000000000001';
 
   beforeEach(() => {
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn(),
+      findById: jest.fn(),
     };
     mockSetupStepRepo = {
       findByCompanyId: jest.fn(),
-    };
-    mockTenantRepo = {
-      findByTenantCode: jest
-        .fn()
-        .mockResolvedValue({ id: tenantId, tenantCode: 'ACME' } as unknown as TenantEntity),
     };
 
     service = new CompanySetupQueryService(
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
-      mockTenantRepo as unknown as TenantRepository,
     );
   });
 
   describe('getCompanySetupProgress', () => {
     it('should return progress model with isEligibleForActivation = false when steps are incomplete', async () => {
-      mockCompanyRepo.findByIdAndTenant = jest.fn().mockResolvedValue({
+      mockCompanyRepo.findById = jest.fn().mockResolvedValue({
         id: companyId,
-        tenantId,
         status: 'pending',
-      } as CompanyEntity);
+      } as unknown as CompanyEntity);
 
       const mockSteps = [
         {
@@ -92,7 +81,7 @@ describe('CompanySetupQueryService', () => {
 
       mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue(mockSteps);
 
-      const result = await service.getCompanySetupProgress(tenantId, companyId);
+      const result = await service.getCompanySetupProgress(companyId);
 
       expect(result.companyId).toBe(companyId);
       expect(result.totalSteps).toBe(8);
@@ -103,11 +92,10 @@ describe('CompanySetupQueryService', () => {
     });
 
     it('should return isEligibleForActivation = true when all 8 steps are COMPLETED', async () => {
-      mockCompanyRepo.findByIdAndTenant = jest.fn().mockResolvedValue({
+      mockCompanyRepo.findById = jest.fn().mockResolvedValue({
         id: companyId,
-        tenantId,
         status: 'pending',
-      } as CompanyEntity);
+      } as unknown as CompanyEntity);
 
       const allCompletedSteps = [
         SetupStepType.COMPANY_INFORMATION,
@@ -127,7 +115,7 @@ describe('CompanySetupQueryService', () => {
 
       mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
 
-      const result = await service.getCompanySetupProgress(tenantId, companyId);
+      const result = await service.getCompanySetupProgress(companyId);
 
       expect(result.totalSteps).toBe(8);
       expect(result.completedSteps).toBe(8);
@@ -135,23 +123,22 @@ describe('CompanySetupQueryService', () => {
       expect(result.incompleteSteps).toEqual([]);
     });
 
-    it('should throw NotFoundException if company does not exist for tenant', async () => {
-      mockCompanyRepo.findByIdAndTenant = jest.fn().mockResolvedValue(null);
+    it('should throw NotFoundException if company does not exist', async () => {
+      mockCompanyRepo.findById = jest.fn().mockRejectedValue(new NotFoundException());
 
-      await expect(service.getCompanySetupProgress(tenantId, 'non-existent')).rejects.toThrow(
+      await expect(service.getCompanySetupProgress('non-existent')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('should throw UnprocessableEntityException if no setup step rows exist', async () => {
-      mockCompanyRepo.findByIdAndTenant = jest.fn().mockResolvedValue({
+      mockCompanyRepo.findById = jest.fn().mockResolvedValue({
         id: companyId,
-        tenantId,
-      } as CompanyEntity);
+      } as unknown as CompanyEntity);
 
       mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue([]);
 
-      await expect(service.getCompanySetupProgress(tenantId, companyId)).rejects.toThrow(
+      await expect(service.getCompanySetupProgress(companyId)).rejects.toThrow(
         UnprocessableEntityException,
       );
     });
