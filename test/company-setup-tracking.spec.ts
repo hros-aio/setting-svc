@@ -63,7 +63,7 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
     };
 
     mockStepRepo = {
-      findStepsByCompanyId: jest.fn().mockImplementation((cId) => {
+      findByCompanyId: jest.fn().mockImplementation((cId) => {
         if (cId === companyId) {
           return Promise.resolve(mockSteps as CompanySetupStepEntity[]);
         }
@@ -119,7 +119,7 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
       completedAt: new Date(),
     })) as CompanySetupStepEntity[];
 
-    mockStepRepo.findStepsByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
+    mockStepRepo.findByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
 
     const validation = await queryService.validateAllStepsCompleted('ACME_TENANT', companyId);
 

@@ -48,7 +48,11 @@ describe('LocationService - Create Location [US1]', () => {
       findByCode: jest.fn(),
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn(),
-      create: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>),
+      create: jest
+        .fn()
+        .mockImplementation(
+          (data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>,
+        ),
     };
 
     mockCompanyRepo = {

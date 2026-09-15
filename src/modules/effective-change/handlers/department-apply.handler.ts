@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
-import { Department } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../entities/effective-change.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { Department, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   DepartmentEventType,
@@ -10,17 +8,18 @@ import {
   MasterDataStatus,
   OutboxStatus,
 } from '../../../enums';
+import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
 @Injectable()
 export class DepartmentApplyHandler {
   private readonly logger = new Logger(DepartmentApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
-
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const op = command.operation.toUpperCase();
 
     if (op === 'CREATE') {
@@ -41,7 +40,7 @@ export class DepartmentApplyHandler {
     const department = await departmentRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantCode: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -67,7 +66,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_CREATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantId,
+        tenantId: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         name: department.name,
@@ -111,7 +110,7 @@ export class DepartmentApplyHandler {
     const department = await departmentRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -133,7 +132,7 @@ export class DepartmentApplyHandler {
         const parent = await departmentRepo.findOne({
           where: {
             id: parentId,
-            tenantId: change.tenantId,
+            tenantCode: change.tenantCode,
             companyId: change.companyId,
           },
         });
@@ -161,7 +160,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_UPDATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantId,
+        tenantId: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         name: department.name,
@@ -205,7 +204,7 @@ export class DepartmentApplyHandler {
     const department = await departmentRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -232,7 +231,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_DEACTIVATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantId,
+        tenantId: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         status: department.status,

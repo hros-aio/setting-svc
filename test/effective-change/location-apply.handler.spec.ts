@@ -1,9 +1,9 @@
-import { LocationApplyHandler } from '../../src/modules/effective-change/handlers/location-apply.handler';
-import { Location } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { Location, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import { EffectiveChangeStatus, LocationEventType, MasterDataStatus } from '../../src/enums';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { LocationApplyHandler } from '../../src/modules/effective-change/handlers/location-apply.handler';
 
 describe('LocationApplyHandler [US5]', () => {
   let handler: LocationApplyHandler;
@@ -11,7 +11,7 @@ describe('LocationApplyHandler [US5]', () => {
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEm: jest.Mocked<Partial<EntityManager>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
+  let mockTxService: jest.Mocked<Partial<TransactionService>>;
 
   beforeEach(() => {
     mockOutboxRepo = {
@@ -41,17 +41,17 @@ describe('LocationApplyHandler [US5]', () => {
       }),
     };
 
-    mockDataSource = {
-      manager: mockEm as EntityManager,
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEm as EntityManager),
     };
 
-    handler = new LocationApplyHandler(mockDataSource as unknown as DataSource);
+    handler = new LocationApplyHandler(mockTxService as unknown as TransactionService);
   });
 
   it('should transition scheduled location to active on CREATE', async () => {
     const mockLocation = {
       id: 'loc-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: MasterDataStatus.SCHEDULED,
       code: 'HQ-TYO',
@@ -59,16 +59,13 @@ describe('LocationApplyHandler [US5]', () => {
     } as unknown as Location;
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
 
-    await handler.apply(
-      {
-        changeId: 'loc-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'location',
-        operation: 'CREATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'loc-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'location',
+      operation: 'CREATE',
+    });
 
     expect(mockLocation.status).toBe(MasterDataStatus.ACTIVE);
     expect(mockLocationRepo.save).toHaveBeenCalledWith(mockLocation);
@@ -79,7 +76,7 @@ describe('LocationApplyHandler [US5]', () => {
     const mockChange = {
       id: 'chg-1',
       entityId: 'loc-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: EffectiveChangeStatus.SCHEDULED,
       payload: { name: 'Updated Tokyo Office' },
@@ -94,16 +91,13 @@ describe('LocationApplyHandler [US5]', () => {
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
 
-    await handler.apply(
-      {
-        changeId: 'chg-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'location',
-        operation: 'UPDATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'chg-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'location',
+      operation: 'UPDATE',
+    });
 
     expect(mockLocationRepo.save).not.toHaveBeenCalled();
     expect(mockChange.status).toBe(EffectiveChangeStatus.APPLIED);
@@ -118,7 +112,7 @@ describe('LocationApplyHandler [US5]', () => {
     const mockChange = {
       id: 'chg-1',
       entityId: 'loc-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: EffectiveChangeStatus.SCHEDULED,
       expectedUpdatedAt: new Date('2026-08-16T00:00:00Z'),
@@ -132,16 +126,13 @@ describe('LocationApplyHandler [US5]', () => {
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockLocationRepo.findOne as jest.Mock).mockResolvedValue(mockLocation);
 
-    await handler.apply(
-      {
-        changeId: 'chg-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'location',
-        operation: 'DEACTIVATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'chg-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'location',
+      operation: 'DEACTIVATE',
+    });
 
     expect(mockLocation.status).toBe(MasterDataStatus.INACTIVE);
     expect(mockChange.status).toBe(EffectiveChangeStatus.APPLIED);

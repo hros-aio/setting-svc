@@ -9,11 +9,11 @@ import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
 import { OutboxEventEntity } from '../entities/outbox-event.entity';
 import { CopyableCategory } from '../enums/copyable-category.enum';
+import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { CompanyService } from './company.service';
-import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupQueryService } from './company-setup-query.service';
+import { CompanyService } from './company.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 import { TemplateCopyService } from './template-copy.service';
 
@@ -34,7 +34,7 @@ describe('CompanyService', () => {
   beforeEach(() => {
     mockCompanyRepo = {
       existsByTenantAndCode: jest.fn().mockResolvedValue(false),
-      findTemplateCompanyByTenantId: jest.fn(),
+      findTemplateCompany: jest.fn(),
       findByIdAndTenant: jest.fn(),
       updateCompanyInfo: jest.fn(),
       clearTemplateDesignation: jest.fn().mockResolvedValue(undefined),
@@ -170,7 +170,7 @@ describe('CompanyService', () => {
     });
 
     it('should throw UnprocessableEntityException if copyFromDefault is true but no template company exists', async () => {
-      (mockCompanyRepo.findTemplateCompanyByTenantId as jest.Mock).mockResolvedValue(null);
+      (mockCompanyRepo.findTemplateCompany as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.createCompany(defaultTenantId, {
@@ -185,7 +185,7 @@ describe('CompanyService', () => {
     });
 
     it('should write role-copy.requested outbox event when ROLES is selected in copyCategories', async () => {
-      (mockCompanyRepo.findTemplateCompanyByTenantId as jest.Mock).mockResolvedValue({
+      (mockCompanyRepo.findTemplateCompany as jest.Mock).mockResolvedValue({
         id: 'default-co-id',
         tenantId: defaultTenantId,
         isTemplate: true,

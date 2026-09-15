@@ -1,4 +1,5 @@
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import {
   AggregateType,
   EmployeeTransferEventType,
@@ -12,7 +13,7 @@ import { EmployeeTransferApplyHandler } from './employee-transfer-apply.handler'
 
 describe('EmployeeTransferApplyHandler', () => {
   let handler: EmployeeTransferApplyHandler;
-  let mockDataSource: jest.Mocked<DataSource>;
+  let mockTxService: jest.Mocked<TransactionService>;
   let mockEntityManager: jest.Mocked<EntityManager>;
   let mockTransferRepo: jest.Mocked<Repository<EmployeeTransferEntity>>;
   let mockEmployeeRefRepo: jest.Mocked<Repository<EmployeeReferenceEntity>>;
@@ -36,33 +37,36 @@ describe('EmployeeTransferApplyHandler', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === EmployeeTransferEntity) return mockTransferRepo;
-        if (target === EmployeeReferenceEntity) return mockEmployeeRefRepo;
-        if (target === OutboxEventEntity) return mockOutboxRepo;
+        if (target === EmployeeTransferEntity || (target as any)?.name === 'EmployeeTransferEntity')
+          return mockTransferRepo;
+        if (
+          target === EmployeeReferenceEntity ||
+          (target as any)?.name === 'EmployeeReferenceEntity'
+        )
+          return mockEmployeeRefRepo;
+        if (target === OutboxEventEntity || (target as any)?.name === 'OutboxEventEntity')
+          return mockOutboxRepo;
         return null;
       }),
     } as unknown as jest.Mocked<EntityManager>;
 
-    mockDataSource = {
-      manager: mockEntityManager,
-    } as unknown as jest.Mocked<DataSource>;
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+    } as unknown as jest.Mocked<TransactionService>;
 
-    handler = new EmployeeTransferApplyHandler(mockDataSource);
+    handler = new EmployeeTransferApplyHandler(mockTxService);
   });
 
   it('should skip execution if transfer is not found', async () => {
     mockTransferRepo.findOne.mockResolvedValue(null);
 
-    await handler.apply(
-      {
-        changeId: 'trans-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-2',
-        entityType: 'employee_transfer',
-        operation: 'EXECUTE',
-      },
-      mockEntityManager,
-    );
+    await handler.apply({
+      changeId: 'trans-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-2',
+      entityType: 'employee_transfer',
+      operation: 'EXECUTE',
+    });
 
     expect(mockTransferRepo.save).not.toHaveBeenCalled();
     expect(mockOutboxRepo.save).not.toHaveBeenCalled();
@@ -75,16 +79,13 @@ describe('EmployeeTransferApplyHandler', () => {
       status: EmployeeTransferStatus.COMPLETED,
     } as EmployeeTransferEntity);
 
-    await handler.apply(
-      {
-        changeId: 'trans-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-2',
-        entityType: 'employee_transfer',
-        operation: 'EXECUTE',
-      },
-      mockEntityManager,
-    );
+    await handler.apply({
+      changeId: 'trans-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-2',
+      entityType: 'employee_transfer',
+      operation: 'EXECUTE',
+    });
 
     expect(mockTransferRepo.save).not.toHaveBeenCalled();
     expect(mockOutboxRepo.save).not.toHaveBeenCalled();
@@ -115,16 +116,13 @@ describe('EmployeeTransferApplyHandler', () => {
     mockTransferRepo.findOne.mockResolvedValue(mockTransfer);
     mockEmployeeRefRepo.findOne.mockResolvedValue(mockEmployeeRef);
 
-    await handler.apply(
-      {
-        changeId: 'trans-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-2',
-        entityType: 'employee_transfer',
-        operation: 'EXECUTE',
-      },
-      mockEntityManager,
-    );
+    await handler.apply({
+      changeId: 'trans-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-2',
+      entityType: 'employee_transfer',
+      operation: 'EXECUTE',
+    });
 
     expect(mockEmployeeRef.companyId).toBe('comp-2');
     expect(mockEmployeeRef.sourceVersion).toBe('2');

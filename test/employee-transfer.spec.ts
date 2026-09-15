@@ -88,9 +88,13 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     const mockLocationRepo = {
-      findById: jest.fn().mockImplementation((tId: string, cId: string, id: string) => {
-        if (tId === tenantId && cId === destinationCompanyId && id === 'loc-valid') {
-          return Promise.resolve({ id, status: MasterDataStatus.ACTIVE });
+      findById: jest.fn().mockImplementation((id: string) => {
+        if (id === 'loc-valid') {
+          return Promise.resolve({
+            id,
+            companyId: destinationCompanyId,
+            status: MasterDataStatus.ACTIVE,
+          });
         }
         return Promise.resolve(null);
       }),
@@ -284,7 +288,7 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
       // 5. Automated Execution upon Effective Date (User Story 2)
       await applyHandler.apply({
         changeId: transfer.id,
-        tenantId,
+        tenantCode: tenantId,
         companyId: destinationCompanyId,
         entityType: 'employee_transfer',
         operation: 'EXECUTE',

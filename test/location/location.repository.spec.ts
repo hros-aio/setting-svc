@@ -1,8 +1,8 @@
-import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
-import { Location, TransactionService } from '@new-hros/libs-sql';
-import { MasterDataStatus } from '../../src/enums';
 import { RequestContextService } from '@new-hros/libs-core';
+import { Location, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager, Repository } from 'typeorm';
+import { MasterDataStatus } from '../../src/enums';
+import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
 
 describe('LocationRepository', () => {
   let repository: LocationRepository;
@@ -32,6 +32,7 @@ describe('LocationRepository', () => {
     };
 
     repository = new LocationRepository(mockTxService as unknown as TransactionService);
+    jest.spyOn(repository as any, 'tenantCode', 'get').mockReturnValue('tenant-1');
   });
 
   afterEach(() => {
@@ -55,7 +56,7 @@ describe('LocationRepository', () => {
     ] as Location[];
     (mockTypeOrmRepo.findAndCount as jest.Mock).mockResolvedValue([mockLocations, 1]);
 
-    const result = await repository.findActiveLocations('comp-1', {
+    const result = await repository.findActive('comp-1', {
       page: 1,
       limit: 10,
     });

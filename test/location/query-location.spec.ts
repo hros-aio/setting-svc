@@ -1,14 +1,12 @@
-import { LocationService } from '../../src/modules/location/services/location.service';
-import { MasterDataStatus } from '../../src/enums';
-import { Logger, NotFoundException } from '@nestjs/common';
-import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
-import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Location, TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
-import { TransactionService } from '@new-hros/libs-sql';
-import { Location } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { MasterDataStatus } from '../../src/enums';
+import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
+import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
+import { LocationService } from '../../src/modules/location/services/location.service';
 
 describe('LocationService - Query Locations [US2]', () => {
   let service: LocationService;
@@ -23,7 +21,7 @@ describe('LocationService - Query Locations [US2]', () => {
       >);
 
     mockLocationRepo = {
-      findActiveLocations: jest.fn(),
+      findActive: jest.fn(),
       findById: jest.fn(),
     };
 
@@ -49,11 +47,11 @@ describe('LocationService - Query Locations [US2]', () => {
       limit: 20,
       totalPages: 1,
     };
-    (mockLocationRepo.findActiveLocations as jest.Mock).mockResolvedValue(mockResult);
+    (mockLocationRepo.findActive as jest.Mock).mockResolvedValue(mockResult);
 
     const result = await service.findActiveLocations({ page: 1, limit: 20 });
     expect(result).toBe(mockResult);
-    expect(mockLocationRepo.findActiveLocations).toHaveBeenCalledWith('comp-1', {
+    expect(mockLocationRepo.findActive).toHaveBeenCalledWith('comp-1', {
       page: 1,
       limit: 20,
       search: undefined,

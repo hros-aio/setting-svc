@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import {
   AggregateType,
   ChangeOperation,
@@ -8,7 +8,6 @@ import {
   EffectiveEntityType,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
@@ -22,8 +21,8 @@ export class EffectiveChangeService {
   private readonly logger = new Logger(EffectiveChangeService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
+    private readonly outboxEventRepository: OutboxEventRepository,
     private readonly locationApplyHandler: LocationApplyHandler,
     private readonly departmentApplyHandler: DepartmentApplyHandler,
     private readonly gradeApplyHandler: GradeApplyHandler,
@@ -106,12 +105,9 @@ export class EffectiveChangeService {
     );
 
     return this.transactionService.runInTransaction(async () => {
-      const em = this.dataSource.manager;
-      const outboxRepo = em.getRepository(OutboxEventEntity);
-
       const aggregateType = this.mapAggregateType(command.entityType);
 
-      const outboxEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType,
         aggregateId: command.changeId,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE,
@@ -128,7 +124,6 @@ export class EffectiveChangeService {
         status: OutboxStatus.PENDING,
       });
 
-      await outboxRepo.save(outboxEvent);
       this.logger.log(
         `Created outbox event ${EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE} for change ${command.changeId}`,
       );
@@ -140,34 +135,30 @@ export class EffectiveChangeService {
       `Executing effective change: ${command.changeId} (Entity: ${command.entityType}, Op: ${command.operation})`,
     );
 
-    return this.transactionService.runInTransaction(async () => {
-      const em = this.dataSource.manager;
-
-      const entityType = command.entityType.toLowerCase();
-      switch (entityType) {
-        case EffectiveEntityType.LOCATION:
-          await this.locationApplyHandler.apply(command, em);
-          break;
-        case EffectiveEntityType.DEPARTMENT:
-          await this.departmentApplyHandler.apply(command, em);
-          break;
-        case EffectiveEntityType.GRADE:
-          await this.gradeApplyHandler.apply(command, em);
-          break;
-        case EffectiveEntityType.JOB_TITLE:
-        case EffectiveEntityType.JOBTITLE:
-          await this.jobTitleApplyHandler.apply(command, em);
-          break;
-        case EffectiveEntityType.POC:
-          await this.pocApplyHandler.apply(command, em);
-          break;
-        case EffectiveEntityType.EMPLOYEE_TRANSFER:
-          await this.employeeTransferApplyHandler.apply(command, em);
-          break;
-        default:
-          this.logger.warn(`Handler for entity type '${command.entityType}' not yet registered`);
-          break;
-      }
-    });
+    const entityType = command.entityType.toLowerCase();
+    switch (entityType) {
+      case EffectiveEntityType.LOCATION:
+        await this.locationApplyHandler.apply(command);
+        break;
+      case EffectiveEntityType.DEPARTMENT:
+        await this.departmentApplyHandler.apply(command);
+        break;
+      case EffectiveEntityType.GRADE:
+        await this.gradeApplyHandler.apply(command);
+        break;
+      case EffectiveEntityType.JOB_TITLE:
+      case EffectiveEntityType.JOBTITLE:
+        await this.jobTitleApplyHandler.apply(command);
+        break;
+      case EffectiveEntityType.POC:
+        await this.pocApplyHandler.apply(command);
+        break;
+      case EffectiveEntityType.EMPLOYEE_TRANSFER:
+        await this.employeeTransferApplyHandler.apply(command);
+        break;
+      default:
+        this.logger.warn(`Handler for entity type '${command.entityType}' not yet registered`);
+        break;
+    }
   }
 }

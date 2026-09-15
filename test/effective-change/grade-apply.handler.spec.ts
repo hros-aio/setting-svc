@@ -1,9 +1,9 @@
-import { GradeApplyHandler } from '../../src/modules/effective-change/handlers/grade-apply.handler';
-import { Grade } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { Grade, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import { EffectiveChangeStatus, GradeEventType, MasterDataStatus } from '../../src/enums';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { GradeApplyHandler } from '../../src/modules/effective-change/handlers/grade-apply.handler';
 
 describe('GradeApplyHandler [US5]', () => {
   let handler: GradeApplyHandler;
@@ -11,6 +11,7 @@ describe('GradeApplyHandler [US5]', () => {
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEntityManager: jest.Mocked<Partial<EntityManager>>;
+  let mockTxService: jest.Mocked<Partial<TransactionService>>;
 
   beforeEach(() => {
     mockGradeRepo = {
@@ -30,42 +31,43 @@ describe('GradeApplyHandler [US5]', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((entityClass) => {
-        if (entityClass === Grade) return mockGradeRepo;
-        if (entityClass === EffectiveChangeEntity) return mockChangeRepo;
-        if (entityClass === OutboxEventEntity) return mockOutboxRepo;
+        if (entityClass === Grade || entityClass.name === 'Grade') return mockGradeRepo;
+        if (entityClass === EffectiveChangeEntity || entityClass.name === 'EffectiveChangeEntity')
+          return mockChangeRepo;
+        if (entityClass === OutboxEventEntity || entityClass.name === 'OutboxEventEntity')
+          return mockOutboxRepo;
         return null;
       }),
     };
 
-    handler = new GradeApplyHandler({
-      manager: mockEntityManager as unknown as EntityManager,
-    } as unknown as DataSource);
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager as EntityManager),
+    };
+
+    handler = new GradeApplyHandler(mockTxService as unknown as TransactionService);
   });
 
   describe('apply CREATE', () => {
     it('should transition grade from scheduled to active and emit grade.created event', async () => {
       const mockGrade = {
         id: 'grade-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         code: 'L3',
         name: 'Senior Software Engineer',
         status: MasterDataStatus.SCHEDULED,
         effectiveAt: new Date('2026-08-20T00:00:00.000Z'),
-      } as Grade;
+      } as unknown as Grade;
 
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
-      await handler.apply(
-        {
-          changeId: 'grade-1',
-          entityType: 'grade',
-          operation: 'CREATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'grade-1',
+        entityType: 'grade',
+        operation: 'CREATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockGrade.status).toBe(MasterDataStatus.ACTIVE);
       expect(mockGradeRepo.save).toHaveBeenCalledWith(mockGrade);
@@ -81,20 +83,17 @@ describe('GradeApplyHandler [US5]', () => {
       const mockGrade = {
         id: 'grade-1',
         status: MasterDataStatus.ACTIVE,
-      } as Grade;
+      } as unknown as Grade;
 
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
-      await handler.apply(
-        {
-          changeId: 'grade-1',
-          entityType: 'grade',
-          operation: 'CREATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'grade-1',
+        entityType: 'grade',
+        operation: 'CREATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockGradeRepo.save).not.toHaveBeenCalled();
       expect(mockOutboxRepo.save).not.toHaveBeenCalled();
@@ -106,7 +105,7 @@ describe('GradeApplyHandler [US5]', () => {
       const mockChange = {
         id: 'change-1',
         entityId: 'grade-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: EffectiveChangeStatus.SCHEDULED,
         payload: {
@@ -117,26 +116,23 @@ describe('GradeApplyHandler [US5]', () => {
 
       const mockGrade = {
         id: 'grade-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         name: 'Senior Software Engineer',
         rankOrder: 3,
         status: MasterDataStatus.ACTIVE,
-      } as Grade;
+      } as unknown as Grade;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
-      await handler.apply(
-        {
-          changeId: 'change-1',
-          entityType: 'grade',
-          operation: 'UPDATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'change-1',
+        entityType: 'grade',
+        operation: 'UPDATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockGrade.name).toBe('Lead Senior Software Engineer');
       expect(mockGrade.rankOrder).toBe(4);
@@ -156,31 +152,28 @@ describe('GradeApplyHandler [US5]', () => {
       const mockChange = {
         id: 'change-1',
         entityId: 'grade-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: EffectiveChangeStatus.SCHEDULED,
       } as unknown as EffectiveChangeEntity;
 
       const mockGrade = {
         id: 'grade-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as Grade;
+      } as unknown as Grade;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockGradeRepo.findOne as jest.Mock).mockResolvedValue(mockGrade);
 
-      await handler.apply(
-        {
-          changeId: 'change-1',
-          entityType: 'grade',
-          operation: 'DEACTIVATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'change-1',
+        entityType: 'grade',
+        operation: 'DEACTIVATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockGrade.status).toBe(MasterDataStatus.INACTIVE);
       expect(mockGradeRepo.save).toHaveBeenCalledWith(mockGrade);

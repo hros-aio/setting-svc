@@ -1,22 +1,20 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
-import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { SetupStepStatus, SetupStepType } from '../../../enums';
-import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
-import { MANDATORY_SETUP_STEPS_SEQUENCE } from '../enums/mandatory-setup-steps.enum';
+import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CopyableCategory } from '../enums/copyable-category.enum';
+import { MANDATORY_SETUP_STEPS_SEQUENCE } from '../enums/mandatory-setup-steps.enum';
+import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 
 @Injectable()
 export class SetupStepSeederService {
   constructor(private readonly setupStepRepository: CompanySetupStepRepository) {}
 
   async seedMandatorySteps(
-    tenantId: string,
+    tenantCode: string,
     companyId: string,
     copiedCategories: CopyableCategory[] = [],
-    entityManager?: EntityManager,
   ): Promise<CompanySetupStepEntity[]> {
-    if (!tenantId || !companyId) {
+    if (!tenantCode || !companyId) {
       throw new BadRequestException('tenantId and companyId are required to seed setup steps');
     }
 
@@ -35,7 +33,7 @@ export class SetupStepSeederService {
         }
 
         return {
-          tenantId,
+          tenantCode,
           companyId,
           stepType: step.type,
           stepOrder: step.order,
@@ -46,6 +44,6 @@ export class SetupStepSeederService {
       },
     );
 
-    return this.setupStepRepository.bulkCreateAndSave(stepsToCreate, entityManager);
+    return this.setupStepRepository.bulkCreateAndSave(stepsToCreate);
   }
 }

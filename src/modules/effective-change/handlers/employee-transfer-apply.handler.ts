@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { TransactionService } from '@new-hros/libs-sql';
 import {
   AggregateType,
   EmployeeTransferEventType,
@@ -15,22 +15,22 @@ import { EffectiveExecuteCommand } from './location-apply.handler';
 export class EmployeeTransferApplyHandler {
   private readonly logger = new Logger(EmployeeTransferApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const transferRepo = em.getRepository(EmployeeTransferEntity);
 
     const transfer = await transferRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantId: command.tenantCode,
       },
     });
 
     if (!transfer) {
       this.logger.warn(
-        `Employee transfer record not found for apply execution: ${command.changeId} in tenant ${command.tenantId}`,
+        `Employee transfer record not found for apply execution: ${command.changeId} in tenant ${command.tenantCode}`,
       );
       return;
     }
@@ -46,7 +46,7 @@ export class EmployeeTransferApplyHandler {
     const empRefRepo = em.getRepository(EmployeeReferenceEntity);
     const employeeRef = await empRefRepo.findOne({
       where: {
-        tenantId: command.tenantId,
+        tenantId: command.tenantCode,
         employeeId: transfer.employeeId,
       },
     });

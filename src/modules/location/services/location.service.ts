@@ -1,13 +1,8 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import { RequestContextService } from '@new-hros/libs-core';
 import { Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { isDateString } from 'class-validator';
+import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -18,7 +13,6 @@ import {
   OutboxStatus,
   SetupStepType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
@@ -33,21 +27,20 @@ export class LocationService {
   private readonly logger = new Logger(LocationService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
+    private readonly outboxEventRepository: OutboxEventRepository,
     private readonly locationRepository: LocationRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(dto: CreateLocationDto, authContext?: AuthContext | null): Promise<Location> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+  async create(dto: CreateLocationDto, companyId: string): Promise<Location> {
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
     const { effectiveAtDate, companyTimezone } = await this.validateEffectiveDate(
-      tenantId,
       companyId,
       dto.effectiveAt,
     );
@@ -63,12 +56,8 @@ export class LocationService {
     }
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       // 4. Persist Location in scheduled status
       const location = await this.locationRepository.create({
-        tenantId,
-        companyId,
         code: generatedCode,
         name: dto.name,
         description: dto.description,
@@ -84,16 +73,13 @@ export class LocationService {
 
       // 5. Complete LOCATION setup step if needed
       await this.companySetupStepRepository.markStepCompleted({
-        tenantId,
         companyId,
         stepType: SetupStepType.LOCATION,
         completedBy: userId,
-        entityManager: manager,
       });
 
       // 6. Write outbox event for scheduling
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.LOCATION,
         aggregateId: location.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -103,12 +89,11 @@ export class LocationService {
           operation: 'CREATE',
           effectiveAt: location.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: location.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return location;
     });
@@ -120,10 +105,9 @@ export class LocationService {
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;
     const limit = query?.limit && query.limit > 0 ? Math.min(Number(query.limit), 100) : 20;
 
-    return this.locationRepository.findActiveLocations(companyId, {
+    return this.locationRepository.findActive(companyId, {
       page,
       limit,
-      search: query?.search,
     });
   }
 
@@ -131,35 +115,24 @@ export class LocationService {
     return this.locationRepository.findById(id, { required: true });
   }
 
-  async scheduleUpdate(
-    locationId: string,
-    dto: UpdateLocationDto,
-    authContext?: AuthContext | null,
-  ): Promise<Location> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
+  async scheduleUpdate(id: string, dto: UpdateLocationDto, companyId: string): Promise<Location> {
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
     // 1. Verify location exists and is active
-    const location = await this.verifyActiveLocation(locationId, 'updates');
+    const location = await this.verifyActiveLocation(id, 'updates');
 
     // 2. Resolve company timezone and validate effectiveAt
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 3. Headquarter pre-check if updating isHeadquarter to true
     if (dto.isHeadquarter === true) {
-      await this.verifyHeadquarterUniqueness(companyId, locationId);
+      await this.verifyHeadquarterUniqueness(companyId, id);
     }
 
     // 4. Single pending change check (INV-007)
-    await this.verifyNoPendingChange(companyId, locationId, 'scheduling a new update');
+    await this.verifyNoPendingChange(companyId, id, 'scheduling a new update');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       // Mutate location fields immediately in DB
       if (dto.name !== undefined) location.name = dto.name;
       if (dto.description !== undefined) location.description = dto.description;
@@ -179,25 +152,21 @@ export class LocationService {
       if (dto.address !== undefined) payload.address = dto.address;
       if (dto.isHeadquarter !== undefined) payload.isHeadquarter = dto.isHeadquarter;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'location',
-          entityId: locationId,
-          operation: ChangeOperation.UPDATE,
-          effectiveAt: effectiveAtDate,
-          status: EffectiveChangeStatus.SCHEDULED,
-          payload,
-          expectedUpdatedAt: updatedLocation.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode,
+        companyId,
+        entityType: 'location',
+        entityId: id,
+        operation: ChangeOperation.UPDATE,
+        effectiveAt: effectiveAtDate,
+        status: EffectiveChangeStatus.SCHEDULED,
+        payload,
+        expectedUpdatedAt: updatedLocation.updatedAt,
+        createdBy: userId,
+      });
 
       // Outbox write for schedule-worker
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -207,59 +176,48 @@ export class LocationService {
           operation: 'UPDATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return updatedLocation;
     });
   }
 
   async scheduleDeactivation(
-    locationId: string,
+    id: string,
     dto: DeactivateLocationDto,
-    authContext?: AuthContext | null,
+    companyId: string,
   ): Promise<EffectiveChangeEntity> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-    const userId = authContext?.userId;
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Verify location exists and is active
-    const location = await this.verifyActiveLocation(locationId, 'deactivation');
+    const location = await this.verifyActiveLocation(id, 'deactivation');
 
     // 2. Resolve company timezone and validate effectiveAt
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 3. Single pending change check (INV-007)
-    await this.verifyNoPendingChange(companyId, locationId, 'scheduling deactivation');
+    await this.verifyNoPendingChange(companyId, id, 'scheduling deactivation');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode,
+        companyId,
+        entityType: 'location',
+        entityId: id,
+        operation: ChangeOperation.DEACTIVATE,
+        effectiveAt: effectiveAtDate,
+        status: EffectiveChangeStatus.SCHEDULED,
+        payload: {},
+        expectedUpdatedAt: location.updatedAt,
+        createdBy: userId,
+      });
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'location',
-          entityId: locationId,
-          operation: ChangeOperation.DEACTIVATE,
-          effectiveAt: effectiveAtDate,
-          status: EffectiveChangeStatus.SCHEDULED,
-          payload: {},
-          expectedUpdatedAt: location.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
-
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -269,51 +227,27 @@ export class LocationService {
           operation: 'DEACTIVATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return savedChange;
     });
   }
 
-  // --- Common Verification Helpers ---
-
-  private resolveTenantAndCompany(authContext?: AuthContext | null): {
-    tenantId: string;
-    companyId: string;
-  } {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-    if (!companyId) {
-      throw new BadRequestException('Cannot determine company from request context');
-    }
-
-    return { tenantId, companyId };
-  }
-
   private async validateEffectiveDate(
-    tenantId: string,
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
-    if (!company) {
-      throw new NotFoundException(`Company with ID '${companyId}' not found`);
-    }
+    const company = await this.companyRepository.findById(companyId, { required: true });
 
-    const effectiveAtDate = new Date(effectiveAt);
-    if (isNaN(effectiveAtDate.getTime())) {
+    if (isDateString(effectiveAt)) {
       throw new BadRequestException('Invalid effectiveAt date format');
     }
 
+    const effectiveAtDate = new Date(effectiveAt);
     const { isValid, cutoff } = EffectiveDateUtil.validateFutureEffectiveDate(
       effectiveAtDate,
       company.timezone,

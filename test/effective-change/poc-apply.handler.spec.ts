@@ -1,4 +1,5 @@
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
@@ -14,7 +15,7 @@ import { PocEntity } from '../../src/modules/poc/entities/poc.entity';
 
 describe('PocApplyHandler', () => {
   let handler: PocApplyHandler;
-  let mockDataSource: jest.Mocked<DataSource>;
+  let mockTxService: jest.Mocked<TransactionService>;
   let mockEntityManager: jest.Mocked<EntityManager>;
   let mockPocRepo: jest.Mocked<Repository<PocEntity>>;
   let mockChangeRepo: jest.Mocked<Repository<EffectiveChangeEntity>>;
@@ -39,24 +40,26 @@ describe('PocApplyHandler', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === PocEntity) return mockPocRepo;
-        if (target === EffectiveChangeEntity) return mockChangeRepo;
-        if (target === OutboxEventEntity) return mockOutboxRepo;
+        if (target === PocEntity || (target as any)?.name === 'PocEntity') return mockPocRepo;
+        if (target === EffectiveChangeEntity || (target as any)?.name === 'EffectiveChangeEntity')
+          return mockChangeRepo;
+        if (target === OutboxEventEntity || (target as any)?.name === 'OutboxEventEntity')
+          return mockOutboxRepo;
         return null;
       }),
     } as unknown as jest.Mocked<EntityManager>;
 
-    mockDataSource = {
-      manager: mockEntityManager,
-    } as unknown as jest.Mocked<DataSource>;
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+    } as unknown as jest.Mocked<TransactionService>;
 
-    handler = new PocApplyHandler(mockDataSource);
+    handler = new PocApplyHandler(mockTxService);
   });
 
   describe('apply CREATE', () => {
     const command: EffectiveExecuteCommand = {
       changeId: 'poc-1',
-      tenantId: 'tenant-123',
+      tenantCode: 'tenant-123',
       companyId: 'company-123',
       entityType: 'poc',
       operation: 'CREATE',
@@ -75,7 +78,7 @@ describe('PocApplyHandler', () => {
 
       mockPocRepo.findOne.mockResolvedValue(scheduledPoc);
 
-      await handler.apply(command, mockEntityManager);
+      await handler.apply(command);
 
       expect(scheduledPoc.status).toBe(MasterDataStatus.ACTIVE);
       expect(mockPocRepo.save).toHaveBeenCalledWith(scheduledPoc);
@@ -97,7 +100,7 @@ describe('PocApplyHandler', () => {
 
       mockPocRepo.findOne.mockResolvedValue(activePoc);
 
-      await handler.apply(command, mockEntityManager);
+      await handler.apply(command);
 
       expect(mockPocRepo.save).not.toHaveBeenCalled();
       expect(mockOutboxRepo.save).not.toHaveBeenCalled();
@@ -107,7 +110,7 @@ describe('PocApplyHandler', () => {
   describe('apply UPDATE', () => {
     const command: EffectiveExecuteCommand = {
       changeId: 'change-1',
-      tenantId: 'tenant-123',
+      tenantCode: 'tenant-123',
       companyId: 'company-123',
       entityType: 'poc',
       operation: 'UPDATE',
@@ -116,7 +119,7 @@ describe('PocApplyHandler', () => {
     it('should archive prior active PoC, create new active PoC, and emit POC_REPLACED', async () => {
       const pendingChange = {
         id: 'change-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         entityId: 'poc-old',
         status: EffectiveChangeStatus.SCHEDULED,
@@ -137,7 +140,7 @@ describe('PocApplyHandler', () => {
       mockChangeRepo.findOne.mockResolvedValue(pendingChange);
       mockPocRepo.findOne.mockResolvedValue(previousPoc);
 
-      await handler.apply(command, mockEntityManager);
+      await handler.apply(command);
 
       expect(previousPoc.status).toBe(MasterDataStatus.INACTIVE);
       expect(mockPocRepo.save).toHaveBeenCalledWith(previousPoc);
@@ -165,7 +168,7 @@ describe('PocApplyHandler', () => {
   describe('apply DEACTIVATE', () => {
     const command: EffectiveExecuteCommand = {
       changeId: 'change-deact',
-      tenantId: 'tenant-123',
+      tenantCode: 'tenant-123',
       companyId: 'company-123',
       entityType: 'poc',
       operation: 'DEACTIVATE',
@@ -174,7 +177,7 @@ describe('PocApplyHandler', () => {
     it('should transition PoC to inactive and emit POC_DEACTIVATED', async () => {
       const pendingChange = {
         id: 'change-deact',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         entityId: 'poc-1',
         status: EffectiveChangeStatus.SCHEDULED,
@@ -193,7 +196,7 @@ describe('PocApplyHandler', () => {
       mockChangeRepo.findOne.mockResolvedValue(pendingChange);
       mockPocRepo.findOne.mockResolvedValue(activePoc);
 
-      await handler.apply(command, mockEntityManager);
+      await handler.apply(command);
 
       expect(activePoc.status).toBe(MasterDataStatus.INACTIVE);
       expect(mockPocRepo.save).toHaveBeenCalledWith(activePoc);

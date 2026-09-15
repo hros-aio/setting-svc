@@ -167,7 +167,7 @@ export class EffectiveChangeConsumer {
           eventId,
           changeId: command?.changeId || null,
           entityType: command?.entityType || null,
-          tenantId: command?.tenantId || null,
+          tenantId: command?.tenantCode || null,
         }),
       );
       return;
@@ -179,7 +179,7 @@ export class EffectiveChangeConsumer {
         eventId,
         changeId: command.changeId,
         entityType: command.entityType,
-        tenantId: command.tenantId,
+        tenantId: command.tenantCode,
       }),
     );
 

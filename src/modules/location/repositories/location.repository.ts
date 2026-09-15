@@ -17,7 +17,7 @@ export class LocationRepository extends BaseRepository<Location> {
     });
   }
 
-  async findActiveLocations(
+  async findActive(
     companyId: string,
     pagination?: PaginationOptions,
   ): Promise<PaginatedResult<Location>> {

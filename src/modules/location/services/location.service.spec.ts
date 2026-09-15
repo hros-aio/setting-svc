@@ -44,7 +44,11 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     mockLocationRepo = {
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      create: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>),
+      create: jest
+        .fn()
+        .mockImplementation(
+          (data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>,
+        ),
     };
 
     mockCompanyRepo = {

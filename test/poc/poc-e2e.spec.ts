@@ -272,7 +272,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     // 2. Go Worker Executes Scheduled CREATE
     await pocApplyHandler.apply({
       changeId: initialPoc.id,
-      tenantId,
+      tenantCode: tenantId,
       companyId,
       entityType: 'poc',
       operation: 'CREATE',
@@ -311,7 +311,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     // 5. Go Worker Executes Scheduled UPDATE
     await pocApplyHandler.apply({
       changeId: replaceChange.id,
-      tenantId,
+      tenantCode: tenantId,
       companyId,
       entityType: 'poc',
       operation: 'UPDATE',
@@ -344,7 +344,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     // 7. Go Worker Executes Scheduled DEACTIVATE
     await pocApplyHandler.apply({
       changeId: deactChange.id,
-      tenantId,
+      tenantCode: tenantId,
       companyId,
       entityType: 'poc',
       operation: 'DEACTIVATE',

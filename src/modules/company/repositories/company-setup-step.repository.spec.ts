@@ -37,7 +37,7 @@ describe('CompanySetupStepRepository', () => {
 
       (mockInnerRepo.find as jest.Mock).mockResolvedValue(mockSteps);
 
-      const result = await repository.findStepsByCompanyId('company-1', mockEntityManager);
+      const result = await repository.findByCompanyId('company-1', mockEntityManager);
 
       expect(mockInnerRepo.find).toHaveBeenCalledWith({
         where: { companyId: 'company-1' },

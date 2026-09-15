@@ -54,7 +54,7 @@ export class CompanyProvisioningService {
       });
 
       // 2. Check if default template Company already exists for this tenant
-      const existingTemplateCompany = await this.companyRepository.findTemplateCompanyByTenantId(
+      const existingTemplateCompany = await this.companyRepository.findTemplateCompany(
         tenantRecord.id,
       );
 

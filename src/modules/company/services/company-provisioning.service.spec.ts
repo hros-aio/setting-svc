@@ -46,7 +46,7 @@ describe('CompanyProvisioningService', () => {
     };
 
     mockCompanyRepo = {
-      findTemplateCompanyByTenantId: jest.fn().mockResolvedValue(null),
+      findTemplateCompany: jest.fn().mockResolvedValue(null),
       createAndSave: jest.fn().mockResolvedValue({
         id: 'c-uuid-1',
         tenantId: 't-uuid-1',
@@ -89,7 +89,7 @@ describe('CompanyProvisioningService', () => {
   });
 
   it('should gracefully handle already existing template company for tenant (idempotency)', async () => {
-    mockCompanyRepo.findTemplateCompanyByTenantId = jest
+    mockCompanyRepo.findTemplateCompany = jest
       .fn()
       .mockResolvedValue({ id: 'c-existing' } as CompanyEntity);
 

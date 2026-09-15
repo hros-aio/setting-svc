@@ -1,11 +1,11 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { SetupStepStatus, SetupStepType } from '../../../enums';
+import { TenantEntity } from '../../tenant/entities/tenant.entity';
+import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { TenantRepository } from '../../tenant/repositories/tenant.repository';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { CompanySetupQueryService } from './company-setup-query.service';
 
 describe('CompanySetupQueryService', () => {
@@ -22,7 +22,7 @@ describe('CompanySetupQueryService', () => {
       findByIdAndTenant: jest.fn(),
     };
     mockSetupStepRepo = {
-      findStepsByCompanyId: jest.fn(),
+      findByCompanyId: jest.fn(),
     };
     mockTenantRepo = {
       findByTenantCode: jest
@@ -90,7 +90,7 @@ describe('CompanySetupQueryService', () => {
         },
       ] as unknown as CompanySetupStepEntity[];
 
-      mockSetupStepRepo.findStepsByCompanyId = jest.fn().mockResolvedValue(mockSteps);
+      mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue(mockSteps);
 
       const result = await service.getCompanySetupProgress(tenantId, companyId);
 
@@ -125,7 +125,7 @@ describe('CompanySetupQueryService', () => {
         completedAt: new Date(),
       })) as unknown as CompanySetupStepEntity[];
 
-      mockSetupStepRepo.findStepsByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
+      mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
 
       const result = await service.getCompanySetupProgress(tenantId, companyId);
 
@@ -149,7 +149,7 @@ describe('CompanySetupQueryService', () => {
         tenantId,
       } as CompanyEntity);
 
-      mockSetupStepRepo.findStepsByCompanyId = jest.fn().mockResolvedValue([]);
+      mockSetupStepRepo.findByCompanyId = jest.fn().mockResolvedValue([]);
 
       await expect(service.getCompanySetupProgress(tenantId, companyId)).rejects.toThrow(
         UnprocessableEntityException,

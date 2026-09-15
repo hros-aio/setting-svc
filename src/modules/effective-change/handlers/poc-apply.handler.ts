@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { TransactionService } from '@new-hros/libs-sql';
+import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
@@ -16,10 +17,10 @@ import { EffectiveExecuteCommand } from './location-apply.handler';
 export class PocApplyHandler {
   private readonly logger = new Logger(PocApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const op = command.operation.toUpperCase();
 
     if (op === 'CREATE') {
@@ -40,7 +41,7 @@ export class PocApplyHandler {
     const poc = await pocRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantId: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -109,7 +110,7 @@ export class PocApplyHandler {
     const previousPoc = await pocRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantId: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -137,7 +138,7 @@ export class PocApplyHandler {
 
     // 2. Create new active PoC
     const newPoc = pocRepo.create({
-      tenantId: change.tenantId,
+      tenantId: change.tenantCode,
       companyId: change.companyId,
       pocType: previousPoc.pocType,
       employeeId: newEmployeeId,
@@ -162,7 +163,7 @@ export class PocApplyHandler {
       payload: {
         previousPocId: previousPoc.id,
         newPocId: savedNewPoc.id,
-        tenantId: change.tenantId,
+        tenantId: change.tenantCode,
         companyId: change.companyId,
         pocType: previousPoc.pocType,
         previousEmployeeId: previousPoc.employeeId,
@@ -210,7 +211,7 @@ export class PocApplyHandler {
     const poc = await pocRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantId: change.tenantCode,
         companyId: change.companyId,
       },
     });

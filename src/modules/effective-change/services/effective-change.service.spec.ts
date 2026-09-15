@@ -1,5 +1,4 @@
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
 import {
   AggregateType,
   ChangeOperation,
@@ -7,7 +6,7 @@ import {
   EffectiveEntityType,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
@@ -25,8 +24,7 @@ describe('EffectiveChangeService', () => {
   let mockJobTitleHandler: { apply: jest.Mock };
   let mockPocHandler: { apply: jest.Mock };
   let mockEmployeeTransferHandler: { apply: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
-  let mockDataSource: { manager: { getRepository: jest.Mock } };
+  let mockOutboxRepo: { create: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
 
   beforeEach(() => {
@@ -38,14 +36,7 @@ describe('EffectiveChangeService', () => {
     mockEmployeeTransferHandler = { apply: jest.fn().mockResolvedValue(undefined) };
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((val) => val),
-      save: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockDataSource = {
-      manager: {
-        getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-      },
+      create: jest.fn().mockResolvedValue(undefined),
     };
 
     mockTxService = {
@@ -53,8 +44,8 @@ describe('EffectiveChangeService', () => {
     };
 
     service = new EffectiveChangeService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxRepo as unknown as OutboxEventRepository,
       mockLocationHandler as unknown as LocationApplyHandler,
       mockDepartmentHandler as unknown as DepartmentApplyHandler,
       mockGradeHandler as unknown as GradeApplyHandler,
@@ -68,7 +59,7 @@ describe('EffectiveChangeService', () => {
     it('should delegate execution strictly to the target entity handler with company context intact', async () => {
       const command: EffectiveExecuteCommand = {
         changeId: 'change-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-A',
         entityType: EffectiveEntityType.JOB_TITLE,
         operation: ChangeOperation.CREATE,
@@ -76,7 +67,7 @@ describe('EffectiveChangeService', () => {
 
       await service.executeChange(command);
 
-      expect(mockJobTitleHandler.apply).toHaveBeenCalledWith(command, mockDataSource.manager);
+      expect(mockJobTitleHandler.apply).toHaveBeenCalledWith(command);
       expect(mockLocationHandler.apply).not.toHaveBeenCalled();
       expect(mockDepartmentHandler.apply).not.toHaveBeenCalled();
     });
@@ -98,7 +89,6 @@ describe('EffectiveChangeService', () => {
       await service.scheduleExecution(command);
 
       expect(mockTxService.runInTransaction).toHaveBeenCalled();
-      expect(mockDataSource.manager.getRepository).toHaveBeenCalledWith(OutboxEventEntity);
       expect(mockOutboxRepo.create).toHaveBeenCalledWith({
         aggregateType: AggregateType.DEPARTMENT,
         aggregateId: 'change-123',
@@ -115,7 +105,6 @@ describe('EffectiveChangeService', () => {
         executionTime: expect.any(Date),
         status: OutboxStatus.PENDING,
       });
-      expect(mockOutboxRepo.save).toHaveBeenCalled();
     });
 
     it('should skip creating outbox event when effectiveAt is in the future (> now)', async () => {
@@ -134,7 +123,6 @@ describe('EffectiveChangeService', () => {
 
       expect(mockTxService.runInTransaction).not.toHaveBeenCalled();
       expect(mockOutboxRepo.create).not.toHaveBeenCalled();
-      expect(mockOutboxRepo.save).not.toHaveBeenCalled();
     });
   });
 });

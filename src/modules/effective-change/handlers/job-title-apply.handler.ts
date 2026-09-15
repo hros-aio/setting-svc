@@ -1,26 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
-import { JobTitle } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../entities/effective-change.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { JobTitle, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager } from 'typeorm';
 import {
   AggregateType,
-  JobTitleEventType,
   EffectiveChangeStatus,
+  JobTitleEventType,
   MasterDataStatus,
   OutboxStatus,
 } from '../../../enums';
+import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
 @Injectable()
 export class JobTitleApplyHandler {
   private readonly logger = new Logger(JobTitleApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
-
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const op = command.operation.toUpperCase();
 
     if (op === 'CREATE') {
@@ -41,7 +40,7 @@ export class JobTitleApplyHandler {
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantCode: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -67,7 +66,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_CREATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantId,
+        tenantId: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         name: jobTitle.name,
@@ -112,7 +111,7 @@ export class JobTitleApplyHandler {
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -160,7 +159,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_UPDATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantId,
+        tenantId: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         name: jobTitle.name,
@@ -205,7 +204,7 @@ export class JobTitleApplyHandler {
     const jobTitle = await jobTitleRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -232,7 +231,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_DEACTIVATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantId,
+        tenantId: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         status: jobTitle.status,

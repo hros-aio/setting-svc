@@ -1,7 +1,6 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Grade, JobTitle, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
-import { Grade } from '@new-hros/libs-sql';
-import { JobTitle } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 import { CopyableCategory } from '../enums/copyable-category.enum';
 
@@ -12,9 +11,14 @@ export interface CopyResult {
 
 @Injectable()
 export class TemplateCopyService {
+  constructor(private readonly transactionService: TransactionService) {}
+
+  private getManager(): EntityManager {
+    return this.transactionService.getManager();
+  }
+
   async copyLocalMasterData(
-    entityManager: EntityManager,
-    tenantId: string,
+    tenantCode: string,
     sourceCompanyId: string,
     targetCompanyId: string,
     categories: CopyableCategory[],
@@ -33,22 +37,24 @@ export class TemplateCopyService {
 
     // 1. Copy Grades if selected
     if (selectedSet.has(CopyableCategory.GRADES)) {
-      const sourceGrades = await entityManager.getRepository(Grade).find({
-        where: {
-          tenantId,
-          companyId: sourceCompanyId,
-          status: MasterDataStatus.ACTIVE,
-        },
-      });
+      const sourceGrades = await this.getManager()
+        .getRepository(Grade)
+        .find({
+          where: {
+            tenantCode,
+            companyId: sourceCompanyId,
+            status: MasterDataStatus.ACTIVE,
+          },
+        });
 
       if (sourceGrades.length > 0) {
         for (const sourceGrade of sourceGrades) {
-          if (sourceGrade.tenantId !== tenantId) {
+          if (sourceGrade.tenantCode !== tenantCode) {
             throw new ForbiddenException('Cross-tenant copy violation');
           }
 
-          const newGrade = entityManager.getRepository(Grade).create({
-            tenantId,
+          const newGrade = this.getManager().getRepository(Grade).create({
+            tenantCode,
             companyId: targetCompanyId,
             code: sourceGrade.code,
             name: sourceGrade.name,
@@ -59,7 +65,7 @@ export class TemplateCopyService {
             effectiveAt: new Date(),
           });
 
-          const savedGrade = await entityManager.getRepository(Grade).save(newGrade);
+          const savedGrade = await this.getManager().getRepository(Grade).save(newGrade);
           gradeIdMap.set(sourceGrade.id, savedGrade.id);
           result.copiedGradesCount++;
         }
@@ -68,17 +74,19 @@ export class TemplateCopyService {
 
     // 2. Copy Job Titles if selected
     if (selectedSet.has(CopyableCategory.JOB_TITLES)) {
-      const sourceJobTitles = await entityManager.getRepository(JobTitle).find({
-        where: {
-          tenantId,
-          companyId: sourceCompanyId,
-          status: MasterDataStatus.ACTIVE,
-        },
-      });
+      const sourceJobTitles = await this.getManager()
+        .getRepository(JobTitle)
+        .find({
+          where: {
+            tenantCode,
+            companyId: sourceCompanyId,
+            status: MasterDataStatus.ACTIVE,
+          },
+        });
 
       if (sourceJobTitles.length > 0) {
         for (const sourceJobTitle of sourceJobTitles) {
-          if (sourceJobTitle.tenantId !== tenantId) {
+          if (sourceJobTitle.tenantCode !== tenantCode) {
             throw new ForbiddenException('Cross-tenant copy violation');
           }
 
@@ -86,8 +94,8 @@ export class TemplateCopyService {
             ? gradeIdMap.get(sourceJobTitle.gradeId) || sourceJobTitle.gradeId
             : undefined;
 
-          const newJobTitle = entityManager.getRepository(JobTitle).create({
-            tenantId,
+          const newJobTitle = this.getManager().getRepository(JobTitle).create({
+            tenantCode,
             companyId: targetCompanyId,
             code: sourceJobTitle.code,
             name: sourceJobTitle.name,
@@ -99,7 +107,7 @@ export class TemplateCopyService {
             effectiveAt: new Date(),
           });
 
-          await entityManager.getRepository(JobTitle).save(newJobTitle);
+          await this.getManager().getRepository(JobTitle).save(newJobTitle);
           result.copiedJobTitlesCount++;
         }
       }

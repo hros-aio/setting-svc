@@ -1,16 +1,7 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Check,
-} from 'typeorm';
-import { CompanyEntity } from '../../company/entities/company.entity';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
+import { BaseEntity } from '@new-hros/libs-sql';
+import { Check, Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { ChangeOperation, EffectiveChangeStatus, TableName } from '../../../enums';
+import { CompanyEntity } from '../../company/entities/company.entity';
 
 @Entity(TableName.EFFECTIVE_CHANGES)
 @Check(
@@ -18,17 +9,7 @@ import { ChangeOperation, EffectiveChangeStatus, TableName } from '../../../enum
   `entity_type IN ('location', 'department', 'grade', 'job_title', 'poc')`,
 )
 @Check('ck_effective_changes_cancelled', `status <> 'cancelled' OR cancelled_at IS NOT NULL`)
-export class EffectiveChangeEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'uuid', name: 'tenant_id' })
-  tenantId: string;
-
-  @ManyToOne(() => TenantEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'tenant_id' })
-  tenant: TenantEntity;
-
+export class EffectiveChangeEntity extends BaseEntity {
   @Column({ type: 'uuid', name: 'company_id' })
   companyId: string;
 
@@ -77,10 +58,4 @@ export class EffectiveChangeEntity {
 
   @Column({ type: 'timestamptz', nullable: true, name: 'cancelled_at' })
   cancelledAt?: Date;
-
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
 }
