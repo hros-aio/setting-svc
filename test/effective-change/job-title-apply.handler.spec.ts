@@ -1,9 +1,9 @@
-import { JobTitleApplyHandler } from '../../src/modules/effective-change/handlers/job-title-apply.handler';
-import { JobTitle } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { JobTitle, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import { EffectiveChangeStatus, JobTitleEventType, MasterDataStatus } from '../../src/enums';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { JobTitleApplyHandler } from '../../src/modules/effective-change/handlers/job-title-apply.handler';
 
 describe('JobTitleApplyHandler [US5]', () => {
   let handler: JobTitleApplyHandler;
@@ -11,6 +11,7 @@ describe('JobTitleApplyHandler [US5]', () => {
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEntityManager: jest.Mocked<Partial<EntityManager>>;
+  let mockTxService: jest.Mocked<Partial<TransactionService>>;
 
   beforeEach(() => {
     mockJobTitleRepo = {
@@ -30,23 +31,27 @@ describe('JobTitleApplyHandler [US5]', () => {
 
     mockEntityManager = {
       getRepository: jest.fn().mockImplementation((entityClass) => {
-        if (entityClass === JobTitle) return mockJobTitleRepo;
-        if (entityClass === EffectiveChangeEntity) return mockChangeRepo;
-        if (entityClass === OutboxEventEntity) return mockOutboxRepo;
+        if (entityClass === JobTitle || entityClass.name === 'JobTitle') return mockJobTitleRepo;
+        if (entityClass === EffectiveChangeEntity || entityClass.name === 'EffectiveChangeEntity')
+          return mockChangeRepo;
+        if (entityClass === OutboxEventEntity || entityClass.name === 'OutboxEventEntity')
+          return mockOutboxRepo;
         return null;
       }),
     };
 
-    handler = new JobTitleApplyHandler({
-      manager: mockEntityManager as unknown as EntityManager,
-    } as unknown as DataSource);
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager as EntityManager),
+    };
+
+    handler = new JobTitleApplyHandler(mockTxService as unknown as TransactionService);
   });
 
   describe('apply CREATE', () => {
     it('should transition job title from scheduled to active and emit job-title.created event', async () => {
       const mockJobTitle = {
         id: 'job-title-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         code: 'SWE',
         name: 'Software Engineer',
@@ -54,20 +59,17 @@ describe('JobTitleApplyHandler [US5]', () => {
         gradeId: 'grade-1',
         status: MasterDataStatus.SCHEDULED,
         effectiveAt: new Date('2026-08-20T00:00:00.000Z'),
-      } as JobTitle;
+      } as unknown as JobTitle;
 
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
-      await handler.apply(
-        {
-          changeId: 'job-title-1',
-          entityType: 'job_title',
-          operation: 'CREATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'job-title-1',
+        entityType: 'job_title',
+        operation: 'CREATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockJobTitle.status).toBe(MasterDataStatus.ACTIVE);
       expect(mockJobTitleRepo.save).toHaveBeenCalledWith(mockJobTitle);
@@ -83,20 +85,17 @@ describe('JobTitleApplyHandler [US5]', () => {
       const mockJobTitle = {
         id: 'job-title-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitle;
+      } as unknown as JobTitle;
 
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
-      await handler.apply(
-        {
-          changeId: 'job-title-1',
-          entityType: 'job_title',
-          operation: 'CREATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'job-title-1',
+        entityType: 'job_title',
+        operation: 'CREATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockJobTitleRepo.save).not.toHaveBeenCalled();
       expect(mockOutboxRepo.save).not.toHaveBeenCalled();
@@ -108,7 +107,7 @@ describe('JobTitleApplyHandler [US5]', () => {
       const mockChange = {
         id: 'change-1',
         entityId: 'job-title-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: EffectiveChangeStatus.SCHEDULED,
         payload: {
@@ -119,26 +118,23 @@ describe('JobTitleApplyHandler [US5]', () => {
 
       const mockJobTitle = {
         id: 'job-title-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         name: 'Software Engineer',
         gradeId: 'grade-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitle;
+      } as unknown as JobTitle;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
-      await handler.apply(
-        {
-          changeId: 'change-1',
-          entityType: 'job_title',
-          operation: 'UPDATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'change-1',
+        entityType: 'job_title',
+        operation: 'UPDATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockJobTitle.name).toBe('Senior Software Engineer');
       expect(mockJobTitle.gradeId).toBe('grade-2');
@@ -158,31 +154,28 @@ describe('JobTitleApplyHandler [US5]', () => {
       const mockChange = {
         id: 'change-1',
         entityId: 'job-title-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: EffectiveChangeStatus.SCHEDULED,
       } as unknown as EffectiveChangeEntity;
 
       const mockJobTitle = {
         id: 'job-title-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as JobTitle;
+      } as unknown as JobTitle;
 
       (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
       (mockJobTitleRepo.findOne as jest.Mock).mockResolvedValue(mockJobTitle);
 
-      await handler.apply(
-        {
-          changeId: 'change-1',
-          entityType: 'job_title',
-          operation: 'DEACTIVATE',
-          tenantId: 'tenant-1',
-          companyId: 'comp-1',
-        },
-        mockEntityManager as unknown as EntityManager,
-      );
+      await handler.apply({
+        changeId: 'change-1',
+        entityType: 'job_title',
+        operation: 'DEACTIVATE',
+        tenantCode: 'tenant-1',
+        companyId: 'comp-1',
+      });
 
       expect(mockJobTitle.status).toBe(MasterDataStatus.INACTIVE);
       expect(mockJobTitleRepo.save).toHaveBeenCalledWith(mockJobTitle);

@@ -1,55 +1,51 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { LocationService } from '../../src/modules/location/services/location.service';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Location, TransactionService } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
-import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
+import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
+import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
-import { TransactionService } from '@new-hros/libs-sql';
+import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
-import { Location } from '@new-hros/libs-sql';
-import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
+import { LocationService } from '../../src/modules/location/services/location.service';
 
 describe('LocationService - Update Location [US3]', () => {
   let service: LocationService;
   let mockLocationRepo: jest.Mocked<Partial<LocationRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockEffectiveChangeRepo: jest.Mocked<Partial<EffectiveChangeRepository>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
+  let mockOutboxEventRepo: { create: jest.Mock };
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['location:update'],
-  };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['location:update'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventRepo = {
+      create: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn(),
-      createAndSave: jest
+      create: jest
         .fn()
         .mockImplementation(
-          async (entity) => ({ id: 'chg-1', ...entity }) as EffectiveChangeEntity,
+          async (entity) => ({ id: 'chg-1', ...entity }) as unknown as EffectiveChangeEntity,
         ),
     };
 
@@ -57,32 +53,21 @@ describe('LocationService - Update Location [US3]', () => {
       findById: jest.fn().mockResolvedValue({
         id: 'loc-1',
         name: 'Tokyo HQ',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
         updatedAt: new Date('2026-08-16T00:00:00Z'),
-      } as Location),
+      } as unknown as Location),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      save: jest.fn().mockImplementation(async (entity) => entity as Location),
+      update: jest.fn().mockImplementation(async (id, entity) => entity as Location),
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
-    };
-
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest.fn().mockImplementation((entityClass) => {
-        if (entityClass === OutboxEventEntity) return mockOutboxRepo;
-        return null;
-      }),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
+      } as unknown as CompanyEntity),
     };
 
     mockTxService = {
@@ -90,8 +75,8 @@ describe('LocationService - Update Location [US3]', () => {
     };
 
     service = new LocationService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxEventRepo as unknown as OutboxEventRepository,
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,
@@ -107,7 +92,7 @@ describe('LocationService - Update Location [US3]', () => {
     (mockLocationRepo.findById as jest.Mock).mockResolvedValue({
       id: 'loc-1',
       status: MasterDataStatus.SCHEDULED,
-    } as Location);
+    } as unknown as Location);
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(
@@ -117,7 +102,7 @@ describe('LocationService - Update Location [US3]', () => {
           name: 'New Name',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -125,7 +110,7 @@ describe('LocationService - Update Location [US3]', () => {
   it('should reject if another pending change already exists (INV-007)', async () => {
     (mockEffectiveChangeRepo.findPendingChange as jest.Mock).mockResolvedValue({
       id: 'existing-pending',
-    } as EffectiveChangeEntity);
+    } as unknown as EffectiveChangeEntity);
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(
@@ -135,7 +120,7 @@ describe('LocationService - Update Location [US3]', () => {
           name: 'New Name',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -150,13 +135,13 @@ describe('LocationService - Update Location [US3]', () => {
         name: 'Updated Name',
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('loc-1');
     expect(result.name).toBe('Updated Name');
-    expect(mockLocationRepo.save).toHaveBeenCalled();
-    expect(mockEffectiveChangeRepo.createAndSave).toHaveBeenCalled();
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockLocationRepo.update).toHaveBeenCalled();
+    expect(mockEffectiveChangeRepo.create).toHaveBeenCalled();
+    expect(mockOutboxEventRepo.create).toHaveBeenCalled();
   });
 });

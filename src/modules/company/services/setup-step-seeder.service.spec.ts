@@ -26,7 +26,7 @@ describe('SetupStepSeederService', () => {
     result.forEach((step) => {
       expect(step.status).toBe(SetupStepStatus.INCOMPLETE);
       expect(step.completedAt).toBeUndefined();
-      expect(step.tenantId).toBe(tenantId);
+      expect(step.tenantCode).toBe(tenantId);
       expect(step.companyId).toBe(companyId);
     });
   });

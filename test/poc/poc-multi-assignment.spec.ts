@@ -79,12 +79,12 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockImplementation((companyId: string, tenantId: string) =>
+      findById: jest.fn().mockImplementation((companyId: string) =>
         Promise.resolve({
           id: companyId,
-          tenantId,
+          tenantCode: 'tenant-123',
           timezone: 'UTC',
-        } as CompanyEntity),
+        } as unknown as CompanyEntity),
       ),
     } as unknown as jest.Mocked<CompanyRepository>;
 

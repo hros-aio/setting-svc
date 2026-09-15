@@ -50,35 +50,21 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
   };
 
   const mockCompanyRepo = {
-    findTemplateCompanyByTenantId: jest
-      .fn()
-      .mockImplementation(async (tenantId: string): Promise<CompanyEntity | null> => {
-        for (const comp of mockDb.companies.values()) {
-          if (comp.tenantId === tenantId && comp.isTemplate) {
-            return comp;
-          }
+    findTemplateCompany: jest.fn().mockImplementation(async (): Promise<CompanyEntity | null> => {
+      for (const comp of mockDb.companies.values()) {
+        if (comp.isTemplate) {
+          return comp;
         }
-        return null;
-      }),
-    findOneByTenantAndCode: jest
-      .fn()
-      .mockImplementation(
-        async (tenantId: string, companyCode: string): Promise<CompanyEntity | null> => {
-          for (const comp of mockDb.companies.values()) {
-            if (comp.tenantId === tenantId && comp.companyCode === companyCode) {
-              return comp;
-            }
-          }
-          return null;
-        },
-      ),
-    createAndSave: jest
+      }
+      return null;
+    }),
+    create: jest
       .fn()
       .mockImplementation(async (data: Partial<CompanyEntity>): Promise<CompanyEntity> => {
         const record = {
           id: `company-pk-${mockDb.companies.size + 1}`,
           ...data,
-        } as CompanyEntity;
+        } as unknown as CompanyEntity;
         mockDb.companies.set(record.id, record);
         return record;
       }),
@@ -140,7 +126,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
           provide: 'SetupStepSeederService',
           useValue: {
             seedMandatorySteps: async (
-              tenantId: string,
+              tenantCode: string,
               companyId: string,
             ): Promise<CompanySetupStepEntity[]> => {
               const types = [
@@ -154,7 +140,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
                 SetupStepType.POC,
               ];
               const steps = types.map((t, i) => ({
-                tenantId,
+                tenantCode,
                 companyId,
                 stepType: t,
                 stepOrder: i + 1,

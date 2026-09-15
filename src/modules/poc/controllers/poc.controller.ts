@@ -11,14 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  AuthGuard,
-  CompanyScopeGuard,
-  CurrentUser,
-  PermissionGuard,
-  RequirePermission,
-  TenantScopeGuard,
-} from '@new-hros/libs-apis';
+import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreatePocDto } from '../dtos/create-poc.dto';
@@ -35,7 +28,7 @@ import {
 import { PocService } from '../services/poc.service';
 
 @Controller('companies/:companyId/pocs')
-@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class PocController {
   constructor(
     private readonly pocService: PocService,

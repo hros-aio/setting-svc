@@ -60,16 +60,16 @@ export class RoleCopyCompletedConsumer {
       return;
     }
 
-    step.status = SetupStepStatus.COMPLETED;
-    step.completedAt = envelope.timestamp ? new Date(envelope.timestamp) : new Date();
-    step.externalReferenceId = payload.batchId;
-    step.metadata = {
-      ...(step.metadata || {}),
-      roleCount: payload.copiedRoleCount ?? 0,
-      sourceCompanyId: payload.sourceCompanyId,
-    };
-
-    await this.setupStepRepository.save(step);
+    await this.setupStepRepository.markStepCompleted({
+      companyId,
+      stepType: SetupStepType.ROLE,
+      externalReferenceId: payload.batchId,
+      metadata: {
+        ...(step.metadata || {}),
+        roleCount: payload.copiedRoleCount ?? 0,
+        sourceCompanyId: payload.sourceCompanyId,
+      },
+    });
     this.logger.log(
       `Marked setup step ROLE as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
     );

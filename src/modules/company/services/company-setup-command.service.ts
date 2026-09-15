@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
 import { SetupStepType } from '../../../enums';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
@@ -19,13 +18,13 @@ export class CompanySetupCommandService {
 
   constructor(private readonly setupStepRepository: CompanySetupStepRepository) {}
 
-  async markStepComplete(
-    params: MarkStepCompleteParams,
-    entityManager?: EntityManager,
-  ): Promise<CompanySetupStepEntity> {
+  async markStepComplete(params: MarkStepCompleteParams): Promise<CompanySetupStepEntity> {
     const step = await this.setupStepRepository.markStepCompleted({
-      ...params,
-      entityManager: entityManager || (params.metadata?.entityManager as EntityManager | undefined),
+      companyId: params.companyId,
+      stepType: params.stepType,
+      completedBy: params.completedBy,
+      metadata: params.metadata,
+      externalReferenceId: params.externalReferenceId,
     });
 
     if (!step) {

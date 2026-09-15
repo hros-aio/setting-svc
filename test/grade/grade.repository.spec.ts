@@ -29,7 +29,7 @@ describe('GradeRepository', () => {
     const result = await repository.findById('tenant-1', 'comp-1', 'grade-1');
     expect(result).toBe(mockGrade);
     expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
-      where: { id: 'grade-1', tenantId: 'tenant-1', companyId: 'comp-1' },
+      where: { id: 'grade-1', tenantCode: 'tenant-1', companyId: 'comp-1' },
       relations: ['sourceGrade'],
     });
   });
@@ -41,7 +41,7 @@ describe('GradeRepository', () => {
     const result = await repository.findByCode('tenant-1', 'comp-1', 'L3');
     expect(result).toBe(mockGrade);
     expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-1', companyId: 'comp-1', code: 'L3' },
+      where: { tenantCode: 'tenant-1', companyId: 'comp-1', code: 'L3' },
     });
   });
 

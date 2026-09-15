@@ -57,7 +57,6 @@ describe('CompanyController', () => {
       const companyId = 'company-uuid-1';
       const mockUpdatedCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: 'tenant-uuid-1',
         companyCode: 'COMP_1',
         legalName: 'Acme Corp SG Pte Ltd',
         displayName: 'Acme SG',
@@ -73,7 +72,6 @@ describe('CompanyController', () => {
         setupSteps: [
           {
             id: 'step-1',
-            tenantId: 'tenant-uuid-1',
             companyId,
             stepType: SetupStepType.COMPANY_INFORMATION,
             stepOrder: 1,
@@ -100,16 +98,11 @@ describe('CompanyController', () => {
       expect(result.success).toBe(true);
       expect(result.data.legalName).toBe('Acme Corp SG Pte Ltd');
       expect(result.data.setupSteps?.[0].status).toBe(SetupStepStatus.COMPLETED);
-      expect(mockCompanyService.updateCompanyInformation).toHaveBeenCalledWith(
-        'TEST_TENANT',
-        companyId,
-        {
-          legalName: 'Acme Corp SG Pte Ltd',
-          displayName: 'Acme SG',
-          countryCode: 'SG',
-        },
-        expect.objectContaining({ userId: 'user-uuid-1' }),
-      );
+      expect(mockCompanyService.updateCompanyInformation).toHaveBeenCalledWith(companyId, {
+        legalName: 'Acme Corp SG Pte Ltd',
+        displayName: 'Acme SG',
+        countryCode: 'SG',
+      });
     });
 
     it('should return cached response when idempotency key is matched', async () => {
@@ -135,7 +128,7 @@ describe('CompanyController', () => {
     });
 
     it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null as unknown as string);
 
       await expect(
         controller.updateCompanyInformation('company-uuid-1', { legalName: 'Acme' }),
@@ -148,7 +141,6 @@ describe('CompanyController', () => {
       const companyId = 'company-uuid-1';
       const mockDesignatedCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: 'tenant-uuid-1',
         companyCode: 'COMP_1',
         legalName: 'Acme Corp SG Pte Ltd',
         displayName: 'Acme SG',
@@ -168,13 +160,8 @@ describe('CompanyController', () => {
 
       const result = await controller.designateDefaultCompany(companyId);
 
-      expect(result.success).toBe(true);
-      expect(result.data.isTemplate).toBe(true);
-      expect(mockCompanyService.designateDefaultCompany).toHaveBeenCalledWith(
-        'TEST_TENANT',
-        companyId,
-        expect.objectContaining({ userId: 'user-uuid-1' }),
-      );
+      expect(result.isTemplate).toBe(true);
+      expect(mockCompanyService.designateDefaultCompany).toHaveBeenCalledWith(companyId);
     });
   });
 
@@ -195,20 +182,8 @@ describe('CompanyController', () => {
 
       const result = await controller.getCompanySetupProgress(companyId);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockProgress);
-      expect(mockSetupQueryService.getCompanySetupProgress).toHaveBeenCalledWith(
-        'TEST_TENANT',
-        companyId,
-      );
-    });
-
-    it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
-
-      await expect(controller.getCompanySetupProgress('company-uuid-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      expect(result).toEqual(mockProgress);
+      expect(mockSetupQueryService.getCompanySetupProgress).toHaveBeenCalledWith(companyId);
     });
   });
 
@@ -217,7 +192,6 @@ describe('CompanyController', () => {
       const companyId = 'company-uuid-1';
       const mockActivatedCompany: Partial<CompanyEntity> = {
         id: companyId,
-        tenantId: 'tenant-uuid-1',
         companyCode: 'COMP_1',
         legalName: 'Acme Corp SG Pte Ltd',
         displayName: 'Acme SG',
@@ -237,21 +211,8 @@ describe('CompanyController', () => {
 
       const result = await controller.activateCompany(companyId);
 
-      expect(result.success).toBe(true);
-      expect(result.data.status).toBe(CompanyStatus.ACTIVE);
-      expect(mockCompanyService.activateCompany).toHaveBeenCalledWith(
-        'TEST_TENANT',
-        companyId,
-        expect.objectContaining({ userId: 'user-uuid-1' }),
-      );
-    });
-
-    it('should throw BadRequestException if tenantCode is missing from request context', async () => {
-      jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
-
-      await expect(controller.activateCompany('company-uuid-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      expect(result.status).toBe(CompanyStatus.ACTIVE);
+      expect(mockCompanyService.activateCompany).toHaveBeenCalledWith(companyId);
     });
   });
 });

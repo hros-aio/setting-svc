@@ -35,7 +35,7 @@ describe('JobTitleRepository', () => {
     const result = await repository.findById('tenant-1', 'comp-1', 'job-title-1');
     expect(result).toBe(mockJobTitle);
     expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
-      where: { id: 'job-title-1', tenantId: 'tenant-1', companyId: 'comp-1' },
+      where: { id: 'job-title-1', tenantCode: 'tenant-1', companyId: 'comp-1' },
       relations: ['department', 'grade', 'sourceJobTitle'],
     });
   });
@@ -47,7 +47,7 @@ describe('JobTitleRepository', () => {
     const result = await repository.findByCode('tenant-1', 'comp-1', 'SWE');
     expect(result).toBe(mockJobTitle);
     expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-1', companyId: 'comp-1', code: 'SWE' },
+      where: { tenantCode: 'tenant-1', companyId: 'comp-1', code: 'SWE' },
       relations: ['department', 'grade'],
     });
   });

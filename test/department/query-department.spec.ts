@@ -77,7 +77,7 @@ describe('DepartmentService - Query Departments [US2]', () => {
   });
 
   it('should return empty result and log warning if tenantId is missing', async () => {
-    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null);
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(null as unknown as string);
     const warnSpy = jest
       .spyOn((service as unknown as { logger: Logger }).logger, 'warn')
       .mockImplementation();

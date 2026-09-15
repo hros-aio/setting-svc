@@ -1,9 +1,9 @@
-import { DepartmentApplyHandler } from '../../src/modules/effective-change/handlers/department-apply.handler';
-import { Department } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { Department, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager, Repository } from 'typeorm';
 import { DepartmentEventType, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
+import { DepartmentApplyHandler } from '../../src/modules/effective-change/handlers/department-apply.handler';
 
 describe('DepartmentApplyHandler [US5]', () => {
   let handler: DepartmentApplyHandler;
@@ -11,7 +11,7 @@ describe('DepartmentApplyHandler [US5]', () => {
   let mockChangeRepo: jest.Mocked<Partial<Repository<EffectiveChangeEntity>>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
   let mockEm: jest.Mocked<Partial<EntityManager>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
+  let mockTxService: jest.Mocked<Partial<TransactionService>>;
 
   beforeEach(() => {
     mockOutboxRepo = {
@@ -41,17 +41,17 @@ describe('DepartmentApplyHandler [US5]', () => {
       }),
     };
 
-    mockDataSource = {
-      manager: mockEm as EntityManager,
+    mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEm as EntityManager),
     };
 
-    handler = new DepartmentApplyHandler(mockDataSource as unknown as DataSource);
+    handler = new DepartmentApplyHandler(mockTxService as unknown as TransactionService);
   });
 
   it('should transition scheduled department to active on CREATE', async () => {
     const mockDepartment = {
       id: 'dept-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: MasterDataStatus.SCHEDULED,
       code: 'ENG',
@@ -59,16 +59,13 @@ describe('DepartmentApplyHandler [US5]', () => {
     } as unknown as Department;
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);
 
-    await handler.apply(
-      {
-        changeId: 'dept-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'department',
-        operation: 'CREATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'dept-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'department',
+      operation: 'CREATE',
+    });
 
     expect(mockDepartment.status).toBe(MasterDataStatus.ACTIVE);
     expect(mockDepartmentRepo.save).toHaveBeenCalledWith(mockDepartment);
@@ -83,7 +80,7 @@ describe('DepartmentApplyHandler [US5]', () => {
     const mockChange = {
       id: 'chg-1',
       entityId: 'dept-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: EffectiveChangeStatus.SCHEDULED,
       payload: { name: 'Platform & Backend Engineering' },
@@ -91,6 +88,8 @@ describe('DepartmentApplyHandler [US5]', () => {
     } as unknown as EffectiveChangeEntity;
     const mockDepartment = {
       id: 'dept-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
       name: 'Engineering',
       updatedAt: new Date('2026-08-16T00:00:00Z'),
     } as unknown as Department;
@@ -98,16 +97,13 @@ describe('DepartmentApplyHandler [US5]', () => {
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);
 
-    await handler.apply(
-      {
-        changeId: 'chg-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'department',
-        operation: 'UPDATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'chg-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'department',
+      operation: 'UPDATE',
+    });
 
     expect(mockDepartment.name).toBe('Platform & Backend Engineering');
     expect(mockDepartmentRepo.save).toHaveBeenCalledWith(mockDepartment);
@@ -123,13 +119,15 @@ describe('DepartmentApplyHandler [US5]', () => {
     const mockChange = {
       id: 'chg-1',
       entityId: 'dept-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       companyId: 'comp-1',
       status: EffectiveChangeStatus.SCHEDULED,
       expectedUpdatedAt: new Date('2026-08-16T00:00:00Z'),
     } as unknown as EffectiveChangeEntity;
     const mockDepartment = {
       id: 'dept-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
       status: MasterDataStatus.ACTIVE,
       updatedAt: new Date('2026-08-16T00:00:00Z'),
     } as unknown as Department;
@@ -137,16 +135,13 @@ describe('DepartmentApplyHandler [US5]', () => {
     (mockChangeRepo.findOne as jest.Mock).mockResolvedValue(mockChange);
     (mockDepartmentRepo.findOne as jest.Mock).mockResolvedValue(mockDepartment);
 
-    await handler.apply(
-      {
-        changeId: 'chg-1',
-        tenantId: 'tenant-1',
-        companyId: 'comp-1',
-        entityType: 'department',
-        operation: 'DEACTIVATE',
-      },
-      mockEm as EntityManager,
-    );
+    await handler.apply({
+      changeId: 'chg-1',
+      tenantCode: 'tenant-1',
+      companyId: 'comp-1',
+      entityType: 'department',
+      operation: 'DEACTIVATE',
+    });
 
     expect(mockDepartment.status).toBe(MasterDataStatus.INACTIVE);
     expect(mockChange.status).toBe(EffectiveChangeStatus.APPLIED);

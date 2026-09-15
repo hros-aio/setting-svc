@@ -223,7 +223,7 @@ describe('EffectiveChangeConsumer', () => {
         changeId: 'change-123',
         entityType: EffectiveEntityType.DEPARTMENT,
         operation: ChangeOperation.CREATE,
-        tenantId: 'tenant-789',
+        tenantCode: 'tenant-789',
         companyId: 'company-456',
       },
     };

@@ -10,14 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  AuthGuard,
-  CompanyScopeGuard,
-  CurrentUser,
-  PermissionGuard,
-  RequirePermission,
-  TenantScopeGuard,
-} from '@new-hros/libs-apis';
+import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext } from '@new-hros/libs-core';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateGradeDto } from '../dtos/create-grade.dto';
@@ -29,7 +22,7 @@ import { GradeQueryService, GradeWithPendingChange } from '../services/grade-que
 import { GradeService } from '../services/grade.service';
 
 @Controller('grades')
-@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class GradeController {
   constructor(
     private readonly gradeService: GradeService,

@@ -16,25 +16,18 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  AuthGuard,
-  CompanyScopeGuard,
-  PermissionGuard,
-  RequirePermission,
-  TenantScopeGuard,
-} from '@new-hros/libs-apis';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { CacheService, RequestContextService } from '@new-hros/libs-core';
 import { buildIdempotencyKey } from '../../../common/utils';
-import { CompanyResponseDto, SetupStepResponseDto } from '../dto/company-response.dto';
+import { CompanyResponseDto } from '../dto/company-response.dto';
 import { CompanySetupProgressResponseDto } from '../dto/company-setup-progress-response.dto';
 import { CreateCompanyDto } from '../dto/create-company.dto';
 import { UpdateCompanyInformationDto } from '../dto/update-company-information.dto';
-import { CompanyEntity } from '../entities/company.entity';
-import { CompanyService } from '../services/company.service';
 import { CompanySetupQueryService } from '../services/company-setup-query.service';
+import { CompanyService } from '../services/company.service';
 
 @Controller('companies')
-@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard, CompanyScopeGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
@@ -51,8 +44,6 @@ export class CompanyController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<{ success: boolean; data: CompanyResponseDto }> {
     const tenantCode = RequestContextService.getTenantCode();
-    const user = RequestContextService.getUser();
-
     if (!tenantCode) {
       throw new BadRequestException('Cannot determine tenant from request context');
     }
@@ -70,10 +61,8 @@ export class CompanyController {
       }
     }
 
-    const userId = user?.userId;
-    const company = await this.companyService.createCompany(tenantCode, dto, userId);
-
-    const responseDto = this.mapToCompanyResponseDto(company);
+    const company = await this.companyService.createCompany(dto);
+    const responseDto = CompanyResponseDto.fromCompany(company);
 
     const response = {
       success: true,
@@ -98,8 +87,6 @@ export class CompanyController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<{ success: boolean; data: CompanyResponseDto }> {
     const tenantCode = RequestContextService.getTenantCode();
-    const user = RequestContextService.getUser();
-
     if (!tenantCode) {
       throw new BadRequestException('Cannot determine tenant from request context');
     }
@@ -117,9 +104,9 @@ export class CompanyController {
       }
     }
 
-    const company = await this.companyService.updateCompanyInformation(tenantCode, id, dto, user);
+    const company = await this.companyService.updateCompanyInformation(id, dto);
 
-    const responseDto = this.mapToCompanyResponseDto(company);
+    const responseDto = CompanyResponseDto.fromCompany(company);
 
     const response = {
       success: true,
@@ -138,18 +125,8 @@ export class CompanyController {
   @RequirePermission('company:read')
   async getCompanySetupProgress(
     @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<{ success: boolean; data: CompanySetupProgressResponseDto }> {
-    const tenantCode = RequestContextService.getTenantCode();
-    if (!tenantCode) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-
-    const data = await this.companySetupQueryService.getCompanySetupProgress(tenantCode, id);
-
-    return {
-      success: true,
-      data,
-    };
+  ): Promise<CompanySetupProgressResponseDto> {
+    return this.companySetupQueryService.getCompanySetupProgress(id);
   }
 
   @Put(':id/default')
@@ -158,80 +135,16 @@ export class CompanyController {
   @RequirePermission('company:update')
   async designateDefaultCompany(
     @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
-    const tenantCode = RequestContextService.getTenantCode();
-    const user = RequestContextService.getUser();
-
-    if (!tenantCode) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-
-    const company = await this.companyService.designateDefaultCompany(tenantCode, id, user);
-
-    const responseDto = this.mapToCompanyResponseDto(company);
-
-    return {
-      success: true,
-      data: responseDto,
-    };
+  ): Promise<CompanyResponseDto> {
+    const company = await this.companyService.designateDefaultCompany(id);
+    return CompanyResponseDto.fromCompany(company);
   }
 
   @Post(':id/activate')
   @HttpCode(HttpStatus.OK)
   @RequirePermission('company:activate')
-  async activateCompany(
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
-    const tenantCode = RequestContextService.getTenantCode();
-    const user = RequestContextService.getUser();
-
-    if (!tenantCode) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-
-    const company = await this.companyService.activateCompany(tenantCode, id, user);
-
-    const responseDto = this.mapToCompanyResponseDto(company);
-
-    return {
-      success: true,
-      data: responseDto,
-    };
-  }
-
-  private mapToCompanyResponseDto(company: CompanyEntity): CompanyResponseDto {
-    const setupStepsDto: SetupStepResponseDto[] = (company.setupSteps || []).map((step) => ({
-      stepType: step.stepType,
-      stepOrder: step.stepOrder,
-      status: step.status,
-      completedAt: step.completedAt,
-      completedBy: step.completedBy,
-      externalReferenceId: step.externalReferenceId,
-      metadata: step.metadata,
-    }));
-
-    return {
-      id: company.id,
-      tenantId: company.tenantId!,
-      companyCode: company.companyCode,
-      legalName: company.legalName,
-      displayName: company.displayName ?? undefined,
-      status: company.status,
-      isTemplate: company.isTemplate,
-      registrationNumber: company.registrationNumber ?? undefined,
-      taxRegistrationNumber: company.taxRegistrationNumber ?? undefined,
-      countryCode: company.countryCode ?? undefined,
-      currencyCode: company.currencyCode ?? undefined,
-      timezone: company.timezone,
-      locale: company.locale ?? undefined,
-      legalAddress: company.legalAddress ?? undefined,
-      informationCompletedAt: company.informationCompletedAt ?? undefined,
-      informationCompletedBy: company.informationCompletedBy ?? undefined,
-      activatedAt: company.activatedAt ?? undefined,
-      activatedBy: company.activatedBy ?? undefined,
-      createdAt: company.createdAt,
-      updatedAt: company.updatedAt,
-      setupSteps: setupStepsDto,
-    };
+  async activateCompany(@Param('id', new ParseUUIDPipe()) id: string): Promise<CompanyResponseDto> {
+    const company = await this.companyService.activateCompany(id);
+    return CompanyResponseDto.fromCompany(company);
   }
 }

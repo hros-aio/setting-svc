@@ -74,7 +74,7 @@ export class DepartmentService {
       // 4. Persist Department in scheduled status
       const department = await this.departmentRepository.createAndSave(
         {
-          tenantId,
+          tenantCode: tenantId,
           companyId,
           code: dto.code,
           name: dto.name,
@@ -90,11 +90,9 @@ export class DepartmentService {
 
       // 5. Complete DEPARTMENT setup step if needed
       await this.companySetupStepRepository.markStepCompleted({
-        tenantId,
         companyId,
         stepType: SetupStepType.DEPARTMENT,
         completedBy: userId,
-        entityManager: manager,
       });
 
       // 6. Write outbox event for scheduling
@@ -233,21 +231,18 @@ export class DepartmentService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'department',
-          entityId: department.id,
-          operation: ChangeOperation.UPDATE,
-          payload: updatePayload,
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: department.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'department',
+        entityId: department.id,
+        operation: ChangeOperation.UPDATE,
+        payload: updatePayload,
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: department.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -296,21 +291,18 @@ export class DepartmentService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'department',
-          entityId: department.id,
-          operation: ChangeOperation.DEACTIVATE,
-          payload: {},
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: department.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'department',
+        entityId: department.id,
+        operation: ChangeOperation.DEACTIVATE,
+        payload: {},
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: department.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -359,7 +351,7 @@ export class DepartmentService {
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new NotFoundException(`Company with ID '${companyId}' not found`);
     }

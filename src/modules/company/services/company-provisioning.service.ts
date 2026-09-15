@@ -54,9 +54,7 @@ export class CompanyProvisioningService {
       });
 
       // 2. Check if default template Company already exists for this tenant
-      const existingTemplateCompany = await this.companyRepository.findTemplateCompanyByTenantId(
-        tenantRecord.id,
-      );
+      const existingTemplateCompany = await this.companyRepository.findTemplateCompany();
 
       if (existingTemplateCompany) {
         return { success: true, reason: 'ALREADY_EXISTS', companyId: existingTemplateCompany.id };
@@ -66,8 +64,7 @@ export class CompanyProvisioningService {
       const autoCompanyCode = this.generateCompanyCode(payload.tenantCode);
 
       // 4. Create initial Company in PENDING status with is_template = true
-      const newCompany = await this.companyRepository.createAndSave({
-        tenantId: tenantRecord.id,
+      const newCompany = await this.companyRepository.create({
         companyCode: autoCompanyCode,
         legalName: payload.legalName || payload.name,
         displayName: payload.displayName || payload.name,

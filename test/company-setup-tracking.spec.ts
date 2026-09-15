@@ -5,27 +5,18 @@ import { CompanyEntity } from '../src/modules/company/entities/company.entity';
 import { CompanySetupStepRepository } from '../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../src/modules/company/repositories/company.repository';
 import { CompanySetupQueryService } from '../src/modules/company/services/company-setup-query.service';
-import { TenantEntity } from '../src/modules/tenant/entities/tenant.entity';
-import { TenantRepository } from '../src/modules/tenant/repositories/tenant.repository';
 
 describe('Company Setup Tracking (Integration / Service Verification)', () => {
   let queryService: CompanySetupQueryService;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
 
-  const tenantId = 'e0000000-0000-0000-0000-000000000001';
+  const tenantCode = 'ACME_TENANT';
   const companyId = 'c0000000-0000-0000-0000-000000000001';
-
-  const mockTenant: Partial<TenantEntity> = {
-    id: tenantId,
-    tenantCode: 'ACME_TENANT',
-    name: 'Acme Holding',
-  };
 
   const mockCompany: Partial<CompanyEntity> = {
     id: companyId,
-    tenantId,
+    tenantCode,
     companyCode: 'ACME_SG',
     legalName: 'Acme SG Pte Ltd',
     displayName: 'Acme SG',
@@ -43,7 +34,7 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
     SetupStepType.POC,
   ].map((stepType, idx) => ({
     id: `step-${idx + 1}`,
-    tenantId,
+    tenantCode,
     companyId,
     stepType,
     stepOrder: idx + 1,
@@ -54,31 +45,26 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
 
   beforeEach(() => {
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockImplementation((cId, tId) => {
-        if (cId === companyId && tId === tenantId) {
-          return Promise.resolve(mockCompany as CompanyEntity);
+      findById: jest.fn().mockImplementation((cId) => {
+        if (cId === companyId) {
+          return Promise.resolve(mockCompany as unknown as CompanyEntity);
         }
         return Promise.resolve(null);
       }),
     };
 
     mockStepRepo = {
-      findStepsByCompanyId: jest.fn().mockImplementation((cId) => {
+      findByCompanyId: jest.fn().mockImplementation((cId) => {
         if (cId === companyId) {
-          return Promise.resolve(mockSteps as CompanySetupStepEntity[]);
+          return Promise.resolve(mockSteps as unknown as CompanySetupStepEntity[]);
         }
         return Promise.resolve([]);
       }),
     };
 
-    mockTenantRepo = {
-      findByTenantCode: jest.fn().mockResolvedValue(mockTenant as TenantEntity),
-    };
-
     queryService = new CompanySetupQueryService(
       mockCompanyRepo as unknown as CompanyRepository,
       mockStepRepo as unknown as CompanySetupStepRepository,
-      mockTenantRepo as unknown as TenantRepository,
     );
   });
 
@@ -86,7 +72,6 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
     const context: RequestContext = {
       traceId: 'trace-1',
       requestId: 'req-1',
-      serviceName: 'setting-svc',
       tenantCode: 'ACME_TENANT',
       clientMetadata: {
         ip: '127.0.0.1',
@@ -95,7 +80,7 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
     };
 
     await RequestContextService.run(context, async () => {
-      const progress = await queryService.getCompanySetupProgress('ACME_TENANT', companyId);
+      const progress = await queryService.getCompanySetupProgress(companyId);
 
       expect(progress.companyId).toBe(companyId);
       expect(progress.totalSteps).toBe(8);
@@ -119,9 +104,9 @@ describe('Company Setup Tracking (Integration / Service Verification)', () => {
       completedAt: new Date(),
     })) as CompanySetupStepEntity[];
 
-    mockStepRepo.findStepsByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
+    mockStepRepo.findByCompanyId = jest.fn().mockResolvedValue(allCompletedSteps);
 
-    const validation = await queryService.validateAllStepsCompleted('ACME_TENANT', companyId);
+    const validation = await queryService.validateAllStepsCompleted(companyId);
 
     expect(validation.isEligible).toBe(true);
     expect(validation.completedSteps).toBe(8);

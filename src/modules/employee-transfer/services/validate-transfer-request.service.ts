@@ -65,11 +65,7 @@ export class ValidateTransferRequestService {
     }
 
     // 3. Validate destination company exists in tenant and is ACTIVE
-    const destinationCompany = await this.companyRepository.findByIdAndTenant(
-      dto.destinationCompanyId,
-      tenantId,
-      manager,
-    );
+    const destinationCompany = await this.companyRepository.findById(dto.destinationCompanyId);
 
     if (!destinationCompany) {
       throw new NotFoundException('Destination company not found in tenant');
@@ -109,13 +105,8 @@ export class ValidateTransferRequestService {
 
     // 6. Validate destination master data scoping and ACTIVE status (INV-005, INV-006)
     if (dto.destinationLocationId) {
-      const location = await this.locationRepository.findById(
-        tenantId,
-        dto.destinationCompanyId,
-        dto.destinationLocationId,
-        manager,
-      );
-      if (!location) {
+      const location = await this.locationRepository.findById(dto.destinationLocationId);
+      if (!location || location.companyId !== dto.destinationCompanyId) {
         throw new UnprocessableEntityException(
           'Destination location does not belong to destination company or does not exist',
         );

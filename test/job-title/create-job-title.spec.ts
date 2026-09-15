@@ -62,28 +62,27 @@ describe('JobTitleService - Create Job Title [US1]', () => {
       findById: jest.fn().mockResolvedValue({
         id: 'dept-1',
         name: 'Engineering',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as Department),
+      } as unknown as Department),
     };
 
     mockGradeRepo = {
       findById: jest.fn().mockResolvedValue({
         id: 'grade-1',
         name: 'L3',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         status: MasterDataStatus.ACTIVE,
-      } as Grade),
+      } as unknown as Grade),
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-1',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
@@ -211,11 +210,9 @@ describe('JobTitleService - Create Job Title [US1]', () => {
     expect(result.code).toBe('SWE');
     expect(result.status).toBe(MasterDataStatus.SCHEDULED);
     expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
       companyId: 'comp-1',
       stepType: SetupStepType.JOB_TITLE,
       completedBy: 'user-1',
-      entityManager: mockDataSource.manager,
     });
     expect(mockOutboxRepo.save).toHaveBeenCalled();
   });

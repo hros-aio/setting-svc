@@ -46,15 +46,14 @@ describe('CompanyProvisioningService', () => {
     };
 
     mockCompanyRepo = {
-      findTemplateCompanyByTenantId: jest.fn().mockResolvedValue(null),
-      createAndSave: jest.fn().mockResolvedValue({
+      findTemplateCompany: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({
         id: 'c-uuid-1',
-        tenantId: 't-uuid-1',
         companyCode: 'ACME_HQ',
         legalName: 'Acme Corp Inc',
         status: CompanyStatus.PENDING,
         isTemplate: true,
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepSeederService = {
@@ -89,9 +88,9 @@ describe('CompanyProvisioningService', () => {
   });
 
   it('should gracefully handle already existing template company for tenant (idempotency)', async () => {
-    mockCompanyRepo.findTemplateCompanyByTenantId = jest
+    mockCompanyRepo.findTemplateCompany = jest
       .fn()
-      .mockResolvedValue({ id: 'c-existing' } as CompanyEntity);
+      .mockResolvedValue({ id: 'c-existing' } as unknown as CompanyEntity);
 
     const result = await service.provisionCompanyOnTenantCreated(
       'evt-1',
@@ -104,7 +103,7 @@ describe('CompanyProvisioningService', () => {
     );
 
     expect(result).toEqual({ success: true, reason: 'ALREADY_EXISTS', companyId: 'c-existing' });
-    expect(mockCompanyRepo.createAndSave).not.toHaveBeenCalled();
+    expect(mockCompanyRepo.create).not.toHaveBeenCalled();
     expect(mockSetupStepSeederService.seedMandatorySteps).not.toHaveBeenCalled();
   });
 
@@ -125,9 +124,8 @@ describe('CompanyProvisioningService', () => {
 
     expect(result).toEqual({ success: true, companyId: 'c-uuid-1' });
     expect(mockTenantRepo.upsertTenant).toHaveBeenCalled();
-    expect(mockCompanyRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockCompanyRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 't-uuid-1',
         companyCode: 'ACME_HQ',
         legalName: 'Acme Corp Inc',
         status: CompanyStatus.PENDING,

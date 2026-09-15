@@ -1,12 +1,11 @@
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Location, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { Location } from '@new-hros/libs-sql';
 import { LocationRepository } from '../repositories/location.repository';
 import { LocationService } from './location.service';
 
@@ -15,54 +14,48 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
   let mockLocationRepo: { [K in keyof LocationRepository]?: jest.Mock };
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
-  let mockDataSource: { manager: { getRepository: jest.Mock } };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['location:create'],
-  };
+  let mockOutboxEventRepo: { create: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['location:create'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-A' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventRepo = {
+      create: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockLocationRepo = {
       countAllLocationsByCompany: jest.fn().mockResolvedValue(0),
       hasActiveOrScheduledHeadquarter: jest.fn().mockResolvedValue(false),
-      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'loc-1', ...data }) as Location),
+      create: jest
+        .fn()
+        .mockImplementation(
+          (data) => Promise.resolve({ id: 'loc-1', ...data }) as Promise<Location>,
+        ),
     };
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn().mockResolvedValue({
+      findById: jest.fn().mockResolvedValue({
         id: 'comp-A',
-        tenantId: 'tenant-1',
         timezone: 'UTC',
-      } as CompanyEntity),
+      } as unknown as CompanyEntity),
     };
 
     mockSetupStepRepo = {
       markStepCompleted: jest.fn().mockResolvedValue({} as never),
-    };
-
-    mockDataSource = {
-      manager: {
-        getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-      },
     };
 
     mockTxService = {
@@ -70,8 +63,8 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
     };
 
     service = new LocationService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxEventRepo as unknown as OutboxEventRepository,
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
@@ -91,18 +84,15 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
         name: 'Headquarters',
         effectiveAt: '2099-01-01T00:00:00Z',
       },
-      mockAuthContext,
+      'comp-A',
     );
 
     expect(result).toBeDefined();
-    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('tenant-1', 'comp-A');
-    expect(mockLocationRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('comp-A');
+    expect(mockLocationRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant-1',
-        companyId: 'comp-A',
         code: 'LO00001',
       }),
-      expect.anything(),
     );
   });
 
@@ -112,11 +102,10 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
       .mockReturnValue({ companyId: 'comp-B' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
-    mockCompanyRepo.findByIdAndTenant!.mockResolvedValue({
+    mockCompanyRepo.findById!.mockResolvedValue({
       id: 'comp-B',
-      tenantId: 'tenant-1',
       timezone: 'UTC',
-    } as CompanyEntity);
+    } as unknown as CompanyEntity);
     mockLocationRepo.countAllLocationsByCompany!.mockResolvedValue(0); // Company B has 0
 
     const result = await service.create(
@@ -124,18 +113,15 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
         name: 'Company B Branch',
         effectiveAt: '2099-01-01T00:00:00Z',
       },
-      mockAuthContext,
+      'comp-B',
     );
 
     expect(result).toBeDefined();
-    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('tenant-1', 'comp-B');
-    expect(mockLocationRepo.createAndSave).toHaveBeenCalledWith(
+    expect(mockLocationRepo.countAllLocationsByCompany).toHaveBeenCalledWith('comp-B');
+    expect(mockLocationRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant-1',
-        companyId: 'comp-B',
         code: 'LO00001',
       }),
-      expect.anything(),
     );
   });
 });

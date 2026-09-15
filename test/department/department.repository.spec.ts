@@ -46,7 +46,7 @@ describe('DepartmentRepository', () => {
     const result = await repository.findById('tenant-1', 'comp-1', 'dept-1');
     expect(result).toBe(mockDept);
     expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
-      where: { id: 'dept-1', tenantId: 'tenant-1', companyId: 'comp-1' },
+      where: { id: 'dept-1', tenantCode: 'tenant-1', companyId: 'comp-1' },
       relations: ['parentDepartment'],
     });
   });

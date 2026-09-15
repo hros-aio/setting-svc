@@ -65,7 +65,7 @@ export class GradeService {
       // 3. Persist Grade in scheduled status
       const grade = await this.gradeRepository.createAndSave(
         {
-          tenantId,
+          tenantCode: tenantId,
           companyId,
           code: dto.code,
           name: dto.name,
@@ -81,11 +81,9 @@ export class GradeService {
 
       // 4. Complete GRADE setup step (Step 4)
       await this.companySetupStepRepository.markStepCompleted({
-        tenantId,
         companyId,
         stepType: SetupStepType.GRADE,
         completedBy: userId,
-        entityManager: manager,
       });
 
       // 5. Write outbox event for scheduling
@@ -150,21 +148,18 @@ export class GradeService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'grade',
-          entityId: grade.id,
-          operation: ChangeOperation.UPDATE,
-          payload: updatePayload,
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: grade.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'grade',
+        entityId: grade.id,
+        operation: ChangeOperation.UPDATE,
+        payload: updatePayload,
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: grade.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -213,21 +208,18 @@ export class GradeService {
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
 
-      const savedChange = await this.effectiveChangeRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          entityType: 'grade',
-          entityId: grade.id,
-          operation: ChangeOperation.DEACTIVATE,
-          payload: {},
-          status: EffectiveChangeStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          expectedUpdatedAt: grade.updatedAt,
-          createdBy: userId,
-        },
-        manager,
-      );
+      const savedChange = await this.effectiveChangeRepository.create({
+        tenantCode: tenantId,
+        companyId,
+        entityType: 'grade',
+        entityId: grade.id,
+        operation: ChangeOperation.DEACTIVATE,
+        payload: {},
+        status: EffectiveChangeStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        expectedUpdatedAt: grade.updatedAt,
+        createdBy: userId,
+      });
 
       // Write outbox event
       const outboxRepo = manager.getRepository(OutboxEventEntity);
@@ -276,7 +268,7 @@ export class GradeService {
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
+    const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new NotFoundException(`Company with ID '${companyId}' not found`);
     }

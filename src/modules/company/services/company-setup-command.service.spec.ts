@@ -46,12 +46,11 @@ describe('CompanySetupCommandService', () => {
 
       expect(result).toEqual(completedStep);
       expect(mockSetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-        tenantId,
         companyId,
         stepType: SetupStepType.LOCATION,
         completedBy: 'user-1',
         metadata: { source: 'unit-test' },
-        entityManager: undefined,
+        externalReferenceId: undefined,
       });
     });
 

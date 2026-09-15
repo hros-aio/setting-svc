@@ -35,7 +35,7 @@ describe('ValidateTransferRequestService', () => {
 
   beforeEach(() => {
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn(),
+      findById: jest.fn(),
     } as unknown as jest.Mocked<CompanyRepository>;
 
     mockEmployeeRefRepo = {
@@ -97,7 +97,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw NotFoundException if destination company does not exist in tenant', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue(null);
+    mockCompanyRepo.findById.mockResolvedValue(null);
 
     await expect(
       service.validate('tenant-1', 'comp-1', 'emp-1', {
@@ -110,7 +110,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw BadRequestException if destination company is not ACTIVE', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.PENDING,
@@ -127,7 +127,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw NotFoundException if employee reference not found', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.ACTIVE,
@@ -145,7 +145,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw BadRequestException if employee belongs to another company', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.ACTIVE,
@@ -167,7 +167,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw ConflictException if an active pending transfer already exists', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.ACTIVE,
@@ -192,7 +192,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should throw UnprocessableEntityException if destination location is not active', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.ACTIVE,
@@ -220,7 +220,7 @@ describe('ValidateTransferRequestService', () => {
   });
 
   it('should return validated entities for a valid transfer request', async () => {
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'comp-2',
       tenantId: 'tenant-1',
       status: CompanyStatus.ACTIVE,
@@ -233,6 +233,7 @@ describe('ValidateTransferRequestService', () => {
     mockTransferRepo.findPendingByEmployeeId.mockResolvedValue(null);
     mockLocationRepo.findById.mockResolvedValue({
       id: 'loc-1',
+      companyId: 'comp-2',
       status: MasterDataStatus.ACTIVE,
     } as unknown as Location);
     mockDeptRepo.findById.mockResolvedValue({

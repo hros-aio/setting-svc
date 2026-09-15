@@ -1,7 +1,5 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { isUUID } from 'class-validator';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { SetupStepStatus, SetupStepType } from '../../../enums';
-import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import {
   CompanySetupProgressResponseDto,
   SetupStepDetailDto,
@@ -21,32 +19,11 @@ export class CompanySetupQueryService {
   constructor(
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
-    private readonly tenantRepository: TenantRepository,
   ) {}
 
-  private async resolveTenantId(tenantCodeOrId: string): Promise<string> {
-    if (isUUID(tenantCodeOrId)) {
-      return tenantCodeOrId;
-    }
-    const tenant = await this.tenantRepository.findByTenantCode(tenantCodeOrId);
-    if (!tenant) {
-      throw new NotFoundException(`Tenant not found for tenantCode: ${tenantCodeOrId}`);
-    }
-    return tenant.id;
-  }
-
-  async getCompanySetupProgress(
-    tenantCodeOrId: string,
-    companyId: string,
-  ): Promise<CompanySetupProgressResponseDto> {
-    const tenantId = await this.resolveTenantId(tenantCodeOrId);
-
-    const company = await this.companyRepository.findByIdAndTenant(companyId, tenantId);
-    if (!company) {
-      throw new NotFoundException(`Company with ID '${companyId}' not found for this tenant`);
-    }
-
-    const steps = await this.companySetupStepRepository.findStepsByCompanyId(companyId);
+  async getCompanySetupProgress(companyId: string): Promise<CompanySetupProgressResponseDto> {
+    const company = await this.companyRepository.findById(companyId, { required: true });
+    const steps = await this.companySetupStepRepository.findByCompanyId(companyId);
 
     if (steps.length === 0) {
       throw new UnprocessableEntityException(
@@ -82,11 +59,8 @@ export class CompanySetupQueryService {
     };
   }
 
-  async validateAllStepsCompleted(
-    tenantCodeOrId: string,
-    companyId: string,
-  ): Promise<SetupValidationResult> {
-    const progress = await this.getCompanySetupProgress(tenantCodeOrId, companyId);
+  async validateAllStepsCompleted(companyId: string): Promise<SetupValidationResult> {
+    const progress = await this.getCompanySetupProgress(companyId);
     return {
       isEligible: progress.isEligibleForActivation,
       totalSteps: progress.totalSteps,

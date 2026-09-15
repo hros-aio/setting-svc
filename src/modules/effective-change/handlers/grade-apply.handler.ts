@@ -1,26 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
-import { Grade } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../entities/effective-change.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { Grade, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager } from 'typeorm';
 import {
   AggregateType,
-  GradeEventType,
   EffectiveChangeStatus,
+  GradeEventType,
   MasterDataStatus,
   OutboxStatus,
 } from '../../../enums';
+import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
 @Injectable()
 export class GradeApplyHandler {
   private readonly logger = new Logger(GradeApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
-
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const op = command.operation.toUpperCase();
 
     if (op === 'CREATE') {
@@ -39,7 +38,7 @@ export class GradeApplyHandler {
     const grade = await gradeRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantCode: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -65,7 +64,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_CREATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantId,
+        tenantId: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         name: grade.name,
@@ -109,7 +108,7 @@ export class GradeApplyHandler {
     const grade = await gradeRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -143,7 +142,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_UPDATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantId,
+        tenantId: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         name: grade.name,
@@ -187,7 +186,7 @@ export class GradeApplyHandler {
     const grade = await gradeRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -214,7 +213,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_DEACTIVATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantId,
+        tenantId: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         status: grade.status,

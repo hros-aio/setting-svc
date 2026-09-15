@@ -80,7 +80,7 @@ describe('PocService', () => {
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     mockCompanyRepo = {
-      findByIdAndTenant: jest.fn(),
+      findById: jest.fn(),
     } as unknown as jest.Mocked<CompanyRepository>;
 
     mockCompanySetupStepRepo = {
@@ -89,7 +89,7 @@ describe('PocService', () => {
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn(),
-      createAndSave: jest.fn(),
+      create: jest.fn(),
     } as unknown as jest.Mocked<EffectiveChangeRepository>;
 
     service = new PocService(
@@ -102,11 +102,11 @@ describe('PocService', () => {
       mockEffectiveChangeRepo,
     );
 
-    mockCompanyRepo.findByIdAndTenant.mockResolvedValue({
+    mockCompanyRepo.findById.mockResolvedValue({
       id: 'company-123',
-      tenantId: 'tenant-123',
+      tenantCode: 'tenant-123',
       timezone: 'UTC',
-    } as CompanyEntity);
+    } as unknown as CompanyEntity);
   });
 
   describe('create', () => {
@@ -152,11 +152,9 @@ describe('PocService', () => {
       );
 
       expect(mockCompanySetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
-        tenantId: 'tenant-123',
         companyId: 'company-123',
         stepType: SetupStepType.POC,
         completedBy: 'user-admin',
-        entityManager: mockEntityManager,
       });
 
       expect(mockOutboxRepo.save).toHaveBeenCalled();
@@ -234,20 +232,19 @@ describe('PocService', () => {
         entityId: 'poc-1',
         operation: ChangeOperation.UPDATE,
         status: EffectiveChangeStatus.SCHEDULED,
-      } as EffectiveChangeEntity;
+      } as unknown as EffectiveChangeEntity;
 
-      mockEffectiveChangeRepo.createAndSave.mockResolvedValue(savedChange);
+      mockEffectiveChangeRepo.create.mockResolvedValue(savedChange);
 
       const result = await service.replace('company-123', 'poc-1', replaceDto, authContext);
 
-      expect(mockEffectiveChangeRepo.createAndSave).toHaveBeenCalledWith(
+      expect(mockEffectiveChangeRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           entityType: 'poc',
           entityId: 'poc-1',
           operation: ChangeOperation.UPDATE,
           status: EffectiveChangeStatus.SCHEDULED,
         }),
-        mockEntityManager,
       );
       expect(result).toEqual(savedChange);
     });
@@ -298,17 +295,16 @@ describe('PocService', () => {
         id: 'change-deact',
         operation: ChangeOperation.DEACTIVATE,
         status: EffectiveChangeStatus.SCHEDULED,
-      } as EffectiveChangeEntity;
+      } as unknown as EffectiveChangeEntity;
 
-      mockEffectiveChangeRepo.createAndSave.mockResolvedValue(savedChange);
+      mockEffectiveChangeRepo.create.mockResolvedValue(savedChange);
 
       const result = await service.deactivate('company-123', 'poc-1', deactivateDto, authContext);
 
-      expect(mockEffectiveChangeRepo.createAndSave).toHaveBeenCalledWith(
+      expect(mockEffectiveChangeRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           operation: ChangeOperation.DEACTIVATE,
         }),
-        mockEntityManager,
       );
       expect(result).toEqual(savedChange);
     });

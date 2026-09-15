@@ -30,7 +30,7 @@ describe('EffectiveChangeConsumer', () => {
       timestamp: new Date().toISOString(),
       payload: {
         changeId: 'loc-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         entityType: 'location',
         operation: 'CREATE',
@@ -53,7 +53,7 @@ describe('EffectiveChangeConsumer', () => {
       timestamp: new Date().toISOString(),
       payload: {
         changeId: 'loc-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'comp-1',
         entityType: 'location',
         operation: 'CREATE',

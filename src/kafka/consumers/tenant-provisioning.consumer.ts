@@ -44,7 +44,6 @@ export class TenantProvisioningConsumer {
     const context: RequestContext = {
       traceId: envelope.correlationId || envelope.id,
       requestId: envelope.id,
-      serviceName: 'hrms-setting-service',
       tenantCode: payload.tenantCode,
       clientMetadata: {
         ip: '127.0.0.1',

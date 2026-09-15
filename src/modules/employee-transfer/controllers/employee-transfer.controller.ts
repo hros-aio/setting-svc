@@ -10,13 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import {
-  AuthGuard,
-  CurrentUser,
-  PermissionGuard,
-  RequirePermission,
-  TenantScopeGuard,
-} from '@new-hros/libs-apis';
+import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
 import { InitiateEmployeeTransferDto } from '../dtos/initiate-employee-transfer.dto';
 import {
@@ -31,7 +25,7 @@ import { EmployeeTransferService } from '../services/employee-transfer.service';
 @ApiTags('Employee Transfers')
 @ApiBearerAuth()
 @Controller('employee-transfers')
-@UseGuards(AuthGuard, PermissionGuard, TenantScopeGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class EmployeeTransferController {
   constructor(
     private readonly employeeTransferService: EmployeeTransferService,

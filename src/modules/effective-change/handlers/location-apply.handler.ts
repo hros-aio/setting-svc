@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
-import { Location } from '@new-hros/libs-sql';
-import { EffectiveChangeEntity } from '../entities/effective-change.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { Location, TransactionService } from '@new-hros/libs-sql';
+import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
@@ -10,10 +8,12 @@ import {
   MasterDataStatus,
   OutboxStatus,
 } from '../../../enums';
+import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 
 export interface EffectiveExecuteCommand {
   changeId: string;
-  tenantId: string;
+  tenantCode: string;
   companyId: string;
   entityType: string;
   operation: string;
@@ -23,11 +23,10 @@ export interface EffectiveExecuteCommand {
 export class LocationApplyHandler {
   private readonly logger = new Logger(LocationApplyHandler.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly transactionService: TransactionService) {}
 
-  async apply(command: EffectiveExecuteCommand, manager?: EntityManager): Promise<void> {
-    const em = manager || this.dataSource.manager;
-
+  async apply(command: EffectiveExecuteCommand): Promise<void> {
+    const em = this.transactionService.getManager();
     const op = command.operation.toUpperCase();
 
     if (op === 'CREATE') {
@@ -48,7 +47,7 @@ export class LocationApplyHandler {
     const location = await locationRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantId,
+        tenantCode: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -74,7 +73,7 @@ export class LocationApplyHandler {
       eventType: LocationEventType.LOCATION_CREATED,
       payload: {
         locationId: location.id,
-        tenantId: location.tenantId,
+        tenantCode: location.tenantCode,
         companyId: location.companyId,
         code: location.code,
         name: location.name,
@@ -119,7 +118,7 @@ export class LocationApplyHandler {
     const location = await locationRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -143,7 +142,7 @@ export class LocationApplyHandler {
       eventType: LocationEventType.LOCATION_UPDATED,
       payload: {
         locationId: location.id,
-        tenantId: location.tenantId,
+        tenantId: location.tenantCode,
         companyId: location.companyId,
         code: location.code,
         name: location.name,
@@ -188,7 +187,7 @@ export class LocationApplyHandler {
     const location = await locationRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantId,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -215,7 +214,7 @@ export class LocationApplyHandler {
       eventType: LocationEventType.LOCATION_DEACTIVATED,
       payload: {
         locationId: location.id,
-        tenantId: location.tenantId,
+        tenantId: location.tenantCode,
         companyId: location.companyId,
         code: location.code,
         status: location.status,
