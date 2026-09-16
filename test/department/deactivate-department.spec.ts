@@ -11,7 +11,6 @@ import { DepartmentRepository } from '../../src/modules/department/repositories/
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
-import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
@@ -25,7 +24,6 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
   let mockDepartmentRepo: jest.Mocked<Partial<DepartmentRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockEffectiveChangeRepo: jest.Mocked<Partial<EffectiveChangeRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
   let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
@@ -46,7 +44,14 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
-    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({ userId: 'user-1' } as any);
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['department:deactivate'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -78,16 +83,11 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
       ),
     };
 
-    mockDataSource = {
-      manager: {} as any,
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb) => cb()),
     };
 
     service = new DepartmentService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
       mockDepartmentRepo as unknown as DepartmentRepository,
       mockCompanyRepo as unknown as CompanyRepository,

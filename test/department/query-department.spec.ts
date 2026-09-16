@@ -5,7 +5,6 @@ import { DepartmentRepository } from '../../src/modules/department/repositories/
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
-import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
 import { Department } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
@@ -17,7 +16,14 @@ describe('DepartmentService - Query Departments [US2]', () => {
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
-    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({ userId: 'user-1' } as any);
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['department:read'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -31,7 +37,6 @@ describe('DepartmentService - Query Departments [US2]', () => {
     };
 
     service = new DepartmentService(
-      {} as unknown as DataSource,
       {} as unknown as TransactionService,
       mockDepartmentRepo as unknown as DepartmentRepository,
       {} as unknown as CompanyRepository,

@@ -25,7 +25,9 @@ describe('DepartmentRepository', () => {
     };
 
     mockManager = {
-      getRepository: jest.fn().mockReturnValue(mockTypeOrmRepo as unknown as Repository<Department>),
+      getRepository: jest
+        .fn()
+        .mockReturnValue(mockTypeOrmRepo as unknown as Repository<Department>),
     };
 
     mockTxService = {
@@ -56,7 +58,12 @@ describe('DepartmentRepository', () => {
 
   it('should find active departments with pagination', async () => {
     const mockDepts = [
-      { id: 'dept-1', name: 'Engineering', status: MasterDataStatus.ACTIVE, tenantCode: 'tenant-1' },
+      {
+        id: 'dept-1',
+        name: 'Engineering',
+        status: MasterDataStatus.ACTIVE,
+        tenantCode: 'tenant-1',
+      },
     ] as Department[];
     (mockTypeOrmRepo.findAndCount as jest.Mock).mockResolvedValue([mockDepts, 1]);
 

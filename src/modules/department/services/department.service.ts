@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Department, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
-import { DataSource } from 'typeorm';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -21,6 +19,7 @@ import {
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
