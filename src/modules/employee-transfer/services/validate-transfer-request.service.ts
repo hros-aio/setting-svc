@@ -117,12 +117,7 @@ export class ValidateTransferRequestService {
     }
 
     if (dto.destinationDepartmentId) {
-      const department = await this.departmentRepository.findById(
-        tenantId,
-        dto.destinationCompanyId,
-        dto.destinationDepartmentId,
-        manager,
-      );
+      const department = await this.departmentRepository.findById(dto.destinationDepartmentId);
       if (!department) {
         throw new UnprocessableEntityException(
           'Destination department does not belong to destination company or does not exist',

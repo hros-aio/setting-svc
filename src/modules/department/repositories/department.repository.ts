@@ -1,147 +1,53 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
-import { Department } from '@new-hros/libs-sql';
+import { Injectable } from '@nestjs/common';
 import {
-  DepartmentTreeNode,
-  IDepartmentRepository,
+  BaseRepository,
+  Department,
   PaginatedResult,
   PaginationOptions,
-} from './department.repository.interface';
+  TransactionService,
+} from '@new-hros/libs-sql';
+import { In } from 'typeorm';
 import { MasterDataStatus } from '../../../enums';
+import { DepartmentTreeNode } from './department.repository.interface';
 
 @Injectable()
-export class DepartmentRepository implements IDepartmentRepository {
-  constructor(
-    @InjectRepository(Department)
-    private readonly repo: Repository<Department>,
-    private readonly dataSource: DataSource,
-  ) {}
-
-  private getRepo(manager?: EntityManager): Repository<Department> {
-    return manager ? manager.getRepository(Department) : this.repo;
+export class DepartmentRepository extends BaseRepository<Department> {
+  constructor(transactionService: TransactionService) {
+    super(Department, transactionService);
   }
 
-  async findById(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    manager?: EntityManager,
-  ): Promise<Department | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        id,
-        tenantCode: tenantId,
-        companyId,
-      },
+  async findByIdWithParent(id: string): Promise<Department | null> {
+    return this.findById(id, {
       relations: ['parentDepartment'],
     });
   }
 
-  async findByCode(
-    tenantId: string,
-    companyId: string,
-    code: string,
-    manager?: EntityManager,
-  ): Promise<Department | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        tenantCode: tenantId,
-        companyId,
-        code,
-      },
+  async findByCode(companyId: string, code: string): Promise<Department | null> {
+    return this.findOne({
+      companyId,
+      code,
     });
   }
 
   async findActiveDepartments(
-    tenantId: string,
     companyId: string,
-    pagination?: PaginationOptions,
-    manager?: EntityManager,
+    pagination: PaginationOptions,
   ): Promise<PaginatedResult<Department>> {
-    const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
-    const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
-    const skip = (page - 1) * limit;
-
-    const queryBuilder = this.getRepo(manager)
-      .createQueryBuilder('dept')
-      .leftJoinAndSelect('dept.parentDepartment', 'parent')
-      .where('dept.tenant_code = :tenantId', { tenantId })
-      .andWhere('dept.company_id = :companyId', { companyId })
-      .andWhere('dept.status = :status', { status: MasterDataStatus.ACTIVE });
-
-    if (pagination?.search) {
-      queryBuilder.andWhere('(dept.name ILIKE :search OR dept.code ILIKE :search)', {
-        search: `%${pagination.search}%`,
-      });
-    }
-
-    queryBuilder.orderBy('dept.name', 'ASC').skip(skip).take(limit);
-
-    const [data, total] = await queryBuilder.getManyAndCount();
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
-    };
-  }
-
-  async findAllDepartments(
-    tenantId: string,
-    companyId: string,
-    pagination?: PaginationOptions,
-    manager?: EntityManager,
-  ): Promise<PaginatedResult<Department>> {
-    const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
-    const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
-    const skip = (page - 1) * limit;
-
-    const queryBuilder = this.getRepo(manager)
-      .createQueryBuilder('dept')
-      .leftJoinAndSelect('dept.parentDepartment', 'parent')
-      .where('dept.tenant_code = :tenantId', { tenantId })
-      .andWhere('dept.company_id = :companyId', { companyId });
-
-    if (pagination?.search) {
-      queryBuilder.andWhere('(dept.name ILIKE :search OR dept.code ILIKE :search)', {
-        search: `%${pagination.search}%`,
-      });
-    }
-
-    queryBuilder.orderBy('dept.created_at', 'DESC').skip(skip).take(limit);
-
-    const [data, total] = await queryBuilder.getManyAndCount();
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
-    };
-  }
-
-  async findActiveDepartmentTree(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<DepartmentTreeNode[]> {
-    const allActive = await this.getRepo(manager).find({
-      where: {
-        tenantCode: tenantId,
+    return this.find(
+      {
         companyId,
         status: MasterDataStatus.ACTIVE,
       },
-      order: {
-        name: 'ASC',
+      {
+        pagination,
       },
+    );
+  }
+
+  async findActiveDepartmentTree(companyId: string): Promise<DepartmentTreeNode[]> {
+    const allActive = await this.find({
+      companyId,
+      status: MasterDataStatus.ACTIVE,
     });
 
     const nodeMap = new Map<string, DepartmentTreeNode>();
@@ -163,50 +69,32 @@ export class DepartmentRepository implements IDepartmentRepository {
     return roots;
   }
 
-  async hasActiveOrScheduled(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<boolean> {
-    const count = await this.getRepo(manager)
-      .createQueryBuilder('dept')
-      .where('dept.tenant_code = :tenantId', { tenantId })
-      .andWhere('dept.company_id = :companyId', { companyId })
-      .andWhere('dept.status IN (:...statuses)', {
-        statuses: [MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED],
-      })
-      .getCount();
-
-    return count > 0;
+  async hasActiveOrScheduled(companyId: string): Promise<boolean> {
+    return this.exists({
+      where: {
+        companyId,
+        status: In([MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED]),
+      },
+    });
   }
 
-  async countAllDepartmentsByCompany(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<number> {
-    return this.getRepo(manager).count({
+  async countAllDepartmentsByCompany(companyId: string): Promise<number> {
+    return this.repository.count({
       where: {
-        tenantCode: tenantId,
+        tenantCode: this.tenantCode,
         companyId,
       },
     });
   }
 
-  async findAncestorChain(
-    tenantId: string,
-    companyId: string,
-    parentDepartmentId: string,
-    maxDepth: number = 50,
-    manager?: EntityManager,
-  ): Promise<string[]> {
+  async findAncestorChain(parentDepartmentId: string, maxDepth: number = 50): Promise<string[]> {
     const ancestors: string[] = [];
-    let currentId: string | undefined | null = parentDepartmentId;
+    let currentId: string = parentDepartmentId;
     let depth = 0;
 
     while (currentId && depth < maxDepth) {
       ancestors.push(currentId);
-      const parent = await this.findById(tenantId, companyId, currentId, manager);
+      const parent = await this.findById(currentId);
       if (!parent || !parent.parentDepartmentId) {
         break;
       }
@@ -221,61 +109,13 @@ export class DepartmentRepository implements IDepartmentRepository {
     return ancestors;
   }
 
-  async createAndSave(
-    departmentData: Partial<Department>,
-    manager?: EntityManager,
-  ): Promise<Department> {
-    const repo = this.getRepo(manager);
-    const department = repo.create(departmentData);
-    return repo.save(department);
-  }
-
-  async updateStatus(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    status: MasterDataStatus,
-    userId?: string,
-    manager?: EntityManager,
-  ): Promise<Department> {
-    const repo = this.getRepo(manager);
-    const department = await this.findById(tenantId, companyId, id, manager);
-    if (!department) {
-      throw new NotFoundException(`Department with ID '${id}' not found`);
-    }
-
+  async updateStatus(id: string, status: MasterDataStatus, userId?: string): Promise<Department> {
+    const department = new Department();
     department.status = status;
     if (userId) {
       department.updatedBy = userId;
     }
 
-    return repo.save(department);
-  }
-
-  async updateFields(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    fields: Partial<Department>,
-    userId?: string,
-    manager?: EntityManager,
-  ): Promise<Department> {
-    const repo = this.getRepo(manager);
-    const department = await this.findById(tenantId, companyId, id, manager);
-    if (!department) {
-      throw new NotFoundException(`Department with ID '${id}' not found`);
-    }
-
-    Object.assign(department, fields);
-    if (userId) {
-      department.updatedBy = userId;
-    }
-
-    return repo.save(department);
-  }
-
-  async save(department: Department, manager?: EntityManager): Promise<Department> {
-    const repo = this.getRepo(manager);
-    return repo.save(department);
+    return this.update(id, department);
   }
 }
