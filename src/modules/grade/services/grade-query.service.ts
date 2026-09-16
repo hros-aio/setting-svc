@@ -1,11 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Grade, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeStatus } from '../../../enums';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { QueryGradeDto } from '../dtos/query-grade.dto';
-import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../repositories/grade.repository';
-import { PaginatedResult } from '../repositories/grade.repository.interface';
 
 export interface GradeWithPendingChange extends Grade {
   pendingChange?: {
@@ -26,33 +25,29 @@ export class GradeQueryService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async find(
-    query?: QueryGradeDto,
-    authContext?: AuthContext | null,
-  ): Promise<PaginatedResult<Grade>> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
+  async find(companyId: string, query?: QueryGradeDto): Promise<PaginatedResult<Grade>> {
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;
     const limit = query?.limit && query.limit > 0 ? Math.min(Number(query.limit), 100) : 20;
 
-    return this.gradeRepository.find(tenantId, companyId, {
-      page,
-      limit,
-      search: query?.search,
-      status: query?.status,
-    });
+    return this.gradeRepository.findGrades(
+      companyId,
+      { page, limit },
+      query?.search,
+      query?.status,
+    );
   }
 
-  async findById(id: string, authContext?: AuthContext | null): Promise<GradeWithPendingChange> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
-    const grade = await this.gradeRepository.findById(tenantId, companyId, id);
+  async findById(id: string, companyId?: string): Promise<GradeWithPendingChange> {
+    const grade = await this.gradeRepository.findById(id);
     if (!grade) {
       throw new NotFoundException(`Grade with ID '${id}' not found`);
     }
 
+    const targetCompanyId =
+      companyId || RequestContextService.current()?.companyId || grade.companyId;
+
     const pendingChange = await this.effectiveChangeRepository.findPendingChange(
-      companyId,
+      targetCompanyId,
       'grade',
       id,
     );
@@ -71,22 +66,5 @@ export class GradeQueryService {
     };
 
     return result;
-  }
-
-  private resolveTenantAndCompany(authContext?: AuthContext | null): {
-    tenantId: string;
-    companyId: string;
-  } {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-    if (!companyId) {
-      throw new BadRequestException('Cannot determine company from request context');
-    }
-
-    return { tenantId, companyId };
   }
 }

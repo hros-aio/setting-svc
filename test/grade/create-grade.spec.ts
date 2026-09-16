@@ -1,12 +1,17 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { GradeService } from '../../src/modules/grade/services/grade.service';
-import { MasterDataStatus, SetupStepType } from '../../src/enums';
+import {
+  AggregateType,
+  EffectiveChangeEventType,
+  MasterDataStatus,
+  SetupStepType,
+} from '../../src/enums';
 import { GradeRepository } from '../../src/modules/grade/repositories/grade.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { Grade } from '@new-hros/libs-sql';
@@ -18,21 +23,19 @@ describe('GradeService - Create Grade [US1]', () => {
   let mockGradeRepo: jest.Mocked<Partial<GradeRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['grade:create'],
-  };
+  let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['grade:create'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -40,14 +43,13 @@ describe('GradeService - Create Grade [US1]', () => {
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
     };
 
     mockGradeRepo = {
       findByCode: jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
-      createAndSave: jest.fn().mockImplementation((data) => ({ id: 'grade-1', ...data }) as Grade),
+      create: jest.fn().mockImplementation(async (data) => ({ id: 'grade-1', ...data }) as Grade),
     };
 
     mockCompanyRepo = {
@@ -61,27 +63,17 @@ describe('GradeService - Create Grade [US1]', () => {
       markStepCompleted: jest.fn().mockResolvedValue({} as CompanySetupStepEntity),
     };
 
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb) => cb()),
     };
 
     service = new GradeService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
       mockGradeRepo as unknown as GradeRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
@@ -98,7 +90,7 @@ describe('GradeService - Create Grade [US1]', () => {
           name: 'Senior Software Engineer',
           effectiveAt: pastDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -116,7 +108,7 @@ describe('GradeService - Create Grade [US1]', () => {
           name: 'Senior Software Engineer',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -132,7 +124,7 @@ describe('GradeService - Create Grade [US1]', () => {
         rankOrder: 3,
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('grade-1');
@@ -143,6 +135,11 @@ describe('GradeService - Create Grade [US1]', () => {
       stepType: SetupStepType.GRADE,
       completedBy: 'user-1',
     });
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aggregateType: AggregateType.GRADE,
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+      }),
+    );
   });
 });

@@ -5,9 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Grade, TransactionService } from '@new-hros/libs-sql';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -18,15 +17,14 @@ import {
   OutboxStatus,
   SetupStepType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { CreateGradeDto } from '../dtos/create-grade.dto';
 import { DeactivateGradeDto } from '../dtos/query-grade.dto';
 import { UpdateGradeDto } from '../dtos/update-grade.dto';
-import { Grade } from '@new-hros/libs-sql';
 import { GradeRepository } from '../repositories/grade.repository';
 
 @Injectable()
@@ -34,50 +32,39 @@ export class GradeService {
   private readonly logger = new Logger(GradeService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
     private readonly gradeRepository: GradeRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
+    private readonly outboxEventRepository: OutboxEventRepository,
   ) {}
 
-  async create(dto: CreateGradeDto, authContext?: AuthContext | null): Promise<Grade> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+  async create(dto: CreateGradeDto, companyId: string): Promise<Grade> {
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Validate uniqueness of grade code within company
-    const existingGrade = await this.gradeRepository.findByCode(tenantId, companyId, dto.code);
+    const existingGrade = await this.gradeRepository.findByCode(companyId, dto.code);
     if (existingGrade) {
       throw new ConflictException(`Grade code '${dto.code}' already exists in this company`);
     }
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       // 3. Persist Grade in scheduled status
-      const grade = await this.gradeRepository.createAndSave(
-        {
-          tenantCode: tenantId,
-          companyId,
-          code: dto.code,
-          name: dto.name,
-          description: dto.description,
-          rankOrder: dto.rankOrder,
-          status: MasterDataStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        manager,
-      );
+      const grade = await this.gradeRepository.create({
+        code: dto.code,
+        name: dto.name,
+        description: dto.description,
+        rankOrder: dto.rankOrder,
+        status: MasterDataStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
       // 4. Complete GRADE setup step (Step 4)
       await this.companySetupStepRepository.markStepCompleted({
@@ -87,8 +74,7 @@ export class GradeService {
       });
 
       // 5. Write outbox event for scheduling
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.GRADE,
         aggregateId: grade.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -98,12 +84,11 @@ export class GradeService {
           operation: 'CREATE',
           effectiveAt: grade.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: grade.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return grade;
     });
@@ -112,27 +97,23 @@ export class GradeService {
   async scheduleUpdate(
     id: string,
     dto: UpdateGradeDto,
-    authContext?: AuthContext | null,
+    companyId: string,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target grade is active
-    const grade = await this.verifyActiveGrade(tenantId, companyId, id, 'updates');
+    const grade = await this.verifyActiveGrade(id, 'updates');
 
     // 3. Verify no pending change exists for this grade
     await this.verifyNoPendingChange(companyId, id, 'scheduling a new update');
 
     // 4. Code uniqueness check if updating code
     if (dto.code && dto.code !== grade.code) {
-      const existing = await this.gradeRepository.findByCode(tenantId, companyId, dto.code);
+      const existing = await this.gradeRepository.findByCode(companyId, dto.code);
       if (existing && existing.id !== id) {
         throw new ConflictException(`Grade code '${dto.code}' already exists in this company`);
       }
@@ -146,24 +127,20 @@ export class GradeService {
     if (dto.rankOrder !== undefined) updatePayload.rankOrder = dto.rankOrder;
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'grade',
-        entityId: grade.id,
+        entityId: id,
         operation: ChangeOperation.UPDATE,
         payload: updatePayload,
         status: EffectiveChangeStatus.SCHEDULED,
         effectiveAt: effectiveAtDate,
-        expectedUpdatedAt: grade.updatedAt,
         createdBy: userId,
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -173,12 +150,11 @@ export class GradeService {
           operation: 'UPDATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return savedChange;
     });
@@ -187,43 +163,35 @@ export class GradeService {
   async scheduleDeactivation(
     id: string,
     dto: DeactivateGradeDto,
-    authContext?: AuthContext | null,
+    companyId: string,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target grade is active
-    const grade = await this.verifyActiveGrade(tenantId, companyId, id, 'deactivation');
+    const grade = await this.verifyActiveGrade(id, 'deactivation');
 
     // 3. Verify no pending change exists for this grade
     await this.verifyNoPendingChange(companyId, id, 'scheduling deactivation');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'grade',
         entityId: grade.id,
         operation: ChangeOperation.DEACTIVATE,
-        payload: {},
+        payload: { status: MasterDataStatus.INACTIVE },
         status: EffectiveChangeStatus.SCHEDULED,
         effectiveAt: effectiveAtDate,
-        expectedUpdatedAt: grade.updatedAt,
         createdBy: userId,
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -233,44 +201,24 @@ export class GradeService {
           operation: 'DEACTIVATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return savedChange;
     });
   }
 
   // --- Common Verification Helpers ---
-
-  private resolveTenantAndCompany(authContext?: AuthContext | null): {
-    tenantId: string;
-    companyId: string;
-  } {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-    if (!companyId) {
-      throw new BadRequestException('Cannot determine company from request context');
-    }
-
-    return { tenantId, companyId };
-  }
-
   private async validateEffectiveDate(
-    tenantId: string,
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
-      throw new NotFoundException(`Company with ID '${companyId}' not found`);
+      throw new NotFoundException(`Target company with ID '${companyId}' not found`);
     }
 
     const effectiveAtDate = new Date(effectiveAt);
@@ -292,12 +240,10 @@ export class GradeService {
   }
 
   private async verifyActiveGrade(
-    tenantId: string,
-    companyId: string,
     gradeId: string,
     action: 'updates' | 'deactivation' = 'updates',
   ): Promise<Grade> {
-    const grade = await this.gradeRepository.findById(tenantId, companyId, gradeId);
+    const grade = await this.gradeRepository.findById(gradeId);
     if (!grade) {
       throw new NotFoundException(`Grade with ID '${gradeId}' not found`);
     }
