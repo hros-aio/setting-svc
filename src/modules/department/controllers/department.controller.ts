@@ -10,17 +10,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
-import { AuthContext } from '@new-hros/libs-core';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Department, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
 import { DeactivateDepartmentDto, QueryDepartmentDto } from '../dtos/query-department.dto';
 import { UpdateDepartmentDto } from '../dtos/update-department.dto';
-import { Department } from '@new-hros/libs-sql';
-import {
-  DepartmentTreeNode,
-  PaginatedResult,
-} from '../repositories/department.repository.interface';
+import { DepartmentTreeNode } from '../repositories/department.repository.interface';
 import { DepartmentService } from '../services/department.service';
 
 @Controller('departments')
@@ -31,29 +28,24 @@ export class DepartmentController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @RequirePermission('department:create')
-  async create(
-    @Body() dto: CreateDepartmentDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<Department> {
-    return this.departmentService.create(dto, authContext);
+  async create(@Body() dto: CreateDepartmentDto): Promise<Department> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.departmentService.create(dto, companyId);
   }
 
   @Get()
   @RequirePermission('department:read')
   async findActiveDepartments(
     @Query() query: QueryDepartmentDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<PaginatedResult<Department> | DepartmentTreeNode[]> {
-    return this.departmentService.findActiveDepartments(query, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.departmentService.findActiveDepartments(companyId, query);
   }
 
   @Get(':id')
   @RequirePermission('department:read')
-  async findById(
-    @Param('id') id: string,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<Department> {
-    return this.departmentService.findById(id, authContext);
+  async findById(@Param('id') id: string): Promise<Department> {
+    return this.departmentService.findById(id);
   }
 
   @Patch(':id')
@@ -61,9 +53,9 @@ export class DepartmentController {
   async updateDepartment(
     @Param('id') id: string,
     @Body() dto: UpdateDepartmentDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.departmentService.scheduleUpdate(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.departmentService.scheduleUpdate(id, dto, companyId);
   }
 
   @Post(':id/deactivate')
@@ -72,8 +64,8 @@ export class DepartmentController {
   async deactivateDepartment(
     @Param('id') id: string,
     @Body() dto: DeactivateDepartmentDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.departmentService.scheduleDeactivation(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.departmentService.scheduleDeactivation(id, dto, companyId);
   }
 }

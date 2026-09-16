@@ -1,12 +1,18 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DepartmentService } from '../../src/modules/department/services/department.service';
-import { ChangeOperation, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
+import {
+  AggregateType,
+  ChangeOperation,
+  EffectiveChangeEventType,
+  EffectiveChangeStatus,
+  MasterDataStatus,
+} from '../../src/enums';
 import { DepartmentRepository } from '../../src/modules/department/repositories/department.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { Department } from '@new-hros/libs-sql';
@@ -18,18 +24,8 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
   let mockDepartmentRepo: jest.Mocked<Partial<DepartmentRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockEffectiveChangeRepo: jest.Mocked<Partial<EffectiveChangeRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['department:deactivate'],
-  };
+  let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
   const activeDepartment: Department = {
     id: 'dept-1',
@@ -48,6 +44,14 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['department:deactivate'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -55,8 +59,7 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
     };
 
     mockDepartmentRepo = {
@@ -80,27 +83,17 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
       ),
     };
 
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb) => cb()),
     };
 
     service = new DepartmentService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
       mockDepartmentRepo as unknown as DepartmentRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,
       mockEffectiveChangeRepo as unknown as EffectiveChangeRepository,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
@@ -116,7 +109,7 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(
-      service.scheduleDeactivation('dept-1', { effectiveAt: futureDate }, mockAuthContext),
+      service.scheduleDeactivation('dept-1', { effectiveAt: futureDate }, 'comp-1'),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -128,7 +121,7 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
 
     const futureDate = new Date(Date.now() + 86400000 * 5).toISOString();
     await expect(
-      service.scheduleDeactivation('dept-1', { effectiveAt: futureDate }, mockAuthContext),
+      service.scheduleDeactivation('dept-1', { effectiveAt: futureDate }, 'comp-1'),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -138,7 +131,7 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
     const result = await service.scheduleDeactivation(
       'dept-1',
       { effectiveAt: futureDate },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('change-1');
@@ -151,6 +144,11 @@ describe('DepartmentService - Deactivate Department [US4]', () => {
         operation: ChangeOperation.DEACTIVATE,
       }),
     );
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aggregateType: AggregateType.EFFECTIVE_CHANGE,
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+      }),
+    );
   });
 });

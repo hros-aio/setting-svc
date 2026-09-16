@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CrossCompanyReferenceException } from '@new-hros/libs-apis';
 import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
+import { JobTitle, TransactionService } from '@new-hros/libs-sql';
 import { DataSource } from 'typeorm';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
@@ -23,13 +23,12 @@ import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
-import { GradeRepository } from '../../grade/repositories/grade.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
+import { GradeRepository } from '../../grade/repositories/grade.repository';
 import { CreateJobTitleDto } from '../dtos/create-job-title.dto';
 import { DeactivateJobTitleDto } from '../dtos/query-job-title.dto';
 import { UpdateJobTitleDto } from '../dtos/update-job-title.dto';
-import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../repositories/job-title.repository';
 
 @Injectable()
@@ -69,7 +68,7 @@ export class JobTitleService {
     }
 
     // 3. Validate Department belongs to the same tenant/company and is active (ADR-14, INV-006)
-    await this.verifyDepartment(tenantId, companyId, dto.departmentId);
+    await this.verifyDepartment(dto.departmentId);
 
     // 4. Validate Grade belongs to the same tenant/company and is active (ADR-14, INV-006)
     await this.verifyGrade(tenantId, companyId, dto.gradeId);
@@ -156,7 +155,7 @@ export class JobTitleService {
 
     // 5. If updating departmentId, validate it belongs to same company & is active
     if (dto.departmentId) {
-      await this.verifyDepartment(tenantId, companyId, dto.departmentId);
+      await this.verifyDepartment(dto.departmentId);
     }
 
     // 6. If updating gradeId, validate it belongs to same company & is active
@@ -318,15 +317,11 @@ export class JobTitleService {
     return { effectiveAtDate, companyTimezone: company.timezone };
   }
 
-  private async verifyDepartment(
-    tenantId: string,
-    companyId: string,
-    departmentId: string,
-  ): Promise<void> {
-    const department = await this.departmentRepository.findById(tenantId, companyId, departmentId);
+  private async verifyDepartment(departmentId: string): Promise<void> {
+    const department = await this.departmentRepository.findById(departmentId);
     if (!department) {
       throw new CrossCompanyReferenceException(
-        `Referenced department with ID '${departmentId}' does not exist in target company '${companyId}'`,
+        `Referenced department with ID '${departmentId}' does not exist in target company`,
       );
     }
     if (department.status !== MasterDataStatus.ACTIVE) {

@@ -1,13 +1,12 @@
 import { ConflictException } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Department, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
-import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../repositories/department.repository';
 import { DepartmentService } from './department.service';
 
@@ -16,21 +15,19 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
   let mockDeptRepo: { [K in keyof DepartmentRepository]?: jest.Mock };
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
-  let mockDataSource: { manager: { getRepository: jest.Mock } };
   let mockTxService: { runInTransaction: jest.Mock };
   let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
 
-  const mockAuthContextA: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['department:create'],
-  };
-
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      tenantCode: 'tenant-1',
+      roles: ['admin'],
+      scopes: [],
+      permissions: ['department:create'],
+    });
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-A' } as unknown as ReturnType<
@@ -38,16 +35,16 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
+      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
       save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
     };
 
     mockDeptRepo = {
       findByCode: jest.fn(),
       findById: jest.fn(),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as Department),
+        .mockImplementation(async (data) => ({ id: 'dept-1', ...data }) as Department),
     };
 
     mockCompanyRepo = {
@@ -61,23 +58,17 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       markStepCompleted: jest.fn().mockResolvedValue({} as never),
     };
 
-    mockDataSource = {
-      manager: {
-        getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-      },
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation((cb) => cb()),
     };
 
     service = new DepartmentService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
       mockDeptRepo as unknown as DepartmentRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
@@ -94,11 +85,11 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
         name: 'Engineering',
         effectiveAt: '2099-01-01T00:00:00Z',
       },
-      mockAuthContextA,
+      'comp-A',
     );
 
     expect(result).toBeDefined();
-    expect(mockDeptRepo.findByCode).toHaveBeenCalledWith('tenant-1', 'comp-A', 'ENG');
+    expect(mockDeptRepo.findByCode).toHaveBeenCalledWith('comp-A', 'ENG');
   });
 
   it('should reject creating duplicate Department code ENG within same Company A', async () => {
@@ -115,7 +106,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
           name: 'Duplicate Engineering',
           effectiveAt: '2099-01-01T00:00:00Z',
         },
-        mockAuthContextA,
+        'comp-A',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -132,7 +123,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
           parentDepartmentId: 'dept-in-comp-B',
           effectiveAt: '2099-01-01T00:00:00Z',
         },
-        mockAuthContextA,
+        'comp-A',
       ),
     ).rejects.toThrow();
   });
