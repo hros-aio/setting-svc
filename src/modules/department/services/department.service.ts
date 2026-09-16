@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Department, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { DataSource } from 'typeorm';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
@@ -34,7 +34,6 @@ export class DepartmentService {
   private readonly logger = new Logger(DepartmentService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
     private readonly departmentRepository: DepartmentRepository,
     private readonly companyRepository: CompanyRepository,
@@ -122,7 +121,11 @@ export class DepartmentService {
   }
 
   async findById(id: string): Promise<Department> {
-    return this.departmentRepository.findById(id, { required: true });
+    const department = await this.departmentRepository.findById(id);
+    if (!department) {
+      throw new NotFoundException(`Department with ID '${id}' not found`);
+    }
+    return department;
   }
 
   async scheduleUpdate(
@@ -181,17 +184,17 @@ export class DepartmentService {
       updatePayload.parentDepartmentId = dto.parentDepartmentId;
     }
 
+    // 7. Write EFFECTIVE_CHANGE and outbox event
     return this.transactionService.runInTransaction(async () => {
       const savedChange = await this.effectiveChangeRepository.create({
         tenantCode,
         companyId,
         entityType: 'department',
-        entityId: department.id,
+        entityId: id,
         operation: ChangeOperation.UPDATE,
         payload: updatePayload,
-        status: EffectiveChangeStatus.SCHEDULED,
         effectiveAt: effectiveAtDate,
-        expectedUpdatedAt: department.updatedAt,
+        status: EffectiveChangeStatus.SCHEDULED,
         createdBy: userId,
       });
 
@@ -203,6 +206,7 @@ export class DepartmentService {
         payload: {
           changeId: savedChange.id,
           entityType: 'department',
+          entityId: id,
           operation: 'UPDATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
@@ -233,6 +237,7 @@ export class DepartmentService {
     // 3. Verify no pending change exists for this department
     await this.verifyNoPendingChange(companyId, id, 'scheduling deactivation');
 
+    // 4. Write EFFECTIVE_CHANGE (DEACTIVATE) and outbox event
     return this.transactionService.runInTransaction(async () => {
       const savedChange = await this.effectiveChangeRepository.create({
         tenantCode,
@@ -240,10 +245,9 @@ export class DepartmentService {
         entityType: 'department',
         entityId: department.id,
         operation: ChangeOperation.DEACTIVATE,
-        payload: {},
-        status: EffectiveChangeStatus.SCHEDULED,
+        payload: { status: MasterDataStatus.INACTIVE },
         effectiveAt: effectiveAtDate,
-        expectedUpdatedAt: department.updatedAt,
+        status: EffectiveChangeStatus.SCHEDULED,
         createdBy: userId,
       });
 
@@ -255,6 +259,7 @@ export class DepartmentService {
         payload: {
           changeId: savedChange.id,
           entityType: 'department',
+          entityId: department.id,
           operation: 'DEACTIVATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
@@ -275,7 +280,7 @@ export class DepartmentService {
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
-      throw new NotFoundException(`Company with ID '${companyId}' not found`);
+      throw new NotFoundException(`Target company with ID '${companyId}' not found`);
     }
 
     const effectiveAtDate = new Date(effectiveAt);
@@ -300,7 +305,10 @@ export class DepartmentService {
     departmentId: string,
     action: 'updates' | 'deactivation' = 'updates',
   ): Promise<Department> {
-    const department = await this.departmentRepository.findById(departmentId, { required: true });
+    const department = await this.departmentRepository.findById(departmentId);
+    if (!department) {
+      throw new NotFoundException(`Department with ID '${departmentId}' not found`);
+    }
     if (department.status !== MasterDataStatus.ACTIVE) {
       throw new BadRequestException(
         action === 'deactivation'
@@ -312,7 +320,12 @@ export class DepartmentService {
   }
 
   private async verifyParentDepartment(parentDepartmentId: string): Promise<Department> {
-    const parent = await this.departmentRepository.findById(parentDepartmentId, { required: true });
+    const parent = await this.departmentRepository.findById(parentDepartmentId);
+    if (!parent) {
+      throw new NotFoundException(
+        `Parent department with ID '${parentDepartmentId}' not found in this company`,
+      );
+    }
     if (parent.status !== MasterDataStatus.ACTIVE) {
       throw new BadRequestException('Parent department must be in active status');
     }

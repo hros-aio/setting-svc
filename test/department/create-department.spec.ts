@@ -1,12 +1,18 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { DepartmentService } from '../../src/modules/department/services/department.service';
-import { MasterDataStatus, SetupStepType } from '../../src/enums';
+import {
+  AggregateType,
+  EffectiveChangeEventType,
+  MasterDataStatus,
+  SetupStepType,
+} from '../../src/enums';
 import { DepartmentRepository } from '../../src/modules/department/repositories/department.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { DataSource } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { Department } from '@new-hros/libs-sql';
@@ -20,19 +26,11 @@ describe('DepartmentService - Create Department [US1]', () => {
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
   let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['department:create'],
-  };
+  let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({ userId: 'user-1' } as any);
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -40,16 +38,15 @@ describe('DepartmentService - Create Department [US1]', () => {
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
     };
 
     mockDepartmentRepo = {
       findByCode: jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as Department),
+        .mockImplementation(async (data) => ({ id: 'dept-1', ...data }) as Department),
     };
 
     mockCompanyRepo = {
@@ -63,14 +60,8 @@ describe('DepartmentService - Create Department [US1]', () => {
       markStepCompleted: jest.fn().mockResolvedValue({} as CompanySetupStepEntity),
     };
 
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
     mockDataSource = {
-      manager: mockManager as EntityManager,
+      manager: {} as any,
     };
 
     mockTxService = {
@@ -84,6 +75,7 @@ describe('DepartmentService - Create Department [US1]', () => {
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
@@ -100,7 +92,7 @@ describe('DepartmentService - Create Department [US1]', () => {
           name: 'Engineering',
           effectiveAt: pastDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -118,7 +110,7 @@ describe('DepartmentService - Create Department [US1]', () => {
           name: 'Engineering',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -135,7 +127,7 @@ describe('DepartmentService - Create Department [US1]', () => {
           parentDepartmentId: 'non-existent-parent',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(NotFoundException);
   });
@@ -155,7 +147,7 @@ describe('DepartmentService - Create Department [US1]', () => {
           parentDepartmentId: 'parent-dept',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -174,7 +166,7 @@ describe('DepartmentService - Create Department [US1]', () => {
         parentDepartmentId: 'parent-dept',
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('dept-1');
@@ -185,6 +177,11 @@ describe('DepartmentService - Create Department [US1]', () => {
       stepType: SetupStepType.DEPARTMENT,
       completedBy: 'user-1',
     });
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aggregateType: AggregateType.DEPARTMENT,
+        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
+      }),
+    );
   });
 });

@@ -318,7 +318,12 @@ export class JobTitleService {
   }
 
   private async verifyDepartment(departmentId: string): Promise<void> {
-    const department = await this.departmentRepository.findById(departmentId, { required: true });
+    const department = await this.departmentRepository.findById(departmentId);
+    if (!department) {
+      throw new CrossCompanyReferenceException(
+        `Referenced department with ID '${departmentId}' does not exist in target company`,
+      );
+    }
     if (department.status !== MasterDataStatus.ACTIVE) {
       throw new BadRequestException(
         `Referenced department '${department.name}' is in '${department.status}' status and cannot be assigned`,

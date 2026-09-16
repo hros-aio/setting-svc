@@ -31,6 +31,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({ userId: 'user-1' } as any);
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-A' } as unknown as ReturnType<
@@ -38,16 +39,16 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
+      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
       save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
     };
 
     mockDeptRepo = {
       findByCode: jest.fn(),
       findById: jest.fn(),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'dept-1', ...data }) as Department),
+        .mockImplementation(async (data) => ({ id: 'dept-1', ...data }) as Department),
     };
 
     mockCompanyRepo = {
@@ -78,6 +79,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
+      mockOutboxRepo as unknown as any,
     );
   });
 
@@ -94,11 +96,11 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
         name: 'Engineering',
         effectiveAt: '2099-01-01T00:00:00Z',
       },
-      mockAuthContextA,
+      'comp-A',
     );
 
     expect(result).toBeDefined();
-    expect(mockDeptRepo.findByCode).toHaveBeenCalledWith('tenant-1', 'comp-A', 'ENG');
+    expect(mockDeptRepo.findByCode).toHaveBeenCalledWith('comp-A', 'ENG');
   });
 
   it('should reject creating duplicate Department code ENG within same Company A', async () => {
@@ -115,7 +117,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
           name: 'Duplicate Engineering',
           effectiveAt: '2099-01-01T00:00:00Z',
         },
-        mockAuthContextA,
+        'comp-A',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -132,7 +134,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
           parentDepartmentId: 'dept-in-comp-B',
           effectiveAt: '2099-01-01T00:00:00Z',
         },
-        mockAuthContextA,
+        'comp-A',
       ),
     ).rejects.toThrow();
   });
