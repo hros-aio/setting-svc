@@ -71,7 +71,7 @@ export class JobTitleService {
     await this.verifyDepartment(dto.departmentId);
 
     // 4. Validate Grade belongs to the same tenant/company and is active (ADR-14, INV-006)
-    await this.verifyGrade(tenantId, companyId, dto.gradeId);
+    await this.verifyGrade(dto.gradeId);
 
     return this.transactionService.runInTransaction(async () => {
       const manager = this.dataSource.manager;
@@ -160,7 +160,7 @@ export class JobTitleService {
 
     // 6. If updating gradeId, validate it belongs to same company & is active
     if (dto.gradeId) {
-      await this.verifyGrade(tenantId, companyId, dto.gradeId);
+      await this.verifyGrade(dto.gradeId);
     }
 
     // 7. Build payload
@@ -331,11 +331,11 @@ export class JobTitleService {
     }
   }
 
-  private async verifyGrade(tenantId: string, companyId: string, gradeId: string): Promise<void> {
-    const grade = await this.gradeRepository.findById(tenantId, companyId, gradeId);
+  private async verifyGrade(gradeId: string): Promise<void> {
+    const grade = await this.gradeRepository.findById(gradeId);
     if (!grade) {
       throw new CrossCompanyReferenceException(
-        `Referenced grade with ID '${gradeId}' does not exist in target company '${companyId}'`,
+        `Referenced grade with ID '${gradeId}' does not exist in target company`,
       );
     }
     if (grade.status !== MasterDataStatus.ACTIVE) {

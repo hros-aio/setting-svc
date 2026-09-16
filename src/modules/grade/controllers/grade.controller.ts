@@ -10,14 +10,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
-import { AuthContext } from '@new-hros/libs-core';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { RequestContextService } from '@new-hros/libs-core';
+import { Grade, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateGradeDto } from '../dtos/create-grade.dto';
 import { DeactivateGradeDto, QueryGradeDto } from '../dtos/query-grade.dto';
 import { UpdateGradeDto } from '../dtos/update-grade.dto';
-import { Grade } from '@new-hros/libs-sql';
-import { PaginatedResult } from '../repositories/grade.repository.interface';
 import { GradeQueryService, GradeWithPendingChange } from '../services/grade-query.service';
 import { GradeService } from '../services/grade.service';
 
@@ -32,29 +31,23 @@ export class GradeController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @RequirePermission('grade:create')
-  async create(
-    @Body() dto: CreateGradeDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<Grade> {
-    return this.gradeService.create(dto, authContext);
+  async create(@Body() dto: CreateGradeDto): Promise<Grade> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.gradeService.create(dto, companyId);
   }
 
   @Get()
   @RequirePermission('grade:read')
-  async findAll(
-    @Query() query: QueryGradeDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<PaginatedResult<Grade>> {
-    return this.gradeQueryService.find(query, authContext);
+  async findAll(@Query() query: QueryGradeDto): Promise<PaginatedResult<Grade>> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.gradeQueryService.find(companyId, query);
   }
 
   @Get(':id')
   @RequirePermission('grade:read')
-  async findById(
-    @Param('id') id: string,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<GradeWithPendingChange> {
-    return this.gradeQueryService.findById(id, authContext);
+  async findById(@Param('id') id: string): Promise<GradeWithPendingChange> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.gradeQueryService.findById(id, companyId);
   }
 
   @Patch(':id')
@@ -62,9 +55,9 @@ export class GradeController {
   async updateGrade(
     @Param('id') id: string,
     @Body() dto: UpdateGradeDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.gradeService.scheduleUpdate(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.gradeService.scheduleUpdate(id, dto, companyId);
   }
 
   @Post(':id/deactivate')
@@ -73,8 +66,8 @@ export class GradeController {
   async deactivateGrade(
     @Param('id') id: string,
     @Body() dto: DeactivateGradeDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.gradeService.scheduleDeactivation(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.gradeService.scheduleDeactivation(id, dto, companyId);
   }
 }

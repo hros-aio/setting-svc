@@ -129,12 +129,7 @@ export class ValidateTransferRequestService {
     }
 
     if (dto.destinationGradeId) {
-      const grade = await this.gradeRepository.findById(
-        tenantId,
-        dto.destinationCompanyId,
-        dto.destinationGradeId,
-        manager,
-      );
+      const grade = await this.gradeRepository.findById(dto.destinationGradeId);
       if (!grade) {
         throw new UnprocessableEntityException(
           'Destination grade does not belong to destination company or does not exist',
