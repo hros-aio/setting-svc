@@ -6,9 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CrossCompanyReferenceException } from '@new-hros/libs-apis';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { JobTitle, TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { isDateString } from 'class-validator';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -19,9 +19,9 @@ import {
   OutboxStatus,
   SetupStepType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
@@ -36,8 +36,8 @@ export class JobTitleService {
   private readonly logger = new Logger(JobTitleService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
+    private readonly outboxEventRepository: OutboxEventRepository,
     private readonly jobTitleRepository: JobTitleRepository,
     private readonly departmentRepository: DepartmentRepository,
     private readonly gradeRepository: GradeRepository,
@@ -46,23 +46,15 @@ export class JobTitleService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(dto: CreateJobTitleDto, authContext?: AuthContext | null): Promise<JobTitle> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+  async create(dto: CreateJobTitleDto, companyId: string): Promise<JobTitle> {
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Validate uniqueness of job title code within company
-    const existingJobTitle = await this.jobTitleRepository.findByCode(
-      tenantId,
-      companyId,
-      dto.code,
-    );
+    const existingJobTitle = await this.jobTitleRepository.findByCode(companyId, dto.code);
     if (existingJobTitle) {
       throw new ConflictException(`Job Title code '${dto.code}' already exists in this company`);
     }
@@ -74,25 +66,18 @@ export class JobTitleService {
     await this.verifyGrade(dto.gradeId);
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       // 5. Persist Job Title in scheduled status
-      const jobTitle = await this.jobTitleRepository.createAndSave(
-        {
-          tenantCode: tenantId,
-          companyId,
-          code: dto.code,
-          name: dto.name,
-          departmentId: dto.departmentId,
-          gradeId: dto.gradeId,
-          description: dto.description,
-          status: MasterDataStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        manager,
-      );
+      const jobTitle = await this.jobTitleRepository.create({
+        code: dto.code,
+        name: dto.name,
+        departmentId: dto.departmentId,
+        gradeId: dto.gradeId,
+        description: dto.description,
+        status: MasterDataStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
       // 6. Complete JOB_TITLE setup step (Step 5)
       await this.companySetupStepRepository.markStepCompleted({
@@ -102,8 +87,7 @@ export class JobTitleService {
       });
 
       // 7. Write outbox event for scheduling
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.JOB_TITLE,
         aggregateId: jobTitle.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -113,12 +97,11 @@ export class JobTitleService {
           operation: 'CREATE',
           effectiveAt: jobTitle.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: jobTitle.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return jobTitle;
     });
@@ -127,27 +110,23 @@ export class JobTitleService {
   async scheduleUpdate(
     id: string,
     dto: UpdateJobTitleDto,
-    authContext?: AuthContext | null,
+    companyId: string,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target job title is active
-    const jobTitle = await this.verifyActiveJobTitle(tenantId, companyId, id, 'updates');
+    const jobTitle = await this.verifyActiveJobTitle(id, 'updates');
 
     // 3. Verify no pending change exists for this job title
     await this.verifyNoPendingChange(companyId, id, 'scheduling a new update');
 
     // 4. Code uniqueness check if updating code
     if (dto.code && dto.code !== jobTitle.code) {
-      const existing = await this.jobTitleRepository.findByCode(tenantId, companyId, dto.code);
+      const existing = await this.jobTitleRepository.findByCode(companyId, dto.code);
       if (existing && existing.id !== id) {
         throw new ConflictException(`Job Title code '${dto.code}' already exists in this company`);
       }
@@ -172,10 +151,8 @@ export class JobTitleService {
     if (dto.description !== undefined) updatePayload.description = dto.description;
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'job_title',
         entityId: jobTitle.id,
@@ -188,8 +165,7 @@ export class JobTitleService {
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -199,12 +175,11 @@ export class JobTitleService {
           operation: 'UPDATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return savedChange;
     });
@@ -213,34 +188,28 @@ export class JobTitleService {
   async scheduleDeactivation(
     id: string,
     dto: DeactivateJobTitleDto,
-    authContext?: AuthContext | null,
+    companyId: string,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target job title is active
-    const jobTitle = await this.verifyActiveJobTitle(tenantId, companyId, id, 'deactivation');
+    const jobTitle = await this.verifyActiveJobTitle(id, 'deactivation');
 
     // 3. Verify no pending change exists for this job title
     await this.verifyNoPendingChange(companyId, id, 'scheduling deactivation');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'job_title',
         entityId: jobTitle.id,
         operation: ChangeOperation.DEACTIVATE,
-        payload: {},
+        payload: { status: MasterDataStatus.INACTIVE },
         status: EffectiveChangeStatus.SCHEDULED,
         effectiveAt: effectiveAtDate,
         expectedUpdatedAt: jobTitle.updatedAt,
@@ -248,8 +217,7 @@ export class JobTitleService {
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -259,38 +227,18 @@ export class JobTitleService {
           operation: 'DEACTIVATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       return savedChange;
     });
   }
 
   // --- Common Verification Helpers ---
-
-  private resolveTenantAndCompany(authContext?: AuthContext | null): {
-    tenantId: string;
-    companyId: string;
-  } {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-    if (!companyId) {
-      throw new BadRequestException('Cannot determine company from request context');
-    }
-
-    return { tenantId, companyId };
-  }
-
   private async validateEffectiveDate(
-    tenantId: string,
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; companyTimezone?: string }> {
@@ -299,11 +247,11 @@ export class JobTitleService {
       throw new NotFoundException(`Company with ID '${companyId}' not found`);
     }
 
-    const effectiveAtDate = new Date(effectiveAt);
-    if (isNaN(effectiveAtDate.getTime())) {
+    if (!isDateString(effectiveAt)) {
       throw new BadRequestException('Invalid effectiveAt date format');
     }
 
+    const effectiveAtDate = new Date(effectiveAt);
     const { isValid, cutoff } = EffectiveDateUtil.validateFutureEffectiveDate(
       effectiveAtDate,
       company.timezone,
@@ -346,12 +294,10 @@ export class JobTitleService {
   }
 
   private async verifyActiveJobTitle(
-    tenantId: string,
-    companyId: string,
     jobTitleId: string,
     action: 'updates' | 'deactivation' = 'updates',
   ): Promise<JobTitle> {
-    const jobTitle = await this.jobTitleRepository.findById(tenantId, companyId, jobTitleId);
+    const jobTitle = await this.jobTitleRepository.findById(jobTitleId);
     if (!jobTitle) {
       throw new NotFoundException(`Job Title with ID '${jobTitleId}' not found`);
     }

@@ -246,6 +246,7 @@ describe('ValidateTransferRequestService', () => {
     } as unknown as Grade);
     mockJobTitleRepo.findById.mockResolvedValue({
       id: 'job-1',
+      companyId: 'comp-2',
       status: MasterDataStatus.ACTIVE,
     } as unknown as JobTitle);
 

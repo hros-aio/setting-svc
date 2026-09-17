@@ -1,24 +1,14 @@
+import { JobTitle, PaginatedResult } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
-import { JobTitle } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../../enums';
 
-export interface JobTitlePaginationOptions {
+export interface PaginationOptions {
   page?: number;
   limit?: number;
   search?: string;
   status?: string;
   departmentId?: string;
   gradeId?: string;
-}
-
-export interface JobTitlePaginatedResult<T> {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export interface IJobTitleRepository {
@@ -36,12 +26,19 @@ export interface IJobTitleRepository {
     manager?: EntityManager,
   ): Promise<JobTitle | null>;
 
-  find(
+  findActiveJobTitles(
     tenantId: string,
     companyId: string,
-    pagination?: JobTitlePaginationOptions,
+    pagination?: PaginationOptions,
     manager?: EntityManager,
-  ): Promise<JobTitlePaginatedResult<JobTitle>>;
+  ): Promise<PaginatedResult<JobTitle>>;
+
+  findAllJobTitles(
+    tenantId: string,
+    companyId: string,
+    pagination?: PaginationOptions,
+    manager?: EntityManager,
+  ): Promise<PaginatedResult<JobTitle>>;
 
   hasActiveOrScheduled(
     tenantId: string,

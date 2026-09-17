@@ -5,21 +5,12 @@ import { EffectiveChangeRepository } from '../../src/modules/effective-change/re
 import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { ChangeOperation, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 
 describe('JobTitleQueryService - Query Job Titles [US2]', () => {
   let queryService: JobTitleQueryService;
   let mockJobTitleRepo: jest.Mocked<Partial<JobTitleRepository>>;
   let mockEffectiveChangeRepo: jest.Mocked<Partial<EffectiveChangeRepository>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['job-title:read'],
-  };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
@@ -30,7 +21,7 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
       >);
 
     mockJobTitleRepo = {
-      find: jest.fn().mockResolvedValue({
+      findJobTitles: jest.fn().mockResolvedValue({
         data: [
           {
             id: 'job-title-1',
@@ -42,7 +33,7 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
         ],
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       }),
-      findById: jest.fn(),
+      findByIdWithRelations: jest.fn(),
     };
 
     mockEffectiveChangeRepo = {
@@ -60,41 +51,39 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
   });
 
   it('should return active job titles for current company by default', async () => {
-    const result = await queryService.find({ page: 1, limit: 10 }, mockAuthContext);
+    const result = await queryService.find('comp-1', { page: 1, limit: 10 });
     expect(result.data).toHaveLength(1);
     expect(result.data[0].id).toBe('job-title-1');
-    expect(mockJobTitleRepo.find).toHaveBeenCalledWith('tenant-1', 'comp-1', {
-      page: 1,
-      limit: 10,
-      search: undefined,
-      status: undefined,
-      departmentId: undefined,
-      gradeId: undefined,
-    });
+    expect(mockJobTitleRepo.findJobTitles).toHaveBeenCalledWith(
+      'comp-1',
+      { page: 1, limit: 10 },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
   it('should return all job titles when querying with status and department filter', async () => {
-    const result = await queryService.find(
-      { status: 'all', departmentId: 'dept-1' },
-      mockAuthContext,
-    );
-    expect(result.data).toHaveLength(1);
-    expect(mockJobTitleRepo.find).toHaveBeenCalledWith('tenant-1', 'comp-1', {
-      page: 1,
-      limit: 20,
-      search: undefined,
+    const result = await queryService.find('comp-1', {
       status: 'all',
       departmentId: 'dept-1',
-      gradeId: undefined,
     });
+    expect(result.data).toHaveLength(1);
+    expect(mockJobTitleRepo.findJobTitles).toHaveBeenCalledWith(
+      'comp-1',
+      { page: 1, limit: 20 },
+      undefined,
+      'all',
+      'dept-1',
+      undefined,
+    );
   });
 
   it('should throw NotFoundException if job title does not exist', async () => {
-    (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue(null);
+    (mockJobTitleRepo.findByIdWithRelations as jest.Mock).mockResolvedValue(null);
 
-    await expect(queryService.findById('invalid-id', mockAuthContext)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(queryService.findById('invalid-id', 'comp-1')).rejects.toThrow(NotFoundException);
   });
 
   it('should return job title with pending change details if scheduled change exists', async () => {
@@ -113,10 +102,10 @@ describe('JobTitleQueryService - Query Job Titles [US2]', () => {
       payload: { name: 'Senior Software Engineer' },
     } as unknown as EffectiveChangeEntity;
 
-    (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue(mockJobTitle);
+    (mockJobTitleRepo.findByIdWithRelations as jest.Mock).mockResolvedValue(mockJobTitle);
     (mockEffectiveChangeRepo.findPendingChange as jest.Mock).mockResolvedValue(mockPending);
 
-    const result = await queryService.findById('job-title-1', mockAuthContext);
+    const result = await queryService.findById('job-title-1', 'comp-1');
     expect(result.id).toBe('job-title-1');
     expect(result.pendingChange).toBeDefined();
     expect(result.pendingChange?.changeId).toBe('change-1');
