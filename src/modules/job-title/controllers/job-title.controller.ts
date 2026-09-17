@@ -10,14 +10,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
-import { AuthContext } from '@new-hros/libs-core';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { RequestContextService } from '@new-hros/libs-core';
+import { JobTitle, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreateJobTitleDto } from '../dtos/create-job-title.dto';
 import { DeactivateJobTitleDto, QueryJobTitleDto } from '../dtos/query-job-title.dto';
 import { UpdateJobTitleDto } from '../dtos/update-job-title.dto';
-import { JobTitle } from '@new-hros/libs-sql';
-import { JobTitlePaginatedResult } from '../repositories/job-title.repository.interface';
 import {
   JobTitleQueryService,
   JobTitleWithPendingChange,
@@ -35,29 +34,23 @@ export class JobTitleController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @RequirePermission('job-title:create')
-  async create(
-    @Body() dto: CreateJobTitleDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<JobTitle> {
-    return this.jobTitleService.create(dto, authContext);
+  async create(@Body() dto: CreateJobTitleDto): Promise<JobTitle> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.jobTitleService.create(dto, companyId);
   }
 
   @Get()
   @RequirePermission('job-title:read')
-  async findAll(
-    @Query() query: QueryJobTitleDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<JobTitlePaginatedResult<JobTitle>> {
-    return this.jobTitleQueryService.find(query, authContext);
+  async findAll(@Query() query: QueryJobTitleDto): Promise<PaginatedResult<JobTitle>> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.jobTitleQueryService.find(companyId, query);
   }
 
   @Get(':id')
   @RequirePermission('job-title:read')
-  async findById(
-    @Param('id') id: string,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<JobTitleWithPendingChange> {
-    return this.jobTitleQueryService.findById(id, authContext);
+  async findById(@Param('id') id: string): Promise<JobTitleWithPendingChange> {
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.jobTitleQueryService.findById(id, companyId);
   }
 
   @Patch(':id')
@@ -65,9 +58,9 @@ export class JobTitleController {
   async updateJobTitle(
     @Param('id') id: string,
     @Body() dto: UpdateJobTitleDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.jobTitleService.scheduleUpdate(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.jobTitleService.scheduleUpdate(id, dto, companyId);
   }
 
   @Post(':id/deactivate')
@@ -76,8 +69,8 @@ export class JobTitleController {
   async deactivateJobTitle(
     @Param('id') id: string,
     @Body() dto: DeactivateJobTitleDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.jobTitleService.scheduleDeactivation(id, dto, authContext);
+    const companyId = RequestContextService.getUser().employee!.companyId!;
+    return this.jobTitleService.scheduleDeactivation(id, dto, companyId);
   }
 }

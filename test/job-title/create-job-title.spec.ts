@@ -6,10 +6,9 @@ import { DepartmentRepository } from '../../src/modules/department/repositories/
 import { GradeRepository } from '../../src/modules/grade/repositories/grade.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { RequestContextService } from '@new-hros/libs-core';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { JobTitle } from '@new-hros/libs-sql';
 import { Department } from '@new-hros/libs-sql';
@@ -24,21 +23,15 @@ describe('JobTitleService - Create Job Title [US1]', () => {
   let mockGradeRepo: jest.Mocked<Partial<GradeRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['job-title:create'],
-  };
+  let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      employee: { companyId: 'comp-1' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -46,16 +39,15 @@ describe('JobTitleService - Create Job Title [US1]', () => {
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockJobTitleRepo = {
       findByCode: jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
-      createAndSave: jest
+      create: jest
         .fn()
-        .mockImplementation((data) => ({ id: 'job-title-1', ...data }) as JobTitle),
+        .mockImplementation(async (data) => ({ id: 'job-title-1', ...data }) as JobTitle),
     };
 
     mockDepartmentRepo = {
@@ -89,23 +81,13 @@ describe('JobTitleService - Create Job Title [US1]', () => {
       markStepCompleted: jest.fn().mockResolvedValue({} as CompanySetupStepEntity),
     };
 
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb) => cb()),
     };
 
     service = new JobTitleService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxRepo as unknown as OutboxEventRepository,
       mockJobTitleRepo as unknown as JobTitleRepository,
       mockDepartmentRepo as unknown as DepartmentRepository,
       mockGradeRepo as unknown as GradeRepository,
@@ -130,7 +112,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
           gradeId: 'grade-1',
           effectiveAt: pastDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -150,7 +132,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
           gradeId: 'grade-1',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(ConflictException);
   });
@@ -168,7 +150,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
           gradeId: 'grade-1',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -186,7 +168,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
           gradeId: 'grade-diff-comp',
           effectiveAt: futureDate,
         },
-        mockAuthContext,
+        'comp-1',
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -203,7 +185,7 @@ describe('JobTitleService - Create Job Title [US1]', () => {
         description: 'Core engineering role',
         effectiveAt: futureDate,
       },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('job-title-1');
@@ -214,6 +196,6 @@ describe('JobTitleService - Create Job Title [US1]', () => {
       stepType: SetupStepType.JOB_TITLE,
       completedBy: 'user-1',
     });
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalled();
   });
 });

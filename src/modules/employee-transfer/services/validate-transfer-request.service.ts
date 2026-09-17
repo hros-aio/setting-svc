@@ -141,13 +141,8 @@ export class ValidateTransferRequestService {
     }
 
     if (dto.destinationJobTitleId) {
-      const jobTitle = await this.jobTitleRepository.findById(
-        tenantId,
-        dto.destinationCompanyId,
-        dto.destinationJobTitleId,
-        manager,
-      );
-      if (!jobTitle) {
+      const jobTitle = await this.jobTitleRepository.findById(dto.destinationJobTitleId);
+      if (!jobTitle || jobTitle.companyId !== dto.destinationCompanyId) {
         throw new UnprocessableEntityException(
           'Destination job title does not belong to destination company or does not exist',
         );

@@ -1,197 +1,144 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
-import { JobTitle } from '@new-hros/libs-sql';
+import { Injectable } from '@nestjs/common';
 import {
-  IJobTitleRepository,
-  JobTitlePaginatedResult,
-  JobTitlePaginationOptions,
-} from './job-title.repository.interface';
+  BaseRepository,
+  JobTitle,
+  PaginatedResult,
+  PaginationOptions,
+  TransactionService,
+} from '@new-hros/libs-sql';
+import { FindOptionsWhere, ILike, In } from 'typeorm';
 import { MasterDataStatus } from '../../../enums';
 
 @Injectable()
-export class JobTitleRepository implements IJobTitleRepository {
-  constructor(
-    @InjectRepository(JobTitle)
-    private readonly repo: Repository<JobTitle>,
-    private readonly dataSource: DataSource,
-  ) {}
-
-  private getRepo(manager?: EntityManager): Repository<JobTitle> {
-    return manager ? manager.getRepository(JobTitle) : this.repo;
+export class JobTitleRepository extends BaseRepository<JobTitle> {
+  constructor(transactionService: TransactionService) {
+    super(JobTitle, transactionService);
   }
 
-  async findById(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    manager?: EntityManager,
-  ): Promise<JobTitle | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        id,
-        tenantCode: tenantId,
-        companyId,
-      },
+  async findByIdWithRelations(id: string): Promise<JobTitle | null> {
+    return this.findById(id, {
       relations: ['department', 'grade', 'sourceJobTitle'],
     });
   }
 
-  async findByCode(
-    tenantId: string,
-    companyId: string,
-    code: string,
-    manager?: EntityManager,
-  ): Promise<JobTitle | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        tenantCode: tenantId,
+  async findByCode(companyId: string, code: string): Promise<JobTitle | null> {
+    return this.findOne(
+      {
         companyId,
         code,
       },
-      relations: ['department', 'grade'],
-    });
+      {
+        relations: ['department', 'grade'],
+      },
+    );
   }
 
-  async find(
-    tenantId: string,
+  async findActive(
     companyId: string,
-    pagination?: JobTitlePaginationOptions,
-    manager?: EntityManager,
-  ): Promise<JobTitlePaginatedResult<JobTitle>> {
-    const page = pagination?.page && pagination.page > 0 ? Number(pagination.page) : 1;
-    const limit = pagination?.limit && pagination.limit > 0 ? Number(pagination.limit) : 20;
-    const skip = (page - 1) * limit;
+    pagination?: PaginationOptions,
+  ): Promise<PaginatedResult<JobTitle>> {
+    return this.find(
+      {
+        companyId,
+        status: MasterDataStatus.ACTIVE,
+      },
+      {
+        pagination: {
+          page: pagination?.page ?? 1,
+          limit: pagination?.limit ?? 10,
+        },
+        order: { name: 1 },
+        relations: ['department', 'grade', 'sourceJobTitle'],
+      },
+    );
+  }
 
+  async findJobTitles(
+    companyId: string,
+    pagination?: PaginationOptions,
+    search?: string,
+    status?: string,
+    departmentId?: string,
+    gradeId?: string,
+  ): Promise<PaginatedResult<JobTitle>> {
     const baseWhere: FindOptionsWhere<JobTitle> = {
-      tenantCode: tenantId,
       companyId,
     };
 
-    if (pagination?.status && pagination.status !== 'all') {
-      baseWhere.status = pagination.status as MasterDataStatus;
-    } else if (!pagination?.status) {
+    if (status && status !== 'all') {
+      baseWhere.status = status as MasterDataStatus;
+    } else if (!status) {
       baseWhere.status = MasterDataStatus.ACTIVE;
     }
 
-    if (pagination?.departmentId) {
-      baseWhere.departmentId = pagination.departmentId;
+    if (departmentId) {
+      baseWhere.departmentId = departmentId;
     }
 
-    if (pagination?.gradeId) {
-      baseWhere.gradeId = pagination.gradeId;
+    if (gradeId) {
+      baseWhere.gradeId = gradeId;
     }
 
     let where: FindOptionsWhere<JobTitle> | FindOptionsWhere<JobTitle>[] = baseWhere;
-    if (pagination?.search) {
+    if (search) {
       where = [
-        { ...baseWhere, name: ILike(`%${pagination.search}%`) },
-        { ...baseWhere, code: ILike(`%${pagination.search}%`) },
+        { ...baseWhere, name: ILike(`%${search}%`) },
+        { ...baseWhere, code: ILike(`%${search}%`) },
       ];
     }
 
-    const [data, total] = await this.getRepo(manager).findAndCount({
-      where,
-      order: {
-        name: 'ASC',
+    return this.find(where as FindOptionsWhere<JobTitle>, {
+      pagination: {
+        page: pagination?.page ?? 1,
+        limit: pagination?.limit ?? 20,
       },
-      skip,
-      take: limit,
+      order: {
+        name: 1,
+      },
       relations: ['department', 'grade', 'sourceJobTitle'],
     });
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
-    };
   }
 
-  async hasActiveOrScheduled(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<boolean> {
-    const count = await this.getRepo(manager).count({
+  async hasActiveOrScheduled(companyId: string): Promise<boolean> {
+    const count = await this.repository.count({
       where: {
-        tenantCode: tenantId,
+        tenantCode: this.tenantCode,
         companyId,
         status: In([MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED]),
       },
     });
-
     return count > 0;
   }
 
-  async countAllJobTitlesByCompany(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<number> {
-    return this.getRepo(manager).count({
+  async countAllJobTitlesByCompany(companyId: string): Promise<number> {
+    return this.repository.count({
       where: {
-        tenantCode: tenantId,
+        tenantCode: this.tenantCode,
         companyId,
       },
+      withDeleted: true,
     });
   }
 
-  async createAndSave(jobTitleData: Partial<JobTitle>, manager?: EntityManager): Promise<JobTitle> {
-    const repo = this.getRepo(manager);
-    const jobTitle = repo.create(jobTitleData);
-    return repo.save(jobTitle);
-  }
-
-  async updateStatus(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    status: MasterDataStatus,
-    userId?: string,
-    manager?: EntityManager,
-  ): Promise<JobTitle> {
-    const repo = this.getRepo(manager);
-    const jobTitle = await this.findById(tenantId, companyId, id, manager);
-    if (!jobTitle) {
-      throw new NotFoundException(`Job Title with ID '${id}' not found`);
-    }
+  async updateStatus(id: string, status: MasterDataStatus, userId?: string): Promise<JobTitle> {
+    const jobTitle = await this.findById(id, { required: true });
 
     jobTitle.status = status;
     if (userId) {
       jobTitle.updatedBy = userId;
     }
 
-    return repo.save(jobTitle);
+    return this.update(id, jobTitle);
   }
 
-  async updateFields(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    fields: Partial<JobTitle>,
-    userId?: string,
-    manager?: EntityManager,
-  ): Promise<JobTitle> {
-    const repo = this.getRepo(manager);
-    const jobTitle = await this.findById(tenantId, companyId, id, manager);
-    if (!jobTitle) {
-      throw new NotFoundException(`Job Title with ID '${id}' not found`);
-    }
+  async updateFields(id: string, fields: Partial<JobTitle>, userId?: string): Promise<JobTitle> {
+    const jobTitle = await this.findById(id, { required: true });
 
     Object.assign(jobTitle, fields);
     if (userId) {
       jobTitle.updatedBy = userId;
     }
 
-    return repo.save(jobTitle);
-  }
-
-  async save(jobTitle: JobTitle, manager?: EntityManager): Promise<JobTitle> {
-    const repo = this.getRepo(manager);
-    return repo.save(jobTitle);
+    return this.repository.save(jobTitle);
   }
 }

@@ -1,11 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { RequestContextService } from '@new-hros/libs-core';
+import { JobTitle, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeStatus } from '../../../enums';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { QueryJobTitleDto } from '../dtos/query-job-title.dto';
-import { JobTitle } from '@new-hros/libs-sql';
 import { JobTitleRepository } from '../repositories/job-title.repository';
-import { JobTitlePaginatedResult } from '../repositories/job-title.repository.interface';
 
 export interface JobTitleWithPendingChange extends JobTitle {
   pendingChange?: {
@@ -26,35 +25,31 @@ export class JobTitleQueryService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async find(
-    query?: QueryJobTitleDto,
-    authContext?: AuthContext | null,
-  ): Promise<JobTitlePaginatedResult<JobTitle>> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
+  async find(companyId: string, query?: QueryJobTitleDto): Promise<PaginatedResult<JobTitle>> {
     const page = query?.page && query.page > 0 ? Number(query.page) : 1;
     const limit = query?.limit && query.limit > 0 ? Math.min(Number(query.limit), 100) : 20;
 
-    return this.jobTitleRepository.find(tenantId, companyId, {
-      page,
-      limit,
-      search: query?.search,
-      status: query?.status,
-      departmentId: query?.departmentId,
-      gradeId: query?.gradeId,
-    });
+    return this.jobTitleRepository.findJobTitles(
+      companyId,
+      { page, limit },
+      query?.search,
+      query?.status,
+      query?.departmentId,
+      query?.gradeId,
+    );
   }
 
-  async findById(id: string, authContext?: AuthContext | null): Promise<JobTitleWithPendingChange> {
-    const { tenantId, companyId } = this.resolveTenantAndCompany(authContext);
-
-    const jobTitle = await this.jobTitleRepository.findById(tenantId, companyId, id);
+  async findById(id: string, companyId?: string): Promise<JobTitleWithPendingChange> {
+    const jobTitle = await this.jobTitleRepository.findByIdWithRelations(id);
     if (!jobTitle) {
       throw new NotFoundException(`Job Title with ID '${id}' not found`);
     }
 
+    const targetCompanyId =
+      companyId || RequestContextService.current()?.companyId || jobTitle.companyId;
+
     const pendingChange = await this.effectiveChangeRepository.findPendingChange(
-      companyId,
+      targetCompanyId,
       'job_title',
       id,
     );
@@ -73,22 +68,5 @@ export class JobTitleQueryService {
     };
 
     return result;
-  }
-
-  private resolveTenantAndCompany(authContext?: AuthContext | null): {
-    tenantId: string;
-    companyId: string;
-  } {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    const companyId = RequestContextService.current()?.companyId;
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-    if (!companyId) {
-      throw new BadRequestException('Cannot determine company from request context');
-    }
-
-    return { tenantId, companyId };
   }
 }

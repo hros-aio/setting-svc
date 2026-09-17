@@ -123,9 +123,13 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
     } as unknown as jest.Mocked<GradeRepository>;
 
     const mockJobTitleRepo = {
-      findById: jest.fn().mockImplementation((tId: string, cId: string, id: string) => {
-        if (tId === tenantId && cId === destinationCompanyId && id === 'job-valid') {
-          return Promise.resolve({ id, status: MasterDataStatus.ACTIVE });
+      findById: jest.fn().mockImplementation((id: string) => {
+        if (id === 'job-valid') {
+          return Promise.resolve({
+            id,
+            companyId: destinationCompanyId,
+            status: MasterDataStatus.ACTIVE,
+          });
         }
         return Promise.resolve(null);
       }),

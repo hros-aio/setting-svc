@@ -7,10 +7,9 @@ import { GradeRepository } from '../../src/modules/grade/repositories/grade.repo
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { TransactionService } from '@new-hros/libs-sql';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { RequestContextService } from '@new-hros/libs-core';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
@@ -20,21 +19,15 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
   let mockJobTitleRepo: jest.Mocked<Partial<JobTitleRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockEffectiveChangeRepo: jest.Mocked<Partial<EffectiveChangeRepository>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockTxService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
-
-  const mockAuthContext: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['job-title:deactivate'],
-  };
+  let mockOutboxRepo: jest.Mocked<Partial<OutboxEventRepository>>;
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      employee: { companyId: 'comp-1' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-1' } as unknown as ReturnType<
@@ -42,8 +35,7 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
       >);
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockJobTitleRepo = {
@@ -66,23 +58,13 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
         ),
     };
 
-    const mockManager: Partial<EntityManager> = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
-    };
-
-    mockDataSource = {
-      manager: mockManager as EntityManager,
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb) => cb()),
     };
 
     service = new JobTitleService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxRepo as unknown as OutboxEventRepository,
       mockJobTitleRepo as unknown as JobTitleRepository,
       {} as unknown as DepartmentRepository,
       {} as unknown as GradeRepository,
@@ -101,7 +83,7 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
     (mockJobTitleRepo.findById as jest.Mock).mockResolvedValue(null);
 
     await expect(
-      service.scheduleDeactivation('invalid-id', { effectiveAt: futureDate }, mockAuthContext),
+      service.scheduleDeactivation('invalid-id', { effectiveAt: futureDate }, 'comp-1'),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -113,7 +95,7 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
     } as JobTitle);
 
     await expect(
-      service.scheduleDeactivation('job-title-1', { effectiveAt: futureDate }, mockAuthContext),
+      service.scheduleDeactivation('job-title-1', { effectiveAt: futureDate }, 'comp-1'),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -129,7 +111,7 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
     } as EffectiveChangeEntity);
 
     await expect(
-      service.scheduleDeactivation('job-title-1', { effectiveAt: futureDate }, mockAuthContext),
+      service.scheduleDeactivation('job-title-1', { effectiveAt: futureDate }, 'comp-1'),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -148,12 +130,12 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
     const result = await service.scheduleDeactivation(
       'job-title-1',
       { effectiveAt: futureDate },
-      mockAuthContext,
+      'comp-1',
     );
 
     expect(result.id).toBe('change-1');
     expect(result.operation).toBe(ChangeOperation.DEACTIVATE);
     expect(result.status).toBe(EffectiveChangeStatus.SCHEDULED);
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalled();
   });
 });
