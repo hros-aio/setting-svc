@@ -1,16 +1,7 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-} from 'typeorm';
-import { CompanyEntity } from '../../company/entities/company.entity';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
+import { BaseEntity } from '@new-hros/libs-sql';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { MasterDataStatus, TableName } from '../../../enums';
+import { CompanyEntity } from '../../company/entities/company.entity';
 
 @Entity(TableName.POCS)
 @Index('uq_pocs_one_active_per_type', ['companyId', 'pocType'], {
@@ -19,17 +10,7 @@ import { MasterDataStatus, TableName } from '../../../enums';
 })
 @Index('idx_pocs_tenant_company_status', ['tenantId', 'companyId', 'status'])
 @Index('idx_pocs_employee_lookup', ['tenantId', 'employeeId'])
-export class PocEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'uuid', name: 'tenant_id' })
-  tenantId: string;
-
-  @ManyToOne(() => TenantEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'tenant_id' })
-  tenant: TenantEntity;
-
+export class PocEntity extends BaseEntity {
   @Column({ type: 'uuid', name: 'company_id' })
   companyId: string;
 
@@ -54,10 +35,4 @@ export class PocEntity {
 
   @Column({ type: 'uuid', nullable: true, name: 'updated_by' })
   updatedBy?: string;
-
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
 }

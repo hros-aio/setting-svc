@@ -66,7 +66,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_CREATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantCode,
+        tenantCode: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         name: jobTitle.name,
@@ -159,7 +159,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_UPDATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantCode,
+        tenantCode: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         name: jobTitle.name,
@@ -231,7 +231,7 @@ export class JobTitleApplyHandler {
       eventType: JobTitleEventType.JOB_TITLE_DEACTIVATED,
       payload: {
         jobTitleId: jobTitle.id,
-        tenantId: jobTitle.tenantCode,
+        tenantCode: jobTitle.tenantCode,
         companyId: jobTitle.companyId,
         code: jobTitle.code,
         status: jobTitle.status,

@@ -1,7 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   ChangeOperation,
   EffectiveChangeStatus,
@@ -10,9 +9,9 @@ import {
   SetupStepType,
 } from '../../src/enums';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
@@ -26,40 +25,31 @@ import { PocService } from '../../src/modules/poc/services/poc.service';
 
 describe('PocService', () => {
   let service: PocService;
-  let mockDataSource: jest.Mocked<DataSource>;
   let mockTransactionService: jest.Mocked<TransactionService>;
   let mockPocRepo: jest.Mocked<PocRepository>;
   let mockEmployeeRefRepo: jest.Mocked<EmployeeReferenceRepository>;
   let mockCompanyRepo: jest.Mocked<CompanyRepository>;
   let mockCompanySetupStepRepo: jest.Mocked<CompanySetupStepRepository>;
   let mockEffectiveChangeRepo: jest.Mocked<EffectiveChangeRepository>;
-  let mockEntityManager: jest.Mocked<EntityManager>;
-  let mockOutboxRepo: jest.Mocked<Repository<OutboxEventEntity>>;
-
-  const authContext: AuthContext = {
-    tenantCode: 'tenant-123',
-    userId: 'user-admin',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['poc:create', 'poc:update', 'poc:deactivate', 'poc:read'],
-  };
+  let mockOutboxRepo: jest.Mocked<OutboxEventRepository>;
 
   const futureEffectiveDate = new Date(Date.now() + 86400000 * 5).toISOString();
 
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-123');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-admin',
+      employee: { companyId: 'company-123' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
+    jest
+      .spyOn(RequestContextService, 'current')
+      .mockReturnValue({ companyId: 'company-123' } as unknown as ReturnType<
+        typeof RequestContextService.current
+      >);
+
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto: unknown) => dto),
-      save: jest.fn().mockImplementation((entity: unknown) => Promise.resolve(entity)),
-    } as unknown as jest.Mocked<Repository<OutboxEventEntity>>;
-
-    mockEntityManager = {
-      getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-    } as unknown as jest.Mocked<EntityManager>;
-
-    mockDataSource = {
-      manager: mockEntityManager,
-    } as unknown as jest.Mocked<DataSource>;
+      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+    } as unknown as jest.Mocked<OutboxEventRepository>;
 
     mockTransactionService = {
       runInTransaction: jest.fn().mockImplementation(async (cb: () => Promise<unknown>) => cb()),
@@ -69,7 +59,7 @@ describe('PocService', () => {
       findById: jest.fn(),
       findByCompanyAndType: jest.fn(),
       findActiveByCompany: jest.fn(),
-      createAndSave: jest.fn(),
+      create: jest.fn(),
       save: jest.fn(),
     } as unknown as jest.Mocked<PocRepository>;
 
@@ -93,8 +83,8 @@ describe('PocService', () => {
     } as unknown as jest.Mocked<EffectiveChangeRepository>;
 
     service = new PocService(
-      mockDataSource,
       mockTransactionService,
+      mockOutboxRepo,
       mockPocRepo,
       mockEmployeeRefRepo,
       mockCompanyRepo,
@@ -107,6 +97,10 @@ describe('PocService', () => {
       tenantCode: 'tenant-123',
       timezone: 'UTC',
     } as unknown as CompanyEntity);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('create', () => {
@@ -125,9 +119,9 @@ describe('PocService', () => {
 
       mockPocRepo.findByCompanyAndType.mockResolvedValue(null);
 
-      const createdPoc: PocEntity = {
+      const createdPoc = {
         id: 'poc-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         pocType: PocType.HR_HEAD,
         employeeId: createDto.employeeId,
@@ -135,20 +129,19 @@ describe('PocService', () => {
         effectiveAt: new Date(createDto.effectiveAt),
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as PocEntity;
+      } as unknown as PocEntity;
 
-      mockPocRepo.createAndSave.mockResolvedValue(createdPoc);
+      mockPocRepo.create.mockResolvedValue(createdPoc);
 
-      const result = await service.create('company-123', createDto, authContext);
+      const result = await service.create('company-123', createDto);
 
-      expect(mockPocRepo.createAndSave).toHaveBeenCalledWith(
+      expect(mockPocRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'tenant-123',
+          tenantCode: 'tenant-123',
           companyId: 'company-123',
           pocType: PocType.HR_HEAD,
           status: MasterDataStatus.SCHEDULED,
         }),
-        mockEntityManager,
       );
 
       expect(mockCompanySetupStepRepo.markStepCompleted).toHaveBeenCalledWith({
@@ -157,16 +150,14 @@ describe('PocService', () => {
         completedBy: 'user-admin',
       });
 
-      expect(mockOutboxRepo.save).toHaveBeenCalled();
+      expect(mockOutboxRepo.create).toHaveBeenCalled();
       expect(result).toEqual(createdPoc);
     });
 
     it('should reject if referenced employee is not found', async () => {
       mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue(null);
 
-      await expect(service.create('company-123', createDto, authContext)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.create('company-123', createDto)).rejects.toThrow(NotFoundException);
     });
 
     it('should reject if referenced employee is terminated', async () => {
@@ -176,9 +167,7 @@ describe('PocService', () => {
         employmentStatus: 'TERMINATED',
       } as EmployeeReferenceEntity);
 
-      await expect(service.create('company-123', createDto, authContext)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.create('company-123', createDto)).rejects.toThrow(BadRequestException);
     });
 
     it('should reject if active or scheduled PoC of same type already exists', async () => {
@@ -191,11 +180,9 @@ describe('PocService', () => {
       mockPocRepo.findByCompanyAndType.mockResolvedValue({
         id: 'existing-poc',
         status: MasterDataStatus.ACTIVE,
-      } as PocEntity);
+      } as unknown as PocEntity);
 
-      await expect(service.create('company-123', createDto, authContext)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.create('company-123', createDto)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -209,12 +196,12 @@ describe('PocService', () => {
     it('should schedule replacement change when target PoC is active and no pending change exists', async () => {
       mockPocRepo.findById.mockResolvedValue({
         id: 'poc-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         pocType: PocType.FINANCE_HEAD,
         status: MasterDataStatus.ACTIVE,
         updatedAt: new Date(),
-      } as PocEntity);
+      } as unknown as PocEntity);
 
       mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
         id: 'ref-2',
@@ -226,7 +213,7 @@ describe('PocService', () => {
 
       const savedChange = {
         id: 'change-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         entityType: 'poc',
         entityId: 'poc-1',
@@ -236,7 +223,7 @@ describe('PocService', () => {
 
       mockEffectiveChangeRepo.create.mockResolvedValue(savedChange);
 
-      const result = await service.replace('company-123', 'poc-1', replaceDto, authContext);
+      const result = await service.replace('company-123', 'poc-1', replaceDto);
 
       expect(mockEffectiveChangeRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -252,11 +239,11 @@ describe('PocService', () => {
     it('should reject if target PoC already has a pending scheduled change', async () => {
       mockPocRepo.findById.mockResolvedValue({
         id: 'poc-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         pocType: PocType.FINANCE_HEAD,
         status: MasterDataStatus.ACTIVE,
-      } as PocEntity);
+      } as unknown as PocEntity);
 
       mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
         id: 'ref-2',
@@ -268,9 +255,9 @@ describe('PocService', () => {
         id: 'existing-pending-change',
       } as EffectiveChangeEntity);
 
-      await expect(
-        service.replace('company-123', 'poc-1', replaceDto, authContext),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.replace('company-123', 'poc-1', replaceDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -283,11 +270,11 @@ describe('PocService', () => {
     it('should schedule deactivation for active PoC without pending changes', async () => {
       mockPocRepo.findById.mockResolvedValue({
         id: 'poc-1',
-        tenantId: 'tenant-123',
+        tenantCode: 'tenant-123',
         companyId: 'company-123',
         pocType: PocType.IT_HEAD,
         status: MasterDataStatus.ACTIVE,
-      } as PocEntity);
+      } as unknown as PocEntity);
 
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(null);
 
@@ -299,7 +286,7 @@ describe('PocService', () => {
 
       mockEffectiveChangeRepo.create.mockResolvedValue(savedChange);
 
-      const result = await service.deactivate('company-123', 'poc-1', deactivateDto, authContext);
+      const result = await service.deactivate('company-123', 'poc-1', deactivateDto);
 
       expect(mockEffectiveChangeRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({

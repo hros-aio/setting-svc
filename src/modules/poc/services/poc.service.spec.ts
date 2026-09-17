@@ -1,12 +1,11 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
 import { PocType } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
@@ -20,38 +19,29 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
   let mockEmployeeRefRepo: { [K in keyof EmployeeReferenceRepository]?: jest.Mock };
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
-  let mockDataSource: { manager: { getRepository: jest.Mock } };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
-
-  const mockAuthContextA: AuthContext = {
-    userId: 'user-1',
-    sessionId: 'sess-1',
-    tenantCode: 'tenant-1',
-    roles: ['admin'],
-    scopes: [],
-    permissions: ['poc:create'],
-  };
+  let mockOutboxEventRepo: { [K in keyof OutboxEventRepository]?: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-1',
+      employee: { companyId: 'comp-A' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
     jest
       .spyOn(RequestContextService, 'current')
       .mockReturnValue({ companyId: 'comp-A' } as unknown as ReturnType<
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventRepo = {
+      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockPocRepo = {
       findByCompanyAndType: jest.fn(),
       findById: jest.fn(),
-      createAndSave: jest
-        .fn()
-        .mockImplementation((data) => ({ id: 'poc-1', ...data }) as PocEntity),
+      create: jest.fn().mockImplementation(async (data) => ({ id: 'poc-1', ...data }) as PocEntity),
     };
 
     mockEmployeeRefRepo = {
@@ -69,19 +59,13 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
       markStepCompleted: jest.fn().mockResolvedValue({} as never),
     };
 
-    mockDataSource = {
-      manager: {
-        getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-      },
-    };
-
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation((cb) => cb()),
     };
 
     service = new PocService(
-      mockDataSource as unknown as DataSource,
       mockTxService as unknown as TransactionService,
+      mockOutboxEventRepo as unknown as OutboxEventRepository,
       mockPocRepo as unknown as PocRepository,
       mockEmployeeRefRepo as unknown as EmployeeReferenceRepository,
       mockCompanyRepo as unknown as CompanyRepository,
@@ -103,37 +87,25 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
     } as EmployeeReferenceEntity);
     mockPocRepo.findByCompanyAndType!.mockResolvedValue(null);
 
-    const result = await service.create(
-      'comp-A',
-      {
-        pocType: PocType.HR_HEAD,
-        employeeId: 'emp-1',
-        effectiveAt: '2099-01-01T00:00:00Z',
-      },
-      mockAuthContextA,
-    );
+    const result = await service.create('comp-A', {
+      pocType: PocType.HR_HEAD,
+      employeeId: 'emp-1',
+      effectiveAt: '2099-01-01T00:00:00Z',
+    });
 
     expect(result).toBeDefined();
-    expect(mockPocRepo.findByCompanyAndType).toHaveBeenCalledWith(
-      'tenant-1',
-      'comp-A',
-      PocType.HR_HEAD,
-    );
+    expect(mockPocRepo.findByCompanyAndType).toHaveBeenCalledWith('comp-A', PocType.HR_HEAD);
   });
 
   it('should reject assigning PoC if employee does not exist in the tenant directory [US2]', async () => {
     mockEmployeeRefRepo.findByEmployeeId!.mockResolvedValue(null);
 
     await expect(
-      service.create(
-        'comp-A',
-        {
-          pocType: PocType.HR_HEAD,
-          employeeId: 'emp-foreign',
-          effectiveAt: '2099-01-01T00:00:00Z',
-        },
-        mockAuthContextA,
-      ),
+      service.create('comp-A', {
+        pocType: PocType.HR_HEAD,
+        employeeId: 'emp-foreign',
+        effectiveAt: '2099-01-01T00:00:00Z',
+      }),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -151,15 +123,11 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
     } as PocEntity);
 
     await expect(
-      service.create(
-        'comp-A',
-        {
-          pocType: PocType.HR_HEAD,
-          employeeId: 'emp-1',
-          effectiveAt: '2099-01-01T00:00:00Z',
-        },
-        mockAuthContextA,
-      ),
+      service.create('comp-A', {
+        pocType: PocType.HR_HEAD,
+        employeeId: 'emp-1',
+        effectiveAt: '2099-01-01T00:00:00Z',
+      }),
     ).rejects.toThrow(ConflictException);
   });
 });

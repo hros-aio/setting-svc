@@ -41,7 +41,7 @@ export class PocApplyHandler {
     const poc = await pocRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantCode,
+        tenantCode: command.tenantCode,
         companyId: command.companyId,
       },
     });
@@ -67,7 +67,7 @@ export class PocApplyHandler {
       eventType: PocEventType.POC_ASSIGNED,
       payload: {
         pocId: poc.id,
-        tenantId: poc.tenantId,
+        tenantCode: poc.tenantCode,
         companyId: poc.companyId,
         pocType: poc.pocType,
         employeeId: poc.employeeId,
@@ -110,7 +110,7 @@ export class PocApplyHandler {
     const previousPoc = await pocRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantCode,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -138,7 +138,7 @@ export class PocApplyHandler {
 
     // 2. Create new active PoC
     const newPoc = pocRepo.create({
-      tenantId: change.tenantCode,
+      tenantCode: change.tenantCode,
       companyId: change.companyId,
       pocType: previousPoc.pocType,
       employeeId: newEmployeeId,
@@ -163,7 +163,7 @@ export class PocApplyHandler {
       payload: {
         previousPocId: previousPoc.id,
         newPocId: savedNewPoc.id,
-        tenantId: change.tenantCode,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
         pocType: previousPoc.pocType,
         previousEmployeeId: previousPoc.employeeId,
@@ -211,7 +211,7 @@ export class PocApplyHandler {
     const poc = await pocRepo.findOne({
       where: {
         id: change.entityId,
-        tenantId: change.tenantCode,
+        tenantCode: change.tenantCode,
         companyId: change.companyId,
       },
     });
@@ -237,7 +237,7 @@ export class PocApplyHandler {
       eventType: PocEventType.POC_DEACTIVATED,
       payload: {
         pocId: poc.id,
-        tenantId: poc.tenantId,
+        tenantCode: poc.tenantCode,
         companyId: poc.companyId,
         pocType: poc.pocType,
         employeeId: poc.employeeId,

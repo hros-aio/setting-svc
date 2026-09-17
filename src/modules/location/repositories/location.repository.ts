@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository, Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
+import {
+  BaseRepository,
+  Location,
+  PaginatedResult,
+  PaginationOptions,
+  TransactionService,
+} from '@new-hros/libs-sql';
 import { FindOptionsWhere, In, Not } from 'typeorm';
 import { MasterDataStatus } from '../../../enums';
-import { PaginationOptions } from './location.repository.interface';
 
 @Injectable()
 export class LocationRepository extends BaseRepository<Location> {

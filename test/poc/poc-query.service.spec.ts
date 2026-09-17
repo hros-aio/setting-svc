@@ -1,4 +1,4 @@
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { MasterDataStatus, PocType } from '../../src/enums';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
@@ -15,16 +15,9 @@ describe('PocQueryService', () => {
   let mockEmployeeRefRepo: jest.Mocked<EmployeeReferenceRepository>;
   let mockEffectiveChangeRepo: jest.Mocked<EffectiveChangeRepository>;
 
-  const authContext: AuthContext = {
-    tenantCode: 'tenant-123',
-    userId: 'user-1',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['poc:read'],
-  };
-
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-123');
+
     mockPocRepo = {
       findActiveByCompany: jest.fn(),
       findHistory: jest.fn(),
@@ -41,11 +34,15 @@ describe('PocQueryService', () => {
     service = new PocQueryService(mockPocRepo, mockEmployeeRefRepo, mockEffectiveChangeRepo);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('findActiveByCompany', () => {
     it('should return empty list when no active PoCs exist', async () => {
       mockPocRepo.findActiveByCompany.mockResolvedValue([]);
 
-      const result = await service.findActiveByCompany('company-123', authContext);
+      const result = await service.findActiveByCompany('company-123');
 
       expect(result).toEqual([]);
     });
@@ -54,14 +51,14 @@ describe('PocQueryService', () => {
       const activePocs = [
         {
           id: 'poc-1',
-          tenantId: 'tenant-123',
+          tenantCode: 'tenant-123',
           companyId: 'company-123',
           pocType: PocType.HR_HEAD,
           employeeId: 'emp-1',
           status: MasterDataStatus.ACTIVE,
           effectiveAt: new Date('2026-08-01'),
         },
-      ] as PocEntity[];
+      ] as unknown as PocEntity[];
 
       const employeeRefs = [
         {
@@ -86,7 +83,7 @@ describe('PocQueryService', () => {
       mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue(employeeRefs);
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(pendingChange);
 
-      const result = await service.findActiveByCompany('company-123', authContext);
+      const result = await service.findActiveByCompany('company-123');
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(
@@ -117,7 +114,7 @@ describe('PocQueryService', () => {
           status: MasterDataStatus.ACTIVE,
           effectiveAt: new Date('2026-08-01'),
         },
-      ] as PocEntity[];
+      ] as unknown as PocEntity[];
 
       const employeeRefs = [
         {
@@ -131,7 +128,7 @@ describe('PocQueryService', () => {
       mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue(employeeRefs);
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(null);
 
-      const result = await service.findActiveByCompany('company-123', authContext);
+      const result = await service.findActiveByCompany('company-123');
 
       expect(result[0].isHolderInactive).toBe(true);
       expect(result[0].hasPendingChange).toBe(false);
@@ -143,7 +140,7 @@ describe('PocQueryService', () => {
       const historyPocs = [
         {
           id: 'poc-old',
-          tenantId: 'tenant-123',
+          tenantCode: 'tenant-123',
           companyId: 'company-123',
           pocType: PocType.IT_HEAD,
           employeeId: 'emp-1',
@@ -152,11 +149,14 @@ describe('PocQueryService', () => {
           createdAt: new Date('2026-06-15'),
           updatedAt: new Date('2026-07-01'),
         },
-      ] as PocEntity[];
+      ] as unknown as PocEntity[];
 
       mockPocRepo.findHistory.mockResolvedValue({
-        items: historyPocs,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        data: historyPocs,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
       });
 
       mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue([
@@ -167,11 +167,11 @@ describe('PocQueryService', () => {
       ]);
 
       const query: QueryPocDto = { page: 1, limit: 20 };
-      const result = await service.findHistoryByCompany('company-123', query, authContext);
+      const result = await service.findHistoryByCompany('company-123', query);
 
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].displayName).toBe('John Smith');
-      expect(result.meta.total).toBe(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].displayName).toBe('John Smith');
+      expect(result.total).toBe(1);
     });
   });
 });

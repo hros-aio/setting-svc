@@ -1,98 +1,55 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, Not, Repository } from 'typeorm';
+import {
+  BaseRepository,
+  PaginatedResult,
+  PaginationOptions,
+  TransactionService,
+} from '@new-hros/libs-sql';
+import { FindOptionsWhere, In, Not } from 'typeorm';
 import { MasterDataStatus } from '../../../enums';
 import { PocEntity } from '../entities/poc.entity';
-import {
-  IPocRepository,
-  PocHistoryPaginationOptions,
-  PocPaginatedResult,
-} from './poc.repository.interface';
 
 @Injectable()
-export class PocRepository implements IPocRepository {
-  constructor(
-    @InjectRepository(PocEntity)
-    private readonly repo: Repository<PocEntity>,
-  ) {}
-
-  private getRepo(manager?: EntityManager): Repository<PocEntity> {
-    return manager ? manager.getRepository(PocEntity) : this.repo;
+export class PocRepository extends BaseRepository<PocEntity> {
+  constructor(transactionService: TransactionService) {
+    super(PocEntity, transactionService);
   }
 
-  async findById(
-    tenantId: string,
-    companyId: string,
-    id: string,
-    manager?: EntityManager,
-  ): Promise<PocEntity | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        id,
-        tenantId,
-        companyId,
-      },
+  async findByCompanyAndType(companyId: string, pocType: string): Promise<PocEntity | null> {
+    return this.findOne({
+      companyId,
+      pocType,
+      status: Not(MasterDataStatus.INACTIVE),
     });
   }
 
-  async findByCompanyAndType(
-    tenantId: string,
-    companyId: string,
-    pocType: string,
-    manager?: EntityManager,
-  ): Promise<PocEntity | null> {
-    return this.getRepo(manager).findOne({
-      where: {
-        tenantId,
-        companyId,
-        pocType,
-        status: Not(MasterDataStatus.INACTIVE),
-      },
-    });
-  }
-
-  async findActiveByCompany(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<PocEntity[]> {
-    return this.getRepo(manager).find({
-      where: {
-        tenantId,
+  async findActiveByCompany(companyId: string): Promise<PocEntity[]> {
+    return this.find(
+      {
         companyId,
         status: MasterDataStatus.ACTIVE,
       },
-      order: {
-        pocType: 'ASC',
+      {
+        order: { pocType: 1 },
       },
-    });
+    );
   }
 
-  async findActiveOrScheduledByCompany(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<PocEntity[]> {
-    return this.getRepo(manager).find({
-      where: {
-        tenantId,
+  async findActiveOrScheduledByCompany(companyId: string): Promise<PocEntity[]> {
+    return this.find(
+      {
         companyId,
         status: In([MasterDataStatus.ACTIVE, MasterDataStatus.SCHEDULED]),
       },
-      order: {
-        pocType: 'ASC',
+      {
+        order: { pocType: 1 },
       },
-    });
+    );
   }
 
-  async hasActiveOrScheduled(
-    tenantId: string,
-    companyId: string,
-    manager?: EntityManager,
-  ): Promise<boolean> {
-    const count = await this.getRepo(manager).count({
+  async hasActiveOrScheduled(companyId: string): Promise<boolean> {
+    const count = await this.repository.count({
       where: {
-        tenantId,
         companyId,
         status: Not(MasterDataStatus.INACTIVE),
       },
@@ -101,46 +58,44 @@ export class PocRepository implements IPocRepository {
   }
 
   async findHistory(
-    tenantId: string,
     companyId: string,
-    options?: PocHistoryPaginationOptions,
-    manager?: EntityManager,
-  ): Promise<PocPaginatedResult<PocEntity>> {
+    options?: PaginationOptions & { pocType?: string },
+  ): Promise<PaginatedResult<PocEntity>> {
     const page = Math.max(1, options?.page || 1);
     const limit = Math.max(1, Math.min(100, options?.limit || 20));
-    const skip = (page - 1) * limit;
 
-    const qb = this.getRepo(manager)
-      .createQueryBuilder('poc')
-      .where('poc.tenant_id = :tenantId', { tenantId })
-      .andWhere('poc.company_id = :companyId', { companyId });
-
+    const where: FindOptionsWhere<PocEntity> = {
+      companyId,
+    };
     if (options?.pocType) {
-      qb.andWhere('poc.poc_type = :pocType', { pocType: options.pocType });
+      where.pocType = options.pocType;
     }
 
-    qb.orderBy('poc.created_at', 'DESC').skip(skip).take(limit);
-
-    const [items, total] = await qb.getManyAndCount();
-
-    return {
-      items,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
-    };
+    return this.find(where, {
+      pagination: { page, limit },
+      order: { createdAt: -1 },
+    });
   }
 
-  async createAndSave(data: Partial<PocEntity>, manager?: EntityManager): Promise<PocEntity> {
-    const repo = this.getRepo(manager);
-    const entity = repo.create(data);
-    return repo.save(entity);
+  async updateStatus(id: string, status: MasterDataStatus, userId?: string): Promise<PocEntity> {
+    const poc = await this.findById(id, { required: true });
+
+    poc.status = status;
+    if (userId) {
+      poc.updatedBy = userId;
+    }
+
+    return this.update(id, poc);
   }
 
-  async save(entity: PocEntity, manager?: EntityManager): Promise<PocEntity> {
-    return this.getRepo(manager).save(entity);
+  async updateFields(id: string, fields: Partial<PocEntity>, userId?: string): Promise<PocEntity> {
+    const poc = await this.findById(id, { required: true });
+
+    Object.assign(poc, fields);
+    if (userId) {
+      poc.updatedBy = userId;
+    }
+
+    return this.repository.save(poc);
   }
 }

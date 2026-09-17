@@ -66,7 +66,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_CREATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantCode,
+        tenantCode: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         name: department.name,
@@ -160,7 +160,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_UPDATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantCode,
+        tenantCode: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         name: department.name,
@@ -231,7 +231,7 @@ export class DepartmentApplyHandler {
       eventType: DepartmentEventType.DEPARTMENT_DEACTIVATED,
       payload: {
         departmentId: department.id,
-        tenantId: department.tenantCode,
+        tenantCode: department.tenantCode,
         companyId: department.companyId,
         code: department.code,
         status: department.status,
