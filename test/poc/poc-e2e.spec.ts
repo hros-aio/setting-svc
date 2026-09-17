@@ -1,6 +1,6 @@
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import {
   EffectiveChangeEventType,
   EffectiveChangeStatus,
@@ -13,6 +13,7 @@ import { CompanyEntity } from '../../src/modules/company/entities/company.entity
 import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { PocApplyHandler } from '../../src/modules/effective-change/handlers/poc-apply.handler';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
@@ -40,16 +41,18 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
   const emp2Id = '22222222-2222-2222-2222-222222222222';
   const futureEffectiveDate = new Date(Date.now() + 86400000 * 5).toISOString();
 
-  const authContext: AuthContext = {
-    tenantCode: tenantId,
-    userId: 'admin-user',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['poc:create', 'poc:update', 'poc:deactivate', 'poc:read'],
-  };
-
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(tenantId);
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'admin-user',
+      employee: { companyId },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
+    jest
+      .spyOn(RequestContextService, 'current')
+      .mockReturnValue({ companyId } as unknown as ReturnType<
+        typeof RequestContextService.current
+      >);
+
     pocStore = new Map();
     changeStore = new Map();
     outboxStore = [];
@@ -58,19 +61,20 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     const mockOutboxRepo = {
       create: jest.fn().mockImplementation((dto: Partial<OutboxEventEntity>) => {
         const event = { id: 'outbox-' + Math.random(), ...dto } as OutboxEventEntity;
-        return event;
+        outboxStore.push(event);
+        return Promise.resolve(event);
       }),
       save: jest.fn().mockImplementation((entity: OutboxEventEntity) => {
         outboxStore.push(entity);
         return Promise.resolve(entity);
       }),
-    } as unknown as Repository<OutboxEventEntity>;
+    } as unknown as OutboxEventRepository;
 
     const mockPocRepo = {
       findOne: jest.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
         for (const p of pocStore.values()) {
           if (where.id && p.id !== where.id) continue;
-          if (where.tenantId && p.tenantId !== where.tenantId) continue;
+          if (where.tenantCode && p.tenantCode !== where.tenantCode) continue;
           if (where.companyId && p.companyId !== where.companyId) continue;
           if (where.pocType && p.pocType !== where.pocType) continue;
           return Promise.resolve(p);
@@ -80,7 +84,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
       find: jest.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
         const results: PocEntity[] = [];
         for (const p of pocStore.values()) {
-          if (where.tenantId && p.tenantId !== where.tenantId) continue;
+          if (where.tenantCode && p.tenantCode !== where.tenantCode) continue;
           if (where.companyId && p.companyId !== where.companyId) continue;
           if (where.status && p.status !== where.status) continue;
           results.push(p);
@@ -88,12 +92,14 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
         return Promise.resolve(results);
       }),
       create: jest.fn().mockImplementation((dto: Partial<PocEntity>) => {
-        return {
+        const entity = {
           id: 'poc-' + Math.random(),
           createdAt: new Date(),
           updatedAt: new Date(),
           ...dto,
         } as PocEntity;
+        pocStore.set(entity.id, entity);
+        return entity;
       }),
       save: jest.fn().mockImplementation((entity: PocEntity) => {
         if (!entity.id) entity.id = 'poc-' + Math.random();
@@ -143,19 +149,30 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
 
     const mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === PocEntity) return mockPocRepo;
-        if (target === EffectiveChangeEntity) return mockChangeRepo;
-        if (target === OutboxEventEntity) return mockOutboxRepo;
+        const targetName = typeof target === 'function' ? target.name : undefined;
+        if (target === PocEntity || targetName === 'PocEntity') return mockPocRepo;
+        if (target === EffectiveChangeEntity || targetName === 'EffectiveChangeEntity')
+          return mockChangeRepo;
+        if (target === OutboxEventEntity || targetName === 'OutboxEventEntity')
+          return mockOutboxRepo;
         return null;
       }),
     } as unknown as EntityManager;
 
-    const mockDataSource = {
-      manager: mockEntityManager,
-      createEntityManager: jest.fn().mockReturnValue(mockEntityManager),
-    } as unknown as DataSource;
+    const transactionService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+      defaultManager: mockEntityManager,
+      runInTransaction: jest
+        .fn()
+        .mockImplementation((cb: (em?: EntityManager) => Promise<unknown>) =>
+          cb(mockEntityManager),
+        ),
+    } as unknown as TransactionService;
 
-    const pocRepository = new PocRepository(mockPocRepo);
+    const pocRepository = new PocRepository(transactionService);
+    jest
+      .spyOn(pocRepository as unknown as { tenantCode: string }, 'tenantCode', 'get')
+      .mockReturnValue(tenantId);
     const effectiveChangeRepository = {
       findPendingChange: jest
         .fn()
@@ -229,19 +246,9 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
       }),
     } as unknown as CompanySetupStepRepository;
 
-    const transactionService = {
-      getManager: jest.fn().mockReturnValue(mockEntityManager),
-      defaultManager: mockEntityManager,
-      runInTransaction: jest
-        .fn()
-        .mockImplementation((cb: (em?: EntityManager) => Promise<unknown>) =>
-          cb(mockEntityManager),
-        ),
-    } as unknown as TransactionService;
-
     pocService = new PocService(
-      mockDataSource,
       transactionService,
+      mockOutboxRepo,
       pocRepository,
       employeeRefRepo,
       mockCompanyRepo,
@@ -260,15 +267,11 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
 
   it('should execute full lifecycle: create -> activate -> replace -> apply replace -> query -> deactivate -> apply deactivate', async () => {
     // 1. Create Initial PoC Assignment (US1)
-    const initialPoc = await pocService.create(
-      companyId,
-      {
-        pocType: PocType.HR_HEAD,
-        employeeId: emp1Id,
-        effectiveAt: futureEffectiveDate,
-      },
-      authContext,
-    );
+    const initialPoc = await pocService.create(companyId, {
+      pocType: PocType.HR_HEAD,
+      employeeId: emp1Id,
+      effectiveAt: futureEffectiveDate,
+    });
 
     expect(initialPoc.status).toBe(MasterDataStatus.SCHEDULED);
     expect(stepStore.get(SetupStepType.POC)).toBe('COMPLETED');
@@ -289,29 +292,24 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     expect(outboxStore.some((e) => e.eventType === PocEventType.POC_ASSIGNED)).toBe(true);
 
     // 3. Query Active PoCs (US5)
-    let activeList = await pocQueryService.findActiveByCompany(companyId, authContext);
+    let activeList = await pocQueryService.findActiveByCompany(companyId);
     expect(activeList).toHaveLength(1);
     expect(activeList[0].displayName).toBe('Alice Walker');
     expect(activeList[0].hasPendingChange).toBe(false);
 
     // 4. Schedule Replacement with Emp2 (US2)
-    const replaceChange = await pocService.replace(
-      companyId,
-      activePoc.id,
-      {
-        newEmployeeId: emp2Id,
-        effectiveAt: futureEffectiveDate,
-        reason: 'Succession Plan',
-      },
-      authContext,
-    );
+    const replaceChange = await pocService.replace(companyId, activePoc.id, {
+      newEmployeeId: emp2Id,
+      effectiveAt: futureEffectiveDate,
+      reason: 'Succession Plan',
+    });
 
     expect(replaceChange.status).toBe(EffectiveChangeStatus.SCHEDULED);
     // Incumbent still active
     expect(pocStore.get(initialPoc.id)!.status).toBe(MasterDataStatus.ACTIVE);
 
     // Query reflects pending change
-    activeList = await pocQueryService.findActiveByCompany(companyId, authContext);
+    activeList = await pocQueryService.findActiveByCompany(companyId);
     expect(activeList[0].hasPendingChange).toBe(true);
 
     // 5. Go Worker Executes Scheduled UPDATE
@@ -327,7 +325,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     expect(outboxStore.some((e) => e.eventType === PocEventType.POC_REPLACED)).toBe(true);
 
     // New active PoC exists
-    activeList = await pocQueryService.findActiveByCompany(companyId, authContext);
+    activeList = await pocQueryService.findActiveByCompany(companyId);
     expect(activeList).toHaveLength(1);
     expect(activeList[0].employeeId).toBe(emp2Id);
     expect(activeList[0].displayName).toBe('Bob Ross');
@@ -335,15 +333,10 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     const newActivePocId = activeList[0].id;
 
     // 6. Schedule Deactivation (US3)
-    const deactChange = await pocService.deactivate(
-      companyId,
-      newActivePocId,
-      {
-        effectiveAt: futureEffectiveDate,
-        reason: 'Restructuring',
-      },
-      authContext,
-    );
+    const deactChange = await pocService.deactivate(companyId, newActivePocId, {
+      effectiveAt: futureEffectiveDate,
+      reason: 'Restructuring',
+    });
 
     expect(deactChange.status).toBe(EffectiveChangeStatus.SCHEDULED);
 
@@ -360,7 +353,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     expect(outboxStore.some((e) => e.eventType === PocEventType.POC_DEACTIVATED)).toBe(true);
 
     // 8. Active list now empty
-    activeList = await pocQueryService.findActiveByCompany(companyId, authContext);
+    activeList = await pocQueryService.findActiveByCompany(companyId);
     expect(activeList).toHaveLength(0);
   });
 });

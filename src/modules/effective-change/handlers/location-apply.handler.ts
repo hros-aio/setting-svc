@@ -142,7 +142,7 @@ export class LocationApplyHandler {
       eventType: LocationEventType.LOCATION_UPDATED,
       payload: {
         locationId: location.id,
-        tenantId: location.tenantCode,
+        tenantCode: location.tenantCode,
         companyId: location.companyId,
         code: location.code,
         name: location.name,
@@ -214,7 +214,7 @@ export class LocationApplyHandler {
       eventType: LocationEventType.LOCATION_DEACTIVATED,
       payload: {
         locationId: location.id,
-        tenantId: location.tenantCode,
+        tenantCode: location.tenantCode,
         companyId: location.companyId,
         code: location.code,
         status: location.status,

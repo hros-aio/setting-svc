@@ -1,10 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { Injectable, Logger } from '@nestjs/common';
+import { RequestContextService } from '@new-hros/libs-core';
+import { PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
 import { QueryPocDto } from '../dtos/query-poc.dto';
 import { PocRepository } from '../repositories/poc.repository';
-import { PocPaginatedResult } from '../repositories/poc.repository.interface';
 
 export interface ActivePocResponse {
   id: string;
@@ -46,12 +46,9 @@ export class PocQueryService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async findActiveByCompany(
-    companyId: string,
-    authContext?: AuthContext | null,
-  ): Promise<ActivePocResponse[]> {
-    const tenantId = this.resolveTenantId(authContext);
-    const pocs = await this.pocRepository.findActiveByCompany(tenantId, companyId);
+  async findActiveByCompany(companyId: string): Promise<ActivePocResponse[]> {
+    const tenantId = RequestContextService.getTenantCode();
+    const pocs = await this.pocRepository.findActiveByCompany(companyId);
 
     if (!pocs.length) {
       return [];
@@ -106,16 +103,15 @@ export class PocQueryService {
   async findHistoryByCompany(
     companyId: string,
     query: QueryPocDto,
-    authContext?: AuthContext | null,
-  ): Promise<PocPaginatedResult<PocHistoryItemResponse>> {
-    const tenantId = this.resolveTenantId(authContext);
-    const paginated = await this.pocRepository.findHistory(tenantId, companyId, {
-      page: query.page,
-      limit: query.limit,
+  ): Promise<PaginatedResult<PocHistoryItemResponse>> {
+    const tenantId = RequestContextService.getTenantCode();
+    const paginated = await this.pocRepository.findHistory(companyId, {
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
       pocType: query.pocType,
     });
 
-    const employeeIds = paginated.items.map((p) => p.employeeId);
+    const employeeIds = paginated.data.map((p) => p.employeeId);
     const employeeRefs = await this.employeeReferenceRepository.findByEmployeeIds(
       tenantId,
       employeeIds,
@@ -123,7 +119,8 @@ export class PocQueryService {
     const empMap = new Map(employeeRefs.map((e) => [e.employeeId, e]));
 
     return {
-      items: paginated.items.map((poc) => {
+      ...paginated,
+      data: paginated.data.map((poc) => {
         const emp = empMap.get(poc.employeeId);
         return {
           id: poc.id,
@@ -136,15 +133,6 @@ export class PocQueryService {
           updatedAt: poc.updatedAt,
         };
       }),
-      meta: paginated.meta,
     };
-  }
-
-  private resolveTenantId(authContext?: AuthContext | null): string {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    if (!tenantId) {
-      throw new BadRequestException('Tenant ID is required but could not be resolved from context');
-    }
-    return tenantId;
   }
 }

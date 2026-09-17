@@ -148,7 +148,7 @@ describe('PocApplyHandler', () => {
 
       expect(mockPocRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'tenant-123',
+          tenantCode: 'tenant-123',
           companyId: 'company-123',
           pocType: PocType.FINANCE_HEAD,
           employeeId: 'emp-2',

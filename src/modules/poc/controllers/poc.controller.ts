@@ -11,15 +11,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
-import { AuthContext } from '@new-hros/libs-core';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreatePocDto } from '../dtos/create-poc.dto';
 import { DeactivatePocDto } from '../dtos/deactivate-poc.dto';
 import { QueryPocDto } from '../dtos/query-poc.dto';
 import { ReplacePocDto } from '../dtos/replace-poc.dto';
 import { PocEntity } from '../entities/poc.entity';
-import { PocPaginatedResult } from '../repositories/poc.repository.interface';
 import {
   ActivePocResponse,
   PocHistoryItemResponse,
@@ -41,9 +40,8 @@ export class PocController {
   async create(
     @Param('companyId') companyId: string,
     @Body() dto: CreatePocDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<PocEntity> {
-    return this.pocService.create(companyId, dto, authContext);
+    return this.pocService.create(companyId, dto);
   }
 
   @Put(':pocId/replace')
@@ -52,9 +50,8 @@ export class PocController {
     @Param('companyId') companyId: string,
     @Param('pocId') pocId: string,
     @Body() dto: ReplacePocDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.pocService.replace(companyId, pocId, dto, authContext);
+    return this.pocService.replace(companyId, pocId, dto);
   }
 
   @Delete(':pocId')
@@ -63,18 +60,14 @@ export class PocController {
     @Param('companyId') companyId: string,
     @Param('pocId') pocId: string,
     @Body() dto: DeactivatePocDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EffectiveChangeEntity> {
-    return this.pocService.deactivate(companyId, pocId, dto, authContext);
+    return this.pocService.deactivate(companyId, pocId, dto);
   }
 
   @Get()
   @RequirePermission('poc:read')
-  async findActive(
-    @Param('companyId') companyId: string,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<ActivePocResponse[]> {
-    return this.pocQueryService.findActiveByCompany(companyId, authContext);
+  async findActive(@Param('companyId') companyId: string): Promise<ActivePocResponse[]> {
+    return this.pocQueryService.findActiveByCompany(companyId);
   }
 
   @Get('history')
@@ -82,8 +75,7 @@ export class PocController {
   async findHistory(
     @Param('companyId') companyId: string,
     @Query() query: QueryPocDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<PocPaginatedResult<PocHistoryItemResponse>> {
-    return this.pocQueryService.findHistoryByCompany(companyId, query, authContext);
+  ): Promise<PaginatedResult<PocHistoryItemResponse>> {
+    return this.pocQueryService.findHistoryByCompany(companyId, query);
   }
 }

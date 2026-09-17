@@ -64,7 +64,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_CREATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantCode,
+        tenantCode: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         name: grade.name,
@@ -142,7 +142,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_UPDATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantCode,
+        tenantCode: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         name: grade.name,
@@ -213,7 +213,7 @@ export class GradeApplyHandler {
       eventType: GradeEventType.GRADE_DEACTIVATED,
       payload: {
         gradeId: grade.id,
-        tenantId: grade.tenantCode,
+        tenantCode: grade.tenantCode,
         companyId: grade.companyId,
         code: grade.code,
         status: grade.status,

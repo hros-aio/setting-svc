@@ -5,9 +5,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource } from 'typeorm';
+import { isDateString } from 'class-validator';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,
@@ -19,9 +19,9 @@ import {
   PocType,
   SetupStepType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
@@ -36,8 +36,8 @@ export class PocService {
   private readonly logger = new Logger(PocService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly transactionService: TransactionService,
+    private readonly outboxEventRepository: OutboxEventRepository,
     private readonly pocRepository: PocRepository,
     private readonly employeeReferenceRepository: EmployeeReferenceRepository,
     private readonly companyRepository: CompanyRepository,
@@ -45,20 +45,12 @@ export class PocService {
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
   ) {}
 
-  async create(
-    companyId: string,
-    dto: CreatePocDto,
-    authContext?: AuthContext | null,
-  ): Promise<PocEntity> {
-    const userId = authContext?.userId;
-    const tenantId = this.resolveTenantId(authContext);
+  async create(companyId: string, dto: CreatePocDto): Promise<PocEntity> {
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Validate pocType in allow-list
     if (!Object.values(PocType).includes(dto.pocType)) {
@@ -66,14 +58,10 @@ export class PocService {
     }
 
     // 3. Verify employee exists in local read projection & is active
-    await this.verifyEmployeeReference(tenantId, companyId, dto.employeeId);
+    await this.verifyEmployeeReference(dto.employeeId);
 
     // 4. Verify no active or scheduled assignment currently exists for this type in this company
-    const existing = await this.pocRepository.findByCompanyAndType(
-      tenantId,
-      companyId,
-      dto.pocType,
-    );
+    const existing = await this.pocRepository.findByCompanyAndType(companyId, dto.pocType);
     if (existing) {
       throw new ConflictException(
         `An active or scheduled Point of Contact already exists for responsibility type '${dto.pocType}' in this company`,
@@ -81,22 +69,17 @@ export class PocService {
     }
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       // 5. Persist Poc in scheduled status
-      const poc = await this.pocRepository.createAndSave(
-        {
-          tenantId,
-          companyId,
-          pocType: dto.pocType,
-          employeeId: dto.employeeId,
-          status: MasterDataStatus.SCHEDULED,
-          effectiveAt: effectiveAtDate,
-          createdBy: userId,
-          updatedBy: userId,
-        },
-        manager,
-      );
+      const poc = await this.pocRepository.create({
+        tenantCode,
+        companyId,
+        pocType: dto.pocType,
+        employeeId: dto.employeeId,
+        status: MasterDataStatus.SCHEDULED,
+        effectiveAt: effectiveAtDate,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
       // 6. Complete POC setup step (Step 8)
       await this.companySetupStepRepository.markStepCompleted({
@@ -106,8 +89,7 @@ export class PocService {
       });
 
       // 7. Write outbox event for scheduling
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.POC,
         aggregateId: poc.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -117,12 +99,11 @@ export class PocService {
           operation: 'CREATE',
           effectiveAt: poc.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: poc.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       this.logger.log(
         `Scheduled initial PoC assignment for ${dto.pocType} (id: ${poc.id}) in company ${companyId}`,
@@ -136,35 +117,28 @@ export class PocService {
     companyId: string,
     pocId: string,
     dto: ReplacePocDto,
-    authContext?: AuthContext | null,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const tenantId = this.resolveTenantId(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target PoC is active (or scheduled)
-    const poc = await this.verifyPocExists(tenantId, companyId, pocId);
+    const poc = await this.verifyPocExists(pocId);
     if (poc.status === MasterDataStatus.INACTIVE) {
       throw new BadRequestException(`Cannot schedule replacement for an INACTIVE Point of Contact`);
     }
 
     // 3. Verify new employee exists in projection
-    await this.verifyEmployeeReference(tenantId, companyId, dto.newEmployeeId);
+    await this.verifyEmployeeReference(dto.newEmployeeId);
 
     // 4. Verify no pending change exists for this PoC (BR-13)
     await this.verifyNoPendingChange(companyId, pocId, 'scheduling replacement');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'poc',
         entityId: poc.id,
@@ -181,8 +155,7 @@ export class PocService {
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -192,12 +165,11 @@ export class PocService {
           operation: 'UPDATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       this.logger.log(
         `Scheduled replacement for PoC ${poc.pocType} (${pocId}) in company ${companyId}`,
@@ -211,20 +183,15 @@ export class PocService {
     companyId: string,
     pocId: string,
     dto: DeactivatePocDto,
-    authContext?: AuthContext | null,
   ): Promise<EffectiveChangeEntity> {
-    const userId = authContext?.userId;
-    const tenantId = this.resolveTenantId(authContext);
+    const userId = RequestContextService.getUser().userId;
+    const tenantCode = RequestContextService.getTenantCode();
 
     // 1. Resolve Company and validate future effective date
-    const { effectiveAtDate } = await this.validateEffectiveDate(
-      tenantId,
-      companyId,
-      dto.effectiveAt,
-    );
+    const { effectiveAtDate } = await this.validateEffectiveDate(companyId, dto.effectiveAt);
 
     // 2. Verify target PoC exists and is active
-    const poc = await this.verifyPocExists(tenantId, companyId, pocId);
+    const poc = await this.verifyPocExists(pocId);
     if (poc.status === MasterDataStatus.INACTIVE) {
       throw new BadRequestException(`Point of Contact is already INACTIVE`);
     }
@@ -233,10 +200,8 @@ export class PocService {
     await this.verifyNoPendingChange(companyId, pocId, 'scheduling deactivation');
 
     return this.transactionService.runInTransaction(async () => {
-      const manager = this.dataSource.manager;
-
       const savedChange = await this.effectiveChangeRepository.create({
-        tenantCode: tenantId,
+        tenantCode,
         companyId,
         entityType: 'poc',
         entityId: poc.id,
@@ -252,8 +217,7 @@ export class PocService {
       });
 
       // Write outbox event
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EFFECTIVE_CHANGE,
         aggregateId: savedChange.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
@@ -263,12 +227,11 @@ export class PocService {
           operation: 'DEACTIVATE',
           effectiveAt: savedChange.effectiveAt,
           targetCompanyId: companyId,
-          tenantId,
+          tenantCode,
         },
         executionTime: savedChange.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-      await outboxRepo.save(scheduledEvent);
 
       this.logger.log(
         `Scheduled deactivation for PoC ${poc.pocType} (${pocId}) in company ${companyId}`,
@@ -278,26 +241,22 @@ export class PocService {
     });
   }
 
-  private resolveTenantId(authContext?: AuthContext | null): string {
-    const tenantId = authContext?.tenantCode || RequestContextService.getTenantCode();
-    if (!tenantId) {
-      throw new BadRequestException('Tenant ID is required but could not be resolved from context');
-    }
-    return tenantId;
-  }
-
   private async validateEffectiveDate(
-    tenantId: string,
     companyId: string,
     effectiveAt: string,
   ): Promise<{ effectiveAtDate: Date; timezone: string }> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
-      throw new NotFoundException(`Company '${companyId}' not found for tenant '${tenantId}'`);
+      throw new NotFoundException(`Company '${companyId}' not found`);
     }
 
+    if (!isDateString(effectiveAt)) {
+      throw new BadRequestException('Invalid effectiveAt date format');
+    }
+
+    const effectiveAtDate = new Date(effectiveAt);
     const tz = company.timezone || 'UTC';
-    const validation = EffectiveDateUtil.validateFutureEffectiveDate(effectiveAt, tz);
+    const validation = EffectiveDateUtil.validateFutureEffectiveDate(effectiveAtDate, tz);
     if (!validation.isValid) {
       throw new BadRequestException(
         `Effective date must be strictly in the future (on or after end of current business day in ${tz})`,
@@ -305,16 +264,13 @@ export class PocService {
     }
 
     return {
-      effectiveAtDate: new Date(effectiveAt),
+      effectiveAtDate,
       timezone: tz,
     };
   }
 
-  private async verifyEmployeeReference(
-    tenantId: string,
-    companyId: string,
-    employeeId: string,
-  ): Promise<void> {
+  private async verifyEmployeeReference(employeeId: string): Promise<void> {
+    const tenantId = RequestContextService.getTenantCode();
     const employee = await this.employeeReferenceRepository.findByEmployeeId(tenantId, employeeId);
     if (!employee) {
       throw new NotFoundException(
@@ -328,16 +284,10 @@ export class PocService {
     }
   }
 
-  private async verifyPocExists(
-    tenantId: string,
-    companyId: string,
-    pocId: string,
-  ): Promise<PocEntity> {
-    const poc = await this.pocRepository.findById(tenantId, companyId, pocId);
+  private async verifyPocExists(pocId: string): Promise<PocEntity> {
+    const poc = await this.pocRepository.findById(pocId);
     if (!poc) {
-      throw new NotFoundException(
-        `Point of Contact '${pocId}' not found for company '${companyId}'`,
-      );
+      throw new NotFoundException(`Point of Contact '${pocId}' not found`);
     }
     return poc;
   }

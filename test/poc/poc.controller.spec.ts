@@ -1,4 +1,3 @@
-import { AuthContext } from '@new-hros/libs-core';
 import { ChangeOperation, MasterDataStatus, PocType } from '../../src/enums';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { PocController } from '../../src/modules/poc/controllers/poc.controller';
@@ -17,15 +16,6 @@ describe('PocController', () => {
   let controller: PocController;
   let mockPocService: jest.Mocked<PocService>;
   let mockPocQueryService: jest.Mocked<PocQueryService>;
-
-  const authContext: AuthContext = {
-    tenantCode: 'tenant-123',
-    userId: 'user-admin',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['poc:create', 'poc:update', 'poc:deactivate', 'poc:read'],
-  };
 
   beforeEach(() => {
     mockPocService = {
@@ -58,9 +48,9 @@ describe('PocController', () => {
 
       mockPocService.create.mockResolvedValue(createdPoc);
 
-      const result = await controller.create('company-123', dto, authContext);
+      const result = await controller.create('company-123', dto);
 
-      expect(mockPocService.create).toHaveBeenCalledWith('company-123', dto, authContext);
+      expect(mockPocService.create).toHaveBeenCalledWith('company-123', dto);
       expect(result).toEqual(createdPoc);
     });
   });
@@ -80,9 +70,9 @@ describe('PocController', () => {
 
       mockPocService.replace.mockResolvedValue(scheduledChange);
 
-      const result = await controller.replace('company-123', 'poc-1', dto, authContext);
+      const result = await controller.replace('company-123', 'poc-1', dto);
 
-      expect(mockPocService.replace).toHaveBeenCalledWith('company-123', 'poc-1', dto, authContext);
+      expect(mockPocService.replace).toHaveBeenCalledWith('company-123', 'poc-1', dto);
       expect(result).toEqual(scheduledChange);
     });
   });
@@ -101,14 +91,9 @@ describe('PocController', () => {
 
       mockPocService.deactivate.mockResolvedValue(scheduledChange);
 
-      const result = await controller.deactivate('company-123', 'poc-1', dto, authContext);
+      const result = await controller.deactivate('company-123', 'poc-1', dto);
 
-      expect(mockPocService.deactivate).toHaveBeenCalledWith(
-        'company-123',
-        'poc-1',
-        dto,
-        authContext,
-      );
+      expect(mockPocService.deactivate).toHaveBeenCalledWith('company-123', 'poc-1', dto);
       expect(result).toEqual(scheduledChange);
     });
   });
@@ -129,12 +114,9 @@ describe('PocController', () => {
 
       mockPocQueryService.findActiveByCompany.mockResolvedValue(activeList);
 
-      const result = await controller.findActive('company-123', authContext);
+      const result = await controller.findActive('company-123');
 
-      expect(mockPocQueryService.findActiveByCompany).toHaveBeenCalledWith(
-        'company-123',
-        authContext,
-      );
+      expect(mockPocQueryService.findActiveByCompany).toHaveBeenCalledWith('company-123');
       expect(result).toEqual(activeList);
     });
   });
@@ -143,19 +125,18 @@ describe('PocController', () => {
     it('should delegate to pocQueryService.findHistoryByCompany', async () => {
       const query: QueryPocDto = { page: 1, limit: 10 };
       const paginatedResult = {
-        items: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
       };
 
       mockPocQueryService.findHistoryByCompany.mockResolvedValue(paginatedResult);
 
-      const result = await controller.findHistory('company-123', query, authContext);
+      const result = await controller.findHistory('company-123', query);
 
-      expect(mockPocQueryService.findHistoryByCompany).toHaveBeenCalledWith(
-        'company-123',
-        query,
-        authContext,
-      );
+      expect(mockPocQueryService.findHistoryByCompany).toHaveBeenCalledWith('company-123', query);
       expect(result).toEqual(paginatedResult);
     });
   });

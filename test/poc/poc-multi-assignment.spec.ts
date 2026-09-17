@@ -1,12 +1,11 @@
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, EntityManager, Repository } from 'typeorm';
 import { PocType } from '../../src/enums';
-import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
+import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../src/modules/employee-reference/repositories/employee-reference.repository';
@@ -21,35 +20,26 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
   let mockCompanyRepo: jest.Mocked<CompanyRepository>;
   let mockCompanySetupStepRepo: jest.Mocked<CompanySetupStepRepository>;
   let mockEffectiveChangeRepo: jest.Mocked<EffectiveChangeRepository>;
-  let mockDataSource: jest.Mocked<DataSource>;
-  let mockEntityManager: jest.Mocked<EntityManager>;
-  let mockOutboxRepo: jest.Mocked<Repository<OutboxEventEntity>>;
-
-  const authContext: AuthContext = {
-    tenantCode: 'tenant-123',
-    userId: 'user-admin',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['poc:create'],
-  };
+  let mockOutboxRepo: jest.Mocked<OutboxEventRepository>;
 
   const sharedEmployeeId = '550e8400-e29b-41d4-a716-446655440000';
   const futureEffectiveDate = new Date(Date.now() + 86400000 * 5).toISOString();
 
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-123');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-admin',
+      employee: { companyId: 'company-A' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
+    jest
+      .spyOn(RequestContextService, 'current')
+      .mockReturnValue({ companyId: 'company-A' } as unknown as ReturnType<
+        typeof RequestContextService.current
+      >);
+
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto: unknown) => dto),
-      save: jest.fn().mockImplementation((entity: unknown) => Promise.resolve(entity)),
-    } as unknown as jest.Mocked<Repository<OutboxEventEntity>>;
-
-    mockEntityManager = {
-      getRepository: jest.fn().mockReturnValue(mockOutboxRepo),
-    } as unknown as jest.Mocked<EntityManager>;
-
-    mockDataSource = {
-      manager: mockEntityManager,
-    } as unknown as jest.Mocked<DataSource>;
+      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+    } as unknown as jest.Mocked<OutboxEventRepository>;
 
     const mockTransactionService = {
       runInTransaction: jest.fn().mockImplementation(async (cb: () => Promise<unknown>) => cb()),
@@ -59,7 +49,7 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
       findById: jest.fn(),
       findByCompanyAndType: jest.fn(),
       findActiveByCompany: jest.fn(),
-      createAndSave: jest.fn().mockImplementation((dto: Partial<PocEntity>) =>
+      create: jest.fn().mockImplementation((dto: Partial<PocEntity>) =>
         Promise.resolve({
           id: 'poc-' + Math.random(),
           ...dto,
@@ -94,12 +84,12 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
 
     mockEffectiveChangeRepo = {
       findPendingChange: jest.fn(),
-      createAndSave: jest.fn(),
+      create: jest.fn(),
     } as unknown as jest.Mocked<EffectiveChangeRepository>;
 
     service = new PocService(
-      mockDataSource,
       mockTransactionService,
+      mockOutboxRepo,
       mockPocRepo,
       mockEmployeeRefRepo,
       mockCompanyRepo,
@@ -108,33 +98,29 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
     );
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should allow the same employee to hold multiple distinct PoC roles within the same company', async () => {
     // 1. Assign as HR_HEAD
     mockPocRepo.findByCompanyAndType.mockResolvedValueOnce(null);
-    const hrPoc = await service.create(
-      'company-A',
-      {
-        pocType: PocType.HR_HEAD,
-        employeeId: sharedEmployeeId,
-        effectiveAt: futureEffectiveDate,
-      },
-      authContext,
-    );
+    const hrPoc = await service.create('company-A', {
+      pocType: PocType.HR_HEAD,
+      employeeId: sharedEmployeeId,
+      effectiveAt: futureEffectiveDate,
+    });
 
     expect(hrPoc.pocType).toBe(PocType.HR_HEAD);
     expect(hrPoc.employeeId).toBe(sharedEmployeeId);
 
     // 2. Assign as FINANCE_HEAD in same company
     mockPocRepo.findByCompanyAndType.mockResolvedValueOnce(null);
-    const financePoc = await service.create(
-      'company-A',
-      {
-        pocType: PocType.FINANCE_HEAD,
-        employeeId: sharedEmployeeId,
-        effectiveAt: futureEffectiveDate,
-      },
-      authContext,
-    );
+    const financePoc = await service.create('company-A', {
+      pocType: PocType.FINANCE_HEAD,
+      employeeId: sharedEmployeeId,
+      effectiveAt: futureEffectiveDate,
+    });
 
     expect(financePoc.pocType).toBe(PocType.FINANCE_HEAD);
     expect(financePoc.employeeId).toBe(sharedEmployeeId);
@@ -143,29 +129,21 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
   it('should allow the same employee to hold PoC roles across sibling companies', async () => {
     // 1. Assign as COUNTRY_HEAD in Company A
     mockPocRepo.findByCompanyAndType.mockResolvedValueOnce(null);
-    const companyAPoc = await service.create(
-      'company-A',
-      {
-        pocType: PocType.COUNTRY_HEAD,
-        employeeId: sharedEmployeeId,
-        effectiveAt: futureEffectiveDate,
-      },
-      authContext,
-    );
+    const companyAPoc = await service.create('company-A', {
+      pocType: PocType.COUNTRY_HEAD,
+      employeeId: sharedEmployeeId,
+      effectiveAt: futureEffectiveDate,
+    });
 
     expect(companyAPoc.companyId).toBe('company-A');
 
     // 2. Assign as COUNTRY_HEAD in sibling Company B
     mockPocRepo.findByCompanyAndType.mockResolvedValueOnce(null);
-    const companyBPoc = await service.create(
-      'company-B',
-      {
-        pocType: PocType.COUNTRY_HEAD,
-        employeeId: sharedEmployeeId,
-        effectiveAt: futureEffectiveDate,
-      },
-      authContext,
-    );
+    const companyBPoc = await service.create('company-B', {
+      pocType: PocType.COUNTRY_HEAD,
+      employeeId: sharedEmployeeId,
+      effectiveAt: futureEffectiveDate,
+    });
 
     expect(companyBPoc.companyId).toBe('company-B');
   });
