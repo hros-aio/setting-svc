@@ -99,7 +99,7 @@ describe('EffectiveChangeService', () => {
           operation: ChangeOperation.CREATE,
           effectiveAt: pastOrNowDate,
           targetCompanyId: 'comp-1',
-          tenantId: 'tenant-1',
+          tenantCode: 'tenant-1',
           parameters: { name: 'Engineering' },
         },
         executionTime: expect.any(Date),

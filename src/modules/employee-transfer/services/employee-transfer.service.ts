@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import {
   AggregateType,
   EffectiveChangeEventType,
@@ -41,7 +41,7 @@ export class EmployeeTransferService {
       // 2. Persist pending transfer record
       const savedTransfer = await this.employeeTransferRepository.create({
         tenantCode,
-        id: employeeId,
+        employeeId,
         sourceCompanyId,
         destinationCompanyId: dto.destinationCompanyId,
         destinationLocationId: dto.destinationLocationId,

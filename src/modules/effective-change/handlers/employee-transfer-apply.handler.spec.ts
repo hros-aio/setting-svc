@@ -73,9 +73,9 @@ describe('EmployeeTransferApplyHandler', () => {
   it('should skip execution if transfer is already COMPLETED (idempotent)', async () => {
     mockTransferRepo.findOne.mockResolvedValue({
       id: 'trans-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       status: EmployeeTransferStatus.COMPLETED,
-    } as EmployeeTransferEntity);
+    } as unknown as EmployeeTransferEntity);
 
     await handler.apply({
       changeId: 'trans-1',
@@ -92,7 +92,7 @@ describe('EmployeeTransferApplyHandler', () => {
   it('should transition employee attribution, mark transfer COMPLETED, and emit domain event', async () => {
     const mockTransfer = {
       id: 'trans-1',
-      tenantId: 'tenant-1',
+      tenantCode: 'tenant-1',
       employeeId: 'emp-1',
       sourceCompanyId: 'comp-1',
       destinationCompanyId: 'comp-2',
@@ -102,14 +102,15 @@ describe('EmployeeTransferApplyHandler', () => {
       destinationJobTitleId: 'job-1',
       status: EmployeeTransferStatus.PENDING,
       effectiveAt: new Date('2026-08-25T00:00:00.000Z'),
-    } as EmployeeTransferEntity;
+    } as unknown as EmployeeTransferEntity;
 
     const mockEmployeeRef = {
-      tenantId: 'tenant-1',
-      employeeId: 'emp-1',
+      id: 'emp-1',
+      tenantCode: 'tenant-1',
+      employeeCode: 'emp-1',
       companyId: 'comp-1',
       sourceVersion: '1',
-    } as EmployeeReferenceEntity;
+    } as unknown as EmployeeReferenceEntity;
 
     mockTransferRepo.findOne.mockResolvedValue(mockTransfer);
     mockEmployeeRefRepo.findOne.mockResolvedValue(mockEmployeeRef);

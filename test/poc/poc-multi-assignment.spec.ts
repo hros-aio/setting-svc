@@ -59,13 +59,13 @@ describe('PoC Multi-Assignment and Sibling Company (US4)', () => {
     } as unknown as jest.Mocked<PocRepository>;
 
     mockEmployeeRefRepo = {
-      findByEmployeeId: jest.fn().mockResolvedValue({
-        id: 'ref-1',
-        employeeId: sharedEmployeeId,
+      findById: jest.fn().mockResolvedValue({
+        id: sharedEmployeeId,
+        employeeCode: sharedEmployeeId,
         employmentStatus: 'ACTIVE',
-      } as EmployeeReferenceEntity),
+      } as unknown as EmployeeReferenceEntity),
       findByCompanyAndEmployeeId: jest.fn(),
-      findByEmployeeIds: jest.fn(),
+      findByIds: jest.fn(),
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     mockCompanyRepo = {

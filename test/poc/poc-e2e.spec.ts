@@ -202,30 +202,30 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
     } as unknown as EffectiveChangeRepository;
 
     const employeeRefRepo = {
-      findByEmployeeId: jest.fn().mockImplementation((tId: string, empId: string) => {
+      findById: jest.fn().mockImplementation((empId: string) => {
         return Promise.resolve({
-          id: 'ref-' + empId,
-          tenantId: tId,
+          id: empId,
+          tenantCode: tenantId,
           companyId,
-          employeeId: empId,
+          employeeCode: empId,
           employeeNumber: 'EMP-' + empId.substring(0, 4),
           displayName: empId === emp1Id ? 'Alice Walker' : 'Bob Ross',
           employmentStatus: 'ACTIVE',
-        } as EmployeeReferenceEntity);
+        } as unknown as EmployeeReferenceEntity);
       }),
-      findByEmployeeIds: jest.fn().mockImplementation((tId: string, empIds: string[]) => {
+      findByIds: jest.fn().mockImplementation((empIds: string[]) => {
         return Promise.resolve(
           empIds.map(
             (id) =>
               ({
-                id: 'ref-' + id,
-                tenantId: tId,
+                id,
+                tenantCode: tenantId,
                 companyId,
-                employeeId: id,
+                employeeCode: id,
                 employeeNumber: 'EMP-' + id.substring(0, 4),
                 displayName: id === emp1Id ? 'Alice Walker' : 'Bob Ross',
                 employmentStatus: 'ACTIVE',
-              }) as EmployeeReferenceEntity,
+              }) as unknown as EmployeeReferenceEntity,
           ),
         );
       }),

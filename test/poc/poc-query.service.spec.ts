@@ -20,11 +20,11 @@ describe('PocQueryService', () => {
 
     mockPocRepo = {
       findActiveByCompany: jest.fn(),
-      findHistory: jest.fn(),
+      findHistoryByCompany: jest.fn(),
     } as unknown as jest.Mocked<PocRepository>;
 
     mockEmployeeRefRepo = {
-      findByEmployeeIds: jest.fn(),
+      findByIds: jest.fn(),
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     mockEffectiveChangeRepo = {
@@ -62,15 +62,15 @@ describe('PocQueryService', () => {
 
       const employeeRefs = [
         {
-          id: 'ref-1',
-          tenantId: 'tenant-123',
+          id: 'emp-1',
+          tenantCode: 'tenant-123',
           companyId: 'company-123',
-          employeeId: 'emp-1',
+          employeeCode: 'emp-1',
           employeeNumber: 'EMP-001',
           displayName: 'Jane Doe',
           employmentStatus: 'ACTIVE',
         },
-      ] as EmployeeReferenceEntity[];
+      ] as unknown as EmployeeReferenceEntity[];
 
       const pendingChange = {
         id: 'change-1',
@@ -118,11 +118,12 @@ describe('PocQueryService', () => {
 
       const employeeRefs = [
         {
-          employeeId: 'emp-term',
+          id: 'emp-term',
+          employeeCode: 'emp-term',
           displayName: 'Former Employee',
           employmentStatus: 'TERMINATED',
         },
-      ] as EmployeeReferenceEntity[];
+      ] as unknown as EmployeeReferenceEntity[];
 
       mockPocRepo.findActiveByCompany.mockResolvedValue(activePocs);
       mockEmployeeRefRepo.findByIds.mockResolvedValue(employeeRefs);
@@ -161,9 +162,10 @@ describe('PocQueryService', () => {
 
       mockEmployeeRefRepo.findByIds.mockResolvedValue([
         {
-          employeeId: 'emp-1',
+          id: 'emp-1',
+          employeeCode: 'emp-1',
           displayName: 'John Smith',
-        } as EmployeeReferenceEntity,
+        } as unknown as EmployeeReferenceEntity,
       ]);
 
       const query: QueryPocDto = { page: 1, limit: 20 };

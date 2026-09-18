@@ -7,6 +7,7 @@ import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyEntity } from '../entities/company.entity';
 import { OutboxEventEntity } from '../entities/outbox-event.entity';
 import { CompanyRepository } from '../repositories/company.repository';
+import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { CompanyProvisioningService } from './company-provisioning.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 
@@ -23,12 +24,6 @@ describe('CompanyProvisioningService', () => {
     mockOutboxRepo = {
       create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
       save: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
-    };
-
-    mockDataSource = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
     };
 
     mockTransactionService = {
@@ -62,10 +57,10 @@ describe('CompanyProvisioningService', () => {
 
     service = new CompanyProvisioningService(
       mockTransactionService as TransactionService,
-      mockDataSource as DataSource,
       mockTenantRepo as unknown as TenantRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepSeederService as unknown as SetupStepSeederService,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
@@ -133,9 +128,9 @@ describe('CompanyProvisioningService', () => {
       }),
     );
     expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith(
-      't-uuid-1',
+      'ACME',
       'c-uuid-1',
     );
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockOutboxRepo.create).toHaveBeenCalled();
   });
 });

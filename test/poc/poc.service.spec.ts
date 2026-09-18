@@ -64,9 +64,9 @@ describe('PocService', () => {
     } as unknown as jest.Mocked<PocRepository>;
 
     mockEmployeeRefRepo = {
-      findByEmployeeId: jest.fn(),
+      findById: jest.fn(),
       findByCompanyAndEmployeeId: jest.fn(),
-      findByEmployeeIds: jest.fn(),
+      findByIds: jest.fn(),
     } as unknown as jest.Mocked<EmployeeReferenceRepository>;
 
     mockCompanyRepo = {
@@ -111,11 +111,11 @@ describe('PocService', () => {
     };
 
     it('should successfully create scheduled PoC, complete Step 8, and emit outbox event', async () => {
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
-        id: 'ref-1',
-        employeeId: createDto.employeeId,
+      mockEmployeeRefRepo.findById.mockResolvedValue({
+        id: createDto.employeeId,
+        employeeCode: createDto.employeeId,
         employmentStatus: 'ACTIVE',
-      } as EmployeeReferenceEntity);
+      } as unknown as EmployeeReferenceEntity);
 
       mockPocRepo.findByCompanyAndType.mockResolvedValue(null);
 
@@ -155,27 +155,27 @@ describe('PocService', () => {
     });
 
     it('should reject if referenced employee is not found', async () => {
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue(null);
+      mockEmployeeRefRepo.findById.mockRejectedValue(new NotFoundException());
 
       await expect(service.create('company-123', createDto)).rejects.toThrow(NotFoundException);
     });
 
     it('should reject if referenced employee is terminated', async () => {
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
-        id: 'ref-1',
-        employeeId: createDto.employeeId,
+      mockEmployeeRefRepo.findById.mockResolvedValue({
+        id: createDto.employeeId,
+        employeeCode: createDto.employeeId,
         employmentStatus: 'TERMINATED',
-      } as EmployeeReferenceEntity);
+      } as unknown as EmployeeReferenceEntity);
 
       await expect(service.create('company-123', createDto)).rejects.toThrow(BadRequestException);
     });
 
     it('should reject if active or scheduled PoC of same type already exists', async () => {
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
-        id: 'ref-1',
-        employeeId: createDto.employeeId,
+      mockEmployeeRefRepo.findById.mockResolvedValue({
+        id: createDto.employeeId,
+        employeeCode: createDto.employeeId,
         employmentStatus: 'ACTIVE',
-      } as EmployeeReferenceEntity);
+      } as unknown as EmployeeReferenceEntity);
 
       mockPocRepo.findByCompanyAndType.mockResolvedValue({
         id: 'existing-poc',
@@ -203,11 +203,11 @@ describe('PocService', () => {
         updatedAt: new Date(),
       } as unknown as PocEntity);
 
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
-        id: 'ref-2',
-        employeeId: replaceDto.newEmployeeId,
+      mockEmployeeRefRepo.findById.mockResolvedValue({
+        id: replaceDto.newEmployeeId,
+        employeeCode: replaceDto.newEmployeeId,
         employmentStatus: 'ACTIVE',
-      } as EmployeeReferenceEntity);
+      } as unknown as EmployeeReferenceEntity);
 
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(null);
 
@@ -245,11 +245,11 @@ describe('PocService', () => {
         status: MasterDataStatus.ACTIVE,
       } as unknown as PocEntity);
 
-      mockEmployeeRefRepo.findByEmployeeId.mockResolvedValue({
-        id: 'ref-2',
-        employeeId: replaceDto.newEmployeeId,
+      mockEmployeeRefRepo.findById.mockResolvedValue({
+        id: replaceDto.newEmployeeId,
+        employeeCode: replaceDto.newEmployeeId,
         employmentStatus: 'ACTIVE',
-      } as EmployeeReferenceEntity);
+      } as unknown as EmployeeReferenceEntity);
 
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue({
         id: 'existing-pending-change',
