@@ -30,11 +30,11 @@ export class EmployeeImportCompletedConsumer {
     }
 
     const eventId = envelope.id || payload.batchId;
-    const tenantId = payload.tenantId;
+    const tenantCode = payload.tenantCode;
     const companyId = payload.companyId;
 
     // Idempotency check with Redis if available
-    const idempotencyKey = `idemp:setup-step:${tenantId}:${companyId}:employee-import:${eventId}`;
+    const idempotencyKey = `idemp:setup-step:${tenantCode}:${companyId}:employee-import:${eventId}`;
     if (this.cacheService) {
       const alreadyProcessed = await this.cacheService.get<boolean>(idempotencyKey);
       if (alreadyProcessed) {

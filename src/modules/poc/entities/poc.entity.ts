@@ -8,8 +8,8 @@ import { CompanyEntity } from '../../company/entities/company.entity';
   unique: true,
   where: `"status" != 'inactive'`,
 })
-@Index('idx_pocs_tenant_company_status', ['tenantId', 'companyId', 'status'])
-@Index('idx_pocs_employee_lookup', ['tenantId', 'employeeId'])
+@Index('idx_pocs_tenant_company_status', ['tenantCode', 'companyId', 'status'])
+@Index('idx_pocs_employee_lookup', ['tenantCode', 'employeeId'])
 export class PocEntity extends BaseEntity {
   @Column({ type: 'uuid', name: 'company_id' })
   companyId: string;

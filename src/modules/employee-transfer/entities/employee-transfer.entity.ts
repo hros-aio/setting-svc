@@ -1,37 +1,14 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-} from 'typeorm';
-import { CompanyEntity } from '../../company/entities/company.entity';
-import { Department } from '@new-hros/libs-sql';
-import { Grade } from '@new-hros/libs-sql';
-import { JobTitle } from '@new-hros/libs-sql';
-import { Location } from '@new-hros/libs-sql';
-import { TenantEntity } from '../../tenant/entities/tenant.entity';
+import { BaseEntity, Department, Grade, JobTitle, Location } from '@new-hros/libs-sql';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { EmployeeTransferStatus, TableName } from '../../../enums';
+import { CompanyEntity } from '../../company/entities/company.entity';
 
 @Entity(TableName.EMPLOYEE_TRANSFERS)
-@Index('idx_employee_transfers_tenant_emp', ['tenantId', 'employeeId'])
+@Index('idx_employee_transfers_tenant_emp', ['tenantCode', 'employeeId'])
 @Index('idx_employee_transfers_status_eff', ['status', 'effectiveAt'])
-@Index('idx_employee_transfers_dest_co', ['tenantId', 'destinationCompanyId'])
-@Index('idx_employee_transfers_src_co', ['tenantId', 'sourceCompanyId'])
-export class EmployeeTransferEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'uuid', name: 'tenant_id' })
-  tenantId: string;
-
-  @ManyToOne(() => TenantEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'tenant_id' })
-  tenant: TenantEntity;
-
+@Index('idx_employee_transfers_dest_co', ['tenantCode', 'destinationCompanyId'])
+@Index('idx_employee_transfers_src_co', ['tenantCode', 'sourceCompanyId'])
+export class EmployeeTransferEntity extends BaseEntity {
   @Column({ type: 'uuid', name: 'employee_id' })
   employeeId: string;
 
@@ -98,10 +75,4 @@ export class EmployeeTransferEntity {
 
   @Column({ type: 'uuid', nullable: true, name: 'updated_by' })
   updatedBy?: string;
-
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
-  updatedAt: Date;
 }

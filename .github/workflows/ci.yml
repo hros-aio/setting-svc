@@ -38,7 +38,7 @@ jobs:
         run: pnpm lint
 
       - name: Run TypeScript compiler check
-        run: npx tsc --noEmit
+        run: pnpm run build
 
   test:
     name: Unit & Integration Tests

@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import {
   AggregateType,
   ChangeOperation,
@@ -8,6 +7,7 @@ import {
   EffectiveEntityType,
   OutboxStatus,
 } from '../../../enums';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
@@ -117,7 +117,7 @@ export class EffectiveChangeService {
           operation: normalizedOperation,
           effectiveAt: command.effectiveAt,
           targetCompanyId: command.targetCompanyId,
-          tenantId: command.tenantId,
+          tenantCode: command.tenantCode,
           parameters: command.parameters || {},
         },
         executionTime: new Date(),

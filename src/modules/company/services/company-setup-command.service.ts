@@ -4,7 +4,6 @@ import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 
 export interface MarkStepCompleteParams {
-  tenantId: string;
   companyId: string;
   stepType: SetupStepType;
   completedBy?: string;
@@ -29,12 +28,12 @@ export class CompanySetupCommandService {
 
     if (!step) {
       throw new NotFoundException(
-        `Setup step '${params.stepType}' for company '${params.companyId}' not found in tenant '${params.tenantId}'`,
+        `Setup step '${params.stepType}' for company '${params.companyId}' not found`,
       );
     }
 
     this.logger.log(
-      `Marked setup step ${params.stepType} as COMPLETED for company ${params.companyId} (tenant: ${params.tenantId})`,
+      `Marked setup step ${params.stepType} as COMPLETED for company ${params.companyId}`,
     );
 
     return step;

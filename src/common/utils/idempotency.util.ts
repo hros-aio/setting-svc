@@ -1,6 +1,6 @@
 /**
  * Standardized idempotency key generator for caching and deduplication.
- * Format: idempotency:${resourceType}:${tenantId}:${idempotencyKey}
+ * Format: idempotency:${resourceType}:${tenantCode}:${idempotencyKey}
  */
 export function buildIdempotencyKey(
   tenantCode: string,

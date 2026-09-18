@@ -1,64 +1,68 @@
-import { AuthContext } from '@new-hros/libs-core';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { RequestContextService } from '@new-hros/libs-core';
+import { TransactionService } from '@new-hros/libs-sql';
 import {
   AggregateType,
   EffectiveChangeEventType,
   EmployeeTransferStatus,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
+import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
 import { EmployeeTransferService } from './employee-transfer.service';
 import { ValidateTransferRequestService } from './validate-transfer-request.service';
 
 describe('EmployeeTransferService', () => {
   let service: EmployeeTransferService;
-  let mockDataSource: jest.Mocked<DataSource>;
-  let mockEntityManager: jest.Mocked<EntityManager>;
-  let mockTransferRepo: jest.Mocked<Repository<EmployeeTransferEntity>>;
-  let mockOutboxRepo: jest.Mocked<Repository<OutboxEventEntity>>;
+  let mockTxService: jest.Mocked<TransactionService>;
+  let mockTransferRepo: jest.Mocked<EmployeeTransferRepository>;
+  let mockOutboxRepo: jest.Mocked<OutboxEventRepository>;
   let mockValidateService: jest.Mocked<ValidateTransferRequestService>;
 
   const futureDate = new Date(Date.now() + 86400000 * 7);
 
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'user-admin',
+      employee: { companyId: 'comp-1' },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
+
     mockTransferRepo = {
-      create: jest.fn().mockImplementation((e: unknown) => e),
-      save: jest
+      create: jest
         .fn()
         .mockImplementation((e: Record<string, unknown>) =>
-          Promise.resolve({ id: 'trans-1', ...e }),
+          Promise.resolve({ id: 'trans-1', ...e } as EmployeeTransferEntity),
         ),
       findOne: jest.fn(),
-    } as unknown as jest.Mocked<Repository<EmployeeTransferEntity>>;
+    } as unknown as jest.Mocked<EmployeeTransferRepository>;
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((e: unknown) => e),
-      save: jest.fn().mockImplementation((e: unknown) => Promise.resolve(e)),
-    } as unknown as jest.Mocked<Repository<OutboxEventEntity>>;
-
-    mockEntityManager = {
-      getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === EmployeeTransferEntity) return mockTransferRepo;
-        if (target === OutboxEventEntity) return mockOutboxRepo;
-        return null;
-      }),
-    } as unknown as jest.Mocked<EntityManager>;
-
-    mockDataSource = {
-      transaction: jest
+      create: jest
         .fn()
-        .mockImplementation(async (cb: (em: EntityManager) => Promise<unknown>) => {
-          return cb(mockEntityManager);
-        }),
-      manager: mockEntityManager,
-    } as unknown as jest.Mocked<DataSource>;
+        .mockImplementation((e: Record<string, unknown>) =>
+          Promise.resolve({ id: 'outbox-1', ...e }),
+        ),
+    } as unknown as jest.Mocked<OutboxEventRepository>;
+
+    mockTxService = {
+      runInTransaction: jest.fn().mockImplementation(async (cb: () => Promise<unknown>) => cb()),
+    } as unknown as jest.Mocked<TransactionService>;
 
     mockValidateService = {
       validate: jest.fn(),
     } as unknown as jest.Mocked<ValidateTransferRequestService>;
 
-    service = new EmployeeTransferService(mockDataSource, mockValidateService);
+    service = new EmployeeTransferService(
+      mockValidateService,
+      mockTxService,
+      mockTransferRepo,
+      mockOutboxRepo,
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('initiateTransfer', () => {
@@ -70,35 +74,25 @@ describe('EmployeeTransferService', () => {
         effectiveAt: futureDate,
       });
 
-      const result = await service.initiateTransfer(
-        'tenant-1',
-        'comp-1',
-        'emp-1',
-        {
-          companyId: 'comp-1',
-          employeeId: 'emp-1',
-          destinationCompanyId: 'comp-2',
-          destinationLocationId: 'loc-1',
-          destinationDepartmentId: 'dept-1',
-          destinationGradeId: 'grade-1',
-          destinationJobTitleId: 'job-1',
-          effectiveAt: futureDate.toISOString(),
-          notes: 'Transfer notes',
-        },
-        { userId: 'user-admin' } as unknown as AuthContext,
-      );
+      const dto = {
+        companyId: 'comp-1',
+        employeeId: 'emp-1',
+        destinationCompanyId: 'comp-2',
+        destinationLocationId: 'loc-1',
+        destinationDepartmentId: 'dept-1',
+        destinationGradeId: 'grade-1',
+        destinationJobTitleId: 'job-1',
+        effectiveAt: futureDate.toISOString(),
+        notes: 'Transfer notes',
+      };
 
-      expect(mockValidateService.validate).toHaveBeenCalledWith(
-        'tenant-1',
-        'comp-1',
-        'emp-1',
-        expect.any(Object),
-        mockEntityManager,
-      );
+      const result = await service.initiateTransfer(dto);
+
+      expect(mockValidateService.validate).toHaveBeenCalledWith('comp-1', 'emp-1', dto);
 
       expect(mockTransferRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'tenant-1',
+          tenantCode: 'tenant-1',
           employeeId: 'emp-1',
           sourceCompanyId: 'comp-1',
           destinationCompanyId: 'comp-2',
@@ -107,7 +101,6 @@ describe('EmployeeTransferService', () => {
           createdBy: 'user-admin',
         }),
       );
-      expect(mockTransferRepo.save).toHaveBeenCalled();
 
       expect(mockOutboxRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -122,7 +115,6 @@ describe('EmployeeTransferService', () => {
           }),
         }),
       );
-      expect(mockOutboxRepo.save).toHaveBeenCalled();
       expect(result.id).toBe('trans-1');
     });
   });

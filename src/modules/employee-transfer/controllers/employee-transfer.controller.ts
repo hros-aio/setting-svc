@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,15 +9,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthGuard, CurrentUser, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
-import { AuthContext, RequestContextService } from '@new-hros/libs-core';
+import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { PaginatedResult } from '@new-hros/libs-sql';
 import { InitiateEmployeeTransferDto } from '../dtos/initiate-employee-transfer.dto';
 import {
   QueryEmployeeTransferDto,
   QueryPendingTransferDto,
 } from '../dtos/query-employee-transfer.dto';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
-import { EmployeeTransferPaginatedResult } from '../repositories/employee-transfer.repository.interface';
 import { EmployeeTransferQueryService } from '../services/employee-transfer-query.service';
 import { EmployeeTransferService } from '../services/employee-transfer.service';
 
@@ -31,17 +29,6 @@ export class EmployeeTransferController {
     private readonly employeeTransferService: EmployeeTransferService,
     private readonly employeeTransferQueryService: EmployeeTransferQueryService,
   ) {}
-
-  private resolveTenantId(authContext?: AuthContext, explicitTenantId?: string): string {
-    const tenantId =
-      explicitTenantId || authContext?.tenantCode || RequestContextService.getTenantCode();
-
-    if (!tenantId) {
-      throw new BadRequestException('Cannot determine tenant from request context');
-    }
-
-    return tenantId;
-  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -58,17 +45,8 @@ export class EmployeeTransferController {
   @ApiResponse({ status: 422, description: 'Destination master data reference violation' })
   async initiateTransfer(
     @Body() dto: InitiateEmployeeTransferDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EmployeeTransferEntity> {
-    const tenantId = this.resolveTenantId(authContext, dto.tenantId);
-
-    return this.employeeTransferService.initiateTransfer(
-      tenantId,
-      dto.companyId,
-      dto.employeeId,
-      dto,
-      authContext,
-    );
+    return this.employeeTransferService.initiateTransfer(dto);
   }
 
   @Get('pending')
@@ -81,11 +59,8 @@ export class EmployeeTransferController {
   })
   async getPendingTransfer(
     @Query() query: QueryPendingTransferDto,
-    @CurrentUser() authContext?: AuthContext,
   ): Promise<EmployeeTransferEntity | null> {
-    const tenantId = this.resolveTenantId(authContext, query.tenantId);
-
-    return this.employeeTransferQueryService.findPendingByEmployee(tenantId, query.employeeId);
+    return this.employeeTransferQueryService.findPendingByEmployee(query.employeeId);
   }
 
   @Get('history')
@@ -97,14 +72,7 @@ export class EmployeeTransferController {
   })
   async getTransferHistory(
     @Query() query: QueryEmployeeTransferDto,
-    @CurrentUser() authContext?: AuthContext,
-  ): Promise<EmployeeTransferPaginatedResult<EmployeeTransferEntity>> {
-    const tenantId = this.resolveTenantId(authContext, query.tenantId);
-
-    return this.employeeTransferQueryService.findHistoryByEmployee(
-      tenantId,
-      query.employeeId,
-      query,
-    );
+  ): Promise<PaginatedResult<EmployeeTransferEntity>> {
+    return this.employeeTransferQueryService.findHistory(query);
   }
 }

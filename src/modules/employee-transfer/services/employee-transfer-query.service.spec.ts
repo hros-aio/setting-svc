@@ -1,4 +1,6 @@
+import { PaginatedResult } from '@new-hros/libs-sql';
 import { EmployeeTransferStatus } from '../../../enums';
+import { QueryEmployeeTransferDto } from '../dtos/query-employee-transfer.dto';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
 import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
 import { EmployeeTransferQueryService } from './employee-transfer-query.service';
@@ -12,8 +14,6 @@ describe('EmployeeTransferQueryService', () => {
       findById: jest.fn(),
       findPendingByEmployeeId: jest.fn(),
       findHistoryByEmployeeId: jest.fn(),
-      createAndSave: jest.fn(),
-      save: jest.fn(),
     } as unknown as jest.Mocked<EmployeeTransferRepository>;
 
     service = new EmployeeTransferQueryService(mockTransferRepo);
@@ -23,42 +23,41 @@ describe('EmployeeTransferQueryService', () => {
     it('should call repository to find pending transfer', async () => {
       const mockPending = {
         id: 'trans-1',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         employeeId: 'emp-1',
         status: EmployeeTransferStatus.PENDING,
-      } as EmployeeTransferEntity;
+      } as unknown as EmployeeTransferEntity;
 
       mockTransferRepo.findPendingByEmployeeId.mockResolvedValue(mockPending);
 
-      const result = await service.findPendingByEmployee('tenant-1', 'emp-1');
+      const result = await service.findPendingByEmployee('emp-1');
 
-      expect(mockTransferRepo.findPendingByEmployeeId).toHaveBeenCalledWith('tenant-1', 'emp-1');
+      expect(mockTransferRepo.findPendingByEmployeeId).toHaveBeenCalledWith('emp-1');
       expect(result).toEqual(mockPending);
     });
   });
 
-  describe('findHistoryByEmployee', () => {
+  describe('findHistory', () => {
     it('should call repository to find transfer history', async () => {
-      const mockResult = {
-        items: [{ id: 'trans-1' }] as EmployeeTransferEntity[],
+      const mockResult: PaginatedResult<EmployeeTransferEntity> = {
+        data: [{ id: 'trans-1' }] as EmployeeTransferEntity[],
         total: 1,
+        page: 1,
         limit: 20,
-        offset: 0,
+        totalPages: 1,
       };
 
       mockTransferRepo.findHistoryByEmployeeId.mockResolvedValue(mockResult);
 
-      const result = await service.findHistoryByEmployee('tenant-1', 'emp-1', {
+      const query: QueryEmployeeTransferDto = {
         employeeId: 'emp-1',
+        page: 1,
         limit: 20,
-        offset: 0,
-      });
+      };
 
-      expect(mockTransferRepo.findHistoryByEmployeeId).toHaveBeenCalledWith('tenant-1', 'emp-1', {
-        employeeId: 'emp-1',
-        limit: 20,
-        offset: 0,
-      });
+      const result = await service.findHistory(query);
+
+      expect(mockTransferRepo.findHistoryByEmployeeId).toHaveBeenCalledWith('emp-1', query);
       expect(result).toEqual(mockResult);
     });
   });

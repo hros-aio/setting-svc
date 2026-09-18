@@ -2,7 +2,6 @@ import { EmployeeTransferStatus } from '../../../enums';
 
 export class EmployeeTransferResponseDto {
   id: string;
-  tenantId: string;
   employeeId: string;
   sourceCompanyId: string;
   sourceCompanyName?: string;

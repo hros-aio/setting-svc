@@ -6,7 +6,7 @@ export interface EffectiveScheduledCommand {
   operation: ChangeOperation;
   effectiveAt: string | Date;
   targetCompanyId: string;
-  tenantId: string;
+  tenantCode: string;
   parameters?: Record<string, unknown>;
   [key: string]: unknown;
 }

@@ -270,13 +270,9 @@ export class PocService {
   }
 
   private async verifyEmployeeReference(employeeId: string): Promise<void> {
-    const tenantId = RequestContextService.getTenantCode();
-    const employee = await this.employeeReferenceRepository.findByEmployeeId(tenantId, employeeId);
-    if (!employee) {
-      throw new NotFoundException(
-        `Referenced employee '${employeeId}' not found in tenant '${tenantId}'`,
-      );
-    }
+    const employee = await this.employeeReferenceRepository.findById(employeeId, {
+      required: true,
+    });
     if (employee.employmentStatus && employee.employmentStatus.toUpperCase() === 'TERMINATED') {
       throw new BadRequestException(
         `Referenced employee '${employeeId}' is terminated and cannot be assigned as Point of Contact`,

@@ -84,7 +84,7 @@ export class EffectiveChangeConsumer {
       return;
     }
 
-    const { changeId, entityType, operation, effectiveAt, targetCompanyId, tenantId } = command;
+    const { changeId, entityType, operation, effectiveAt, targetCompanyId, tenantCode } = command;
 
     const isEffectiveAtValid =
       effectiveAt &&
@@ -107,7 +107,7 @@ export class EffectiveChangeConsumer {
       !entityType ||
       !operation ||
       !targetCompanyId ||
-      !tenantId ||
+      !tenantCode ||
       !isEffectiveAtValid ||
       !VALID_ENTITY_TYPES.has(entityType.toLowerCase() as EffectiveEntityType) ||
       !isValidOp
@@ -120,7 +120,7 @@ export class EffectiveChangeConsumer {
           entityType: entityType || null,
           operation: operation || null,
           targetCompanyId: targetCompanyId || null,
-          tenantId: tenantId || null,
+          tenantCode: tenantCode || null,
         }),
       );
       return;
@@ -134,7 +134,7 @@ export class EffectiveChangeConsumer {
         entityType,
         operation,
         targetCompanyId,
-        tenantId,
+        tenantCode,
       }),
     );
 
@@ -167,7 +167,7 @@ export class EffectiveChangeConsumer {
           eventId,
           changeId: command?.changeId || null,
           entityType: command?.entityType || null,
-          tenantId: command?.tenantCode || null,
+          tenantCode: command?.tenantCode || null,
         }),
       );
       return;
@@ -179,7 +179,7 @@ export class EffectiveChangeConsumer {
         eventId,
         changeId: command.changeId,
         entityType: command.entityType,
-        tenantId: command.tenantCode,
+        tenantCode: command.tenantCode,
       }),
     );
 

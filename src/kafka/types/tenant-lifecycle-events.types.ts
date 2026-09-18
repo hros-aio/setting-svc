@@ -1,7 +1,7 @@
 import { TenantLifecycleEventType } from '../../enums';
 
 export interface TenantCreatedPayload {
-  tenantId: string;
+  id: string;
   tenantCode: string;
   name: string;
   legalName?: string;

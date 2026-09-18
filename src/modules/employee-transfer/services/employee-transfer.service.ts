@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuthContext } from '@new-hros/libs-core';
-import { DataSource, EntityManager } from 'typeorm';
+import { RequestContextService } from '@new-hros/libs-core';
+import { TransactionService } from '@new-hros/libs-sql';
+import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
 import {
   AggregateType,
   EffectiveChangeEventType,
   EmployeeTransferStatus,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
 import { InitiateEmployeeTransferDto } from '../dtos/initiate-employee-transfer.dto';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
+import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
 import { ValidateTransferRequestService } from './validate-transfer-request.service';
 
 @Injectable()
@@ -17,33 +18,29 @@ export class EmployeeTransferService {
   private readonly logger = new Logger(EmployeeTransferService.name);
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly validateTransferRequestService: ValidateTransferRequestService,
+    private readonly transactionService: TransactionService,
+    private readonly employeeTransferRepository: EmployeeTransferRepository,
+    private readonly outboxEventRepository: OutboxEventRepository,
   ) {}
 
-  async initiateTransfer(
-    tenantId: string,
-    sourceCompanyId: string,
-    employeeId: string,
-    dto: InitiateEmployeeTransferDto,
-    authContext?: AuthContext | null,
-  ): Promise<EmployeeTransferEntity> {
-    const userId = authContext?.userId;
+  async initiateTransfer(dto: InitiateEmployeeTransferDto): Promise<EmployeeTransferEntity> {
+    const tenantCode = RequestContextService.getTenantCode();
+    const userId = RequestContextService.getUser().userId;
 
-    return this.dataSource.transaction(async (manager: EntityManager) => {
+    const { employeeId, companyId: sourceCompanyId } = dto;
+
+    return this.transactionService.runInTransaction(async () => {
       // 1. Run full business validation pipeline within transaction
       const validated = await this.validateTransferRequestService.validate(
-        tenantId,
         sourceCompanyId,
         employeeId,
         dto,
-        manager,
       );
 
       // 2. Persist pending transfer record
-      const transferRepo = manager.getRepository(EmployeeTransferEntity);
-      const transfer = transferRepo.create({
-        tenantId,
+      const savedTransfer = await this.employeeTransferRepository.create({
+        tenantCode,
         employeeId,
         sourceCompanyId,
         destinationCompanyId: dto.destinationCompanyId,
@@ -58,18 +55,15 @@ export class EmployeeTransferService {
         updatedBy: userId,
       });
 
-      const savedTransfer = await transferRepo.save(transfer);
-
       // 3. Atomically stage outbox event for scheduling
-      const outboxRepo = manager.getRepository(OutboxEventEntity);
-      const scheduledEvent = outboxRepo.create({
+      await this.outboxEventRepository.create({
         aggregateType: AggregateType.EMPLOYEE_TRANSFER,
         aggregateId: savedTransfer.id,
         eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
         payload: {
           transferId: savedTransfer.id,
           changeType: 'EMPLOYEE_TRANSFER',
-          tenantId,
+          tenantCode,
           employeeId,
           sourceCompanyId,
           destinationCompanyId: dto.destinationCompanyId,
@@ -82,8 +76,6 @@ export class EmployeeTransferService {
         executionTime: savedTransfer.effectiveAt,
         status: OutboxStatus.PENDING,
       });
-
-      await outboxRepo.save(scheduledEvent);
 
       this.logger.log(
         `Scheduled transfer ${savedTransfer.id} for employee ${employeeId} from company ${sourceCompanyId} to ${dto.destinationCompanyId} effective at ${savedTransfer.effectiveAt}`,

@@ -1,6 +1,7 @@
-import { AuthContext } from '@new-hros/libs-core';
+import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
+import { EntityManager, Repository } from 'typeorm';
 import {
   CompanyStatus,
   EffectiveChangeEventType,
@@ -42,29 +43,26 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
   const empId = 'emp-3333-3333';
   const futureEffectiveDate = new Date(Date.now() + 86400000 * 5).toISOString();
 
-  const authContext: AuthContext = {
-    tenantCode: tenantId,
-    userId: 'admin-user',
-    roles: ['Administrator'],
-    sessionId: 'session-123',
-    scopes: [],
-    permissions: ['employee-transfer:create', 'employee-transfer:read'],
-  };
-
   beforeEach(() => {
+    jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue(tenantId);
+    jest.spyOn(RequestContextService, 'getUser').mockReturnValue({
+      userId: 'admin-user',
+      employee: { companyId: sourceCompanyId },
+    } as unknown as ReturnType<typeof RequestContextService.getUser>);
+
     transferStore = new Map();
     employeeRefStore = new Map();
     outboxStore = [];
 
     // Seed active employee reference in source company
     employeeRefStore.set(empId, {
-      id: 'ref-1',
-      tenantId,
-      employeeId: empId,
+      id: empId,
+      tenantCode: tenantId,
+      employeeCode: empId,
       employeeNumber: 'EMP-001',
       companyId: sourceCompanyId,
       sourceVersion: '1',
-    } as EmployeeReferenceEntity);
+    } as unknown as EmployeeReferenceEntity);
 
     const mockCompanyRepo = {
       findById: jest.fn().mockImplementation((id: string) => {
@@ -79,8 +77,8 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
     } as unknown as jest.Mocked<CompanyRepository>;
 
     const mockEmployeeRefRepo = {
-      findByEmployeeId: jest.fn().mockImplementation((tId: string, eId: string) => {
-        if (tId === tenantId && employeeRefStore.has(eId)) {
+      findById: jest.fn().mockImplementation((eId: string) => {
+        if (employeeRefStore.has(eId)) {
           return Promise.resolve(employeeRefStore.get(eId)!);
         }
         return Promise.resolve(null);
@@ -150,7 +148,7 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
         for (const t of transferStore.values()) {
           let match = true;
           if (where.id && t.id !== where.id) match = false;
-          if (where.tenantId && t.tenantId !== where.tenantId) match = false;
+          if (where.tenantCode && t.tenantCode !== where.tenantCode) match = false;
           if (where.employeeId && t.employeeId !== where.employeeId) match = false;
           if (where.status && t.status !== where.status) match = false;
           if (match) return Promise.resolve(t);
@@ -162,7 +160,7 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
         .mockImplementation(({ where }: { where: Record<string, unknown> }) => {
           const items: EmployeeTransferEntity[] = [];
           for (const t of transferStore.values()) {
-            if (t.tenantId === where.tenantId && t.employeeId === where.employeeId) {
+            if (t.tenantCode === where.tenantCode && t.employeeId === where.employeeId) {
               items.push(t);
             }
           }
@@ -172,7 +170,9 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
 
     const mockOutboxRepo = {
       create: jest.fn().mockImplementation((dto: Partial<OutboxEventEntity>) => {
-        return { id: 'outbox-' + Math.random(), ...dto } as OutboxEventEntity;
+        const entity = { id: 'outbox-' + Math.random(), ...dto } as OutboxEventEntity;
+        outboxStore.push(entity);
+        return Promise.resolve(entity);
       }),
       save: jest.fn().mockImplementation((entity: OutboxEventEntity) => {
         outboxStore.push(entity);
@@ -182,36 +182,43 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
 
     const mockEmpRefEntityRepo = {
       findOne: jest.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
-        if (where.employeeId && employeeRefStore.has(where.employeeId as string)) {
-          return Promise.resolve(employeeRefStore.get(where.employeeId as string)!);
+        const searchId = where.id || where.employeeId;
+        if (searchId && employeeRefStore.has(searchId as string)) {
+          return Promise.resolve(employeeRefStore.get(searchId as string)!);
         }
         return Promise.resolve(null);
       }),
       save: jest.fn().mockImplementation((entity: EmployeeReferenceEntity) => {
-        employeeRefStore.set(entity.employeeId, entity);
+        employeeRefStore.set(entity.id, entity);
         return Promise.resolve(entity);
       }),
     } as unknown as Repository<EmployeeReferenceEntity>;
 
     const mockEntityManager = {
       getRepository: jest.fn().mockImplementation((target: unknown) => {
-        if (target === EmployeeTransferEntity) return mockTransferEntityRepo;
-        if (target === OutboxEventEntity) return mockOutboxRepo;
-        if (target === EmployeeReferenceEntity) return mockEmpRefEntityRepo;
+        const targetName = typeof target === 'function' ? target.name : undefined;
+        if (target === EmployeeTransferEntity || targetName === 'EmployeeTransferEntity')
+          return mockTransferEntityRepo;
+        if (target === OutboxEventEntity || targetName === 'OutboxEventEntity')
+          return mockOutboxRepo;
+        if (target === EmployeeReferenceEntity || targetName === 'EmployeeReferenceEntity')
+          return mockEmpRefEntityRepo;
         return null;
       }),
     } as unknown as EntityManager;
 
-    const mockDataSource = {
-      transaction: jest
+    const mockTxService = {
+      getManager: jest.fn().mockReturnValue(mockEntityManager),
+      defaultManager: mockEntityManager,
+      runInTransaction: jest
         .fn()
-        .mockImplementation(async (cb: (em: EntityManager) => Promise<unknown>) => {
-          return cb(mockEntityManager);
-        }),
-      manager: mockEntityManager,
-    } as unknown as DataSource;
+        .mockImplementation((cb: (em: EntityManager) => Promise<unknown>) => cb(mockEntityManager)),
+    } as unknown as TransactionService;
 
-    const employeeTransferRepo = new EmployeeTransferRepository(mockTransferEntityRepo);
+    const employeeTransferRepo = new EmployeeTransferRepository(mockTxService);
+    jest
+      .spyOn(employeeTransferRepo as unknown as { tenantCode: string }, 'tenantCode', 'get')
+      .mockReturnValue(tenantId);
 
     const validateService = new ValidateTransferRequestService(
       mockCompanyRepo,
@@ -223,21 +230,22 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
       mockJobTitleRepo,
     );
 
-    transferService = new EmployeeTransferService(mockDataSource, validateService);
+    transferService = new EmployeeTransferService(
+      validateService,
+      mockTxService,
+      employeeTransferRepo,
+      mockOutboxRepo as unknown as OutboxEventRepository,
+    );
 
     queryService = new EmployeeTransferQueryService(employeeTransferRepo);
 
     controller = new EmployeeTransferController(transferService, queryService);
 
-    const mockTxService = {
-      getManager: jest.fn().mockReturnValue(mockEntityManager),
-      defaultManager: mockEntityManager,
-      runInTransaction: jest
-        .fn()
-        .mockImplementation((cb: (em: EntityManager) => Promise<unknown>) => cb(mockEntityManager)),
-    } as unknown as TransactionService;
-
     applyHandler = new EmployeeTransferApplyHandler(mockTxService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('Full Inter-Company Employee Transfer Lifecycle', () => {
@@ -247,21 +255,17 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
       expect(initialRef?.companyId).toBe(sourceCompanyId);
 
       // 2. Schedule Transfer (User Story 1 & 3)
-      const transfer = await controller.initiateTransfer(
-        {
-          tenantId,
-          companyId: sourceCompanyId,
-          employeeId: empId,
-          destinationCompanyId,
-          destinationLocationId: 'loc-valid',
-          destinationDepartmentId: 'dept-valid',
-          destinationGradeId: 'grade-valid',
-          destinationJobTitleId: 'job-valid',
-          effectiveAt: futureEffectiveDate,
-          notes: 'Strategic talent mobility',
-        },
-        authContext,
-      );
+      const transfer = await controller.initiateTransfer({
+        companyId: sourceCompanyId,
+        employeeId: empId,
+        destinationCompanyId,
+        destinationLocationId: 'loc-valid',
+        destinationDepartmentId: 'dept-valid',
+        destinationGradeId: 'grade-valid',
+        destinationJobTitleId: 'job-valid',
+        effectiveAt: futureEffectiveDate,
+        notes: 'Strategic talent mobility',
+      });
 
       expect(transfer.id).toBeDefined();
       expect(transfer.status).toBe(EmployeeTransferStatus.PENDING);
@@ -280,23 +284,16 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
 
       // 3. Prevent duplicate pending transfer (INV-007, BR-33)
       await expect(
-        controller.initiateTransfer(
-          {
-            tenantId,
-            companyId: sourceCompanyId,
-            employeeId: empId,
-            destinationCompanyId,
-            effectiveAt: futureEffectiveDate,
-          },
-          authContext,
-        ),
+        controller.initiateTransfer({
+          companyId: sourceCompanyId,
+          employeeId: empId,
+          destinationCompanyId,
+          effectiveAt: futureEffectiveDate,
+        }),
       ).rejects.toThrow();
 
       // 4. Query Pending Transfer (User Story 4)
-      const pendingTransfer = await controller.getPendingTransfer(
-        { employeeId: empId },
-        authContext,
-      );
+      const pendingTransfer = await controller.getPendingTransfer({ employeeId: empId });
       expect(pendingTransfer).toBeDefined();
       expect(pendingTransfer?.id).toBe(transfer.id);
       expect(pendingTransfer?.status).toBe(EmployeeTransferStatus.PENDING);
@@ -329,14 +326,15 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
       expect(completionEvent?.payload.continuousEmployment).toBe(true);
 
       // 6. Query Transfer History (User Story 4)
-      const history = await controller.getTransferHistory(
-        { employeeId: empId, limit: 10, offset: 0 },
-        authContext,
-      );
+      const history = await controller.getTransferHistory({
+        employeeId: empId,
+        page: 1,
+        limit: 10,
+      });
 
       expect(history.total).toBe(1);
-      expect(history.items[0].id).toBe(transfer.id);
-      expect(history.items[0].status).toBe(EmployeeTransferStatus.COMPLETED);
+      expect(history.data[0].id).toBe(transfer.id);
+      expect(history.data[0].status).toBe(EmployeeTransferStatus.COMPLETED);
     });
   });
 });

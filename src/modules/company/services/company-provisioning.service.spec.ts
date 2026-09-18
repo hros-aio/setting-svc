@@ -1,12 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyEntity } from '../entities/company.entity';
 import { OutboxEventEntity } from '../entities/outbox-event.entity';
 import { CompanyRepository } from '../repositories/company.repository';
+import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { CompanyProvisioningService } from './company-provisioning.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 
@@ -16,19 +17,12 @@ describe('CompanyProvisioningService', () => {
   let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepSeederService: jest.Mocked<Partial<SetupStepSeederService>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
 
   beforeEach(() => {
     mockOutboxRepo = {
       create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
       save: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
-    };
-
-    mockDataSource = {
-      getRepository: jest
-        .fn()
-        .mockReturnValue(mockOutboxRepo as unknown as Repository<OutboxEventEntity>),
     };
 
     mockTransactionService = {
@@ -62,17 +56,17 @@ describe('CompanyProvisioningService', () => {
 
     service = new CompanyProvisioningService(
       mockTransactionService as TransactionService,
-      mockDataSource as DataSource,
       mockTenantRepo as unknown as TenantRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepSeederService as unknown as SetupStepSeederService,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
   });
 
   it('should throw BadRequestException if tenantCode or name is missing in payload', async () => {
     await expect(
       service.provisionCompanyOnTenantCreated('evt-1', 'topic', {
-        tenantId: '1',
+        id: '1',
         tenantCode: '',
         name: 'Test',
       }),
@@ -80,7 +74,7 @@ describe('CompanyProvisioningService', () => {
 
     await expect(
       service.provisionCompanyOnTenantCreated('evt-1', 'topic', {
-        tenantId: '1',
+        id: '1',
         tenantCode: 'ACME',
         name: '',
       }),
@@ -96,7 +90,7 @@ describe('CompanyProvisioningService', () => {
       'evt-1',
       KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
-        tenantId: 'ext-t-1',
+        id: 'ext-t-1',
         tenantCode: 'ACME',
         name: 'Acme Corp',
       },
@@ -112,7 +106,7 @@ describe('CompanyProvisioningService', () => {
       'evt-1',
       KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
-        tenantId: 'ext-t-1',
+        id: 'ext-t-1',
         tenantCode: 'ACME',
         name: 'Acme Corp',
         legalName: 'Acme Corp Inc',
@@ -132,10 +126,7 @@ describe('CompanyProvisioningService', () => {
         isTemplate: true,
       }),
     );
-    expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith(
-      't-uuid-1',
-      'c-uuid-1',
-    );
-    expect(mockOutboxRepo.save).toHaveBeenCalled();
+    expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith('ACME', 'c-uuid-1');
+    expect(mockOutboxRepo.create).toHaveBeenCalled();
   });
 });

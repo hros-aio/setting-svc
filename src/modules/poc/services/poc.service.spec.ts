@@ -45,7 +45,7 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
     };
 
     mockEmployeeRefRepo = {
-      findByEmployeeId: jest.fn(),
+      findById: jest.fn(),
     };
 
     mockCompanyRepo = {
@@ -79,12 +79,12 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
   });
 
   it('should allow assigning PoC in Company A for HR_HEAD when employee is valid [US1]', async () => {
-    mockEmployeeRefRepo.findByEmployeeId!.mockResolvedValue({
-      id: 'emp-ref-1',
-      employeeId: 'emp-1',
-      tenantId: 'tenant-1',
+    mockEmployeeRefRepo.findById!.mockResolvedValue({
+      id: 'emp-1',
+      employeeCode: 'emp-1',
+      tenantCode: 'tenant-1',
       employmentStatus: 'ACTIVE',
-    } as EmployeeReferenceEntity);
+    } as unknown as EmployeeReferenceEntity);
     mockPocRepo.findByCompanyAndType!.mockResolvedValue(null);
 
     const result = await service.create('comp-A', {
@@ -98,7 +98,7 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
   });
 
   it('should reject assigning PoC if employee does not exist in the tenant directory [US2]', async () => {
-    mockEmployeeRefRepo.findByEmployeeId!.mockResolvedValue(null);
+    mockEmployeeRefRepo.findById!.mockRejectedValue(new NotFoundException());
 
     await expect(
       service.create('comp-A', {
@@ -110,12 +110,12 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
   });
 
   it('should reject assigning duplicate active PoC for same responsibility type in the same Company A', async () => {
-    mockEmployeeRefRepo.findByEmployeeId!.mockResolvedValue({
-      id: 'emp-ref-1',
-      employeeId: 'emp-1',
-      tenantId: 'tenant-1',
+    mockEmployeeRefRepo.findById!.mockResolvedValue({
+      id: 'emp-1',
+      employeeCode: 'emp-1',
+      tenantCode: 'tenant-1',
       employmentStatus: 'ACTIVE',
-    } as EmployeeReferenceEntity);
+    } as unknown as EmployeeReferenceEntity);
     mockPocRepo.findByCompanyAndType!.mockResolvedValue({
       id: 'existing-poc',
       pocType: PocType.HR_HEAD,
