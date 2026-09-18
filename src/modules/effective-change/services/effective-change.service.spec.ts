@@ -78,7 +78,7 @@ describe('EffectiveChangeService', () => {
       const pastOrNowDate = new Date(Date.now() - 1000).toISOString();
       const command: EffectiveScheduledCommand = {
         changeId: 'change-123',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         targetCompanyId: 'comp-1',
         entityType: EffectiveEntityType.DEPARTMENT,
         operation: ChangeOperation.CREATE,
@@ -111,7 +111,7 @@ describe('EffectiveChangeService', () => {
       const futureDate = new Date(Date.now() + 86400000 * 3).toISOString();
       const command: EffectiveScheduledCommand = {
         changeId: 'change-future',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         targetCompanyId: 'comp-1',
         entityType: EffectiveEntityType.DEPARTMENT,
         operation: ChangeOperation.CREATE,

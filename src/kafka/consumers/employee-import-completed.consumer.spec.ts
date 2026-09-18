@@ -46,7 +46,7 @@ describe('EmployeeImportCompletedConsumer', () => {
       timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-import-123',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'company-1',
         importedCount: 50,
       },
@@ -79,7 +79,7 @@ describe('EmployeeImportCompletedConsumer', () => {
       timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-import-123',
-        tenantId: 'tenant-1',
+        tenantCode: 'tenant-1',
         companyId: 'company-1',
       },
     };

@@ -15,7 +15,7 @@ export class SetupStepSeederService {
     copiedCategories: CopyableCategory[] = [],
   ): Promise<CompanySetupStepEntity[]> {
     if (!tenantCode || !companyId) {
-      throw new BadRequestException('tenantId and companyId are required to seed setup steps');
+      throw new BadRequestException('tenantCode and companyId are required to seed setup steps');
     }
 
     const copiedSet = new Set(copiedCategories || []);

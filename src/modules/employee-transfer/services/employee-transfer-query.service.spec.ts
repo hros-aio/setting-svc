@@ -48,7 +48,7 @@ describe('EmployeeTransferQueryService', () => {
 
       mockTransferRepo.findHistoryByEmployeeId.mockResolvedValue(mockResult);
 
-      const result = await service.findHistoryByEmployee('tenant-1', 'emp-1', {
+      const result = await service.findHistory('tenant-1', 'emp-1', {
         employeeId: 'emp-1',
         limit: 20,
         offset: 0,

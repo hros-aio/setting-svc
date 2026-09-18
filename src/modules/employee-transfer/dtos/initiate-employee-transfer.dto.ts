@@ -1,10 +1,6 @@
 import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class InitiateEmployeeTransferDto {
-  @IsOptional()
-  @IsUUID()
-  tenantId?: string;
-
   @IsUUID()
   companyId: string;
 

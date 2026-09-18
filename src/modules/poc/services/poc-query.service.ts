@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RequestContextService } from '@new-hros/libs-core';
 import { PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
@@ -47,7 +46,6 @@ export class PocQueryService {
   ) {}
 
   async findActiveByCompany(companyId: string): Promise<ActivePocResponse[]> {
-    const tenantId = RequestContextService.getTenantCode();
     const pocs = await this.pocRepository.findActiveByCompany(companyId);
 
     if (!pocs.length) {
@@ -55,11 +53,8 @@ export class PocQueryService {
     }
 
     const employeeIds = pocs.map((p) => p.employeeId);
-    const employeeRefs = await this.employeeReferenceRepository.findByEmployeeIds(
-      tenantId,
-      employeeIds,
-    );
-    const empMap = new Map(employeeRefs.map((e) => [e.employeeId, e]));
+    const employeeRefs = await this.employeeReferenceRepository.findByIds(employeeIds);
+    const empMap = new Map(employeeRefs.map((e) => [e.id, e]));
 
     const results: ActivePocResponse[] = [];
 
@@ -104,33 +99,23 @@ export class PocQueryService {
     companyId: string,
     query: QueryPocDto,
   ): Promise<PaginatedResult<PocHistoryItemResponse>> {
-    const tenantId = RequestContextService.getTenantCode();
-    const paginated = await this.pocRepository.findHistory(companyId, {
+    const result = await this.pocRepository.findHistoryByCompany(companyId, {
       page: query.page ?? 1,
       limit: query.limit ?? 10,
       pocType: query.pocType,
     });
 
-    const employeeIds = paginated.data.map((p) => p.employeeId);
-    const employeeRefs = await this.employeeReferenceRepository.findByEmployeeIds(
-      tenantId,
-      employeeIds,
-    );
-    const empMap = new Map(employeeRefs.map((e) => [e.employeeId, e]));
+    const employeeIds = result.data.map((p) => p.employeeId);
+    const employeeRefs = await this.employeeReferenceRepository.findByIds(employeeIds);
+    const empMap = new Map(employeeRefs.map((e) => [e.id, e]));
 
     return {
-      ...paginated,
-      data: paginated.data.map((poc) => {
+      ...result,
+      data: result.data.map((poc) => {
         const emp = empMap.get(poc.employeeId);
         return {
-          id: poc.id,
-          pocType: poc.pocType,
-          employeeId: poc.employeeId,
+          ...poc,
           displayName: emp?.displayName,
-          status: poc.status,
-          effectiveAt: poc.effectiveAt,
-          createdAt: poc.createdAt,
-          updatedAt: poc.updatedAt,
         };
       }),
     };

@@ -24,7 +24,7 @@ export class EmployeeTransferApplyHandler {
     const transfer = await transferRepo.findOne({
       where: {
         id: command.changeId,
-        tenantId: command.tenantCode,
+        tenantCode: command.tenantCode,
       },
     });
 
@@ -46,8 +46,8 @@ export class EmployeeTransferApplyHandler {
     const empRefRepo = em.getRepository(EmployeeReferenceEntity);
     const employeeRef = await empRefRepo.findOne({
       where: {
-        tenantId: command.tenantCode,
-        employeeId: transfer.employeeId,
+        tenantCode: command.tenantCode,
+        id: transfer.employeeId,
       },
     });
 
@@ -78,7 +78,7 @@ export class EmployeeTransferApplyHandler {
       eventType: EmployeeTransferEventType.EMPLOYEE_COMPANY_TRANSFERRED,
       payload: {
         transferId: transfer.id,
-        tenantId: transfer.tenantId,
+        tenantCode: transfer.tenantCode,
         employeeId: transfer.employeeId,
         sourceCompanyId: transfer.sourceCompanyId,
         destinationCompanyId: transfer.destinationCompanyId,

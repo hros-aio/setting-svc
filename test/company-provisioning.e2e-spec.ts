@@ -1,27 +1,27 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
-import { TransactionService } from '@new-hros/libs-sql';
-import { CompanyProvisioningService } from '../src/modules/company/services/company-provisioning.service';
-import { TenantProvisioningConsumer } from '../src/kafka/consumers/tenant-provisioning.consumer';
-import {
-  SetupStepType,
-  SetupStepStatus,
-  CompanyStatus,
-  CompanyEventType,
-  TenantLifecycleEventType,
-  KafkaTopic,
-  AggregateType,
-  OutboxStatus,
-} from '../src/enums';
-import { TenantCreatedPayload } from '../src/kafka/types/tenant-lifecycle-events.types';
 import { EventEnvelope } from '@new-hros/libs-events';
-import { TenantEntity } from '../src/modules/tenant/entities/tenant.entity';
-import { CompanyEntity } from '../src/modules/company/entities/company.entity';
+import { TransactionService } from '@new-hros/libs-sql';
+import { DataSource } from 'typeorm';
+import {
+  AggregateType,
+  CompanyEventType,
+  CompanyStatus,
+  KafkaTopic,
+  OutboxStatus,
+  SetupStepStatus,
+  SetupStepType,
+  TenantLifecycleEventType,
+} from '../src/enums';
+import { TenantProvisioningConsumer } from '../src/kafka/consumers/tenant-provisioning.consumer';
+import { TenantCreatedPayload } from '../src/kafka/types/tenant-lifecycle-events.types';
 import { CompanySetupStepEntity } from '../src/modules/company/entities/company-setup-step.entity';
+import { CompanyEntity } from '../src/modules/company/entities/company.entity';
 import { OutboxEventEntity } from '../src/modules/company/entities/outbox-event.entity';
-import { TenantRepository } from '../src/modules/tenant/repositories/tenant.repository';
 import { CompanyRepository } from '../src/modules/company/repositories/company.repository';
+import { CompanyProvisioningService } from '../src/modules/company/services/company-provisioning.service';
 import { SetupStepSeederService } from '../src/modules/company/services/setup-step-seeder.service';
+import { TenantEntity } from '../src/modules/tenant/entities/tenant.entity';
+import { TenantRepository } from '../src/modules/tenant/repositories/tenant.repository';
 
 describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
   let consumer: TenantProvisioningConsumer;
@@ -184,7 +184,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
-        tenantId: 'ext-tenant-001',
+        id: 'ext-tenant-001',
         tenantCode: 'ACME_GLOBAL',
         name: 'Acme Global Inc',
         legalName: 'Acme Global Incorporated',
@@ -224,7 +224,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
-        tenantId: 'ext-tenant-001',
+        id: 'ext-tenant-001',
         tenantCode: 'ACME_GLOBAL',
         name: 'Acme Global Inc',
       },

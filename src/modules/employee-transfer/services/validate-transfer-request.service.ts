@@ -5,7 +5,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
 import { CompanyStatus, MasterDataStatus } from '../../../enums';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
@@ -36,11 +35,9 @@ export class ValidateTransferRequestService {
   ) {}
 
   async validate(
-    tenantId: string,
     sourceCompanyId: string,
     employeeId: string,
     dto: InitiateEmployeeTransferDto,
-    manager?: EntityManager,
   ): Promise<ValidatedTransferEntities> {
     // 1. Validate effective date (>= end of current business day in UTC)
     const effectiveDate = new Date(dto.effectiveAt);
@@ -78,27 +75,16 @@ export class ValidateTransferRequestService {
     }
 
     // 4. Validate employee exists in tenant and belongs to source company
-    const employeeRef = await this.employeeReferenceRepository.findByEmployeeId(
-      tenantId,
-      employeeId,
-      manager,
-    );
-
-    if (!employeeRef) {
-      throw new NotFoundException('Employee not found in tenant');
-    }
-
+    const employeeRef = await this.employeeReferenceRepository.findById(employeeId, {
+      required: true,
+    });
     if (employeeRef.companyId !== sourceCompanyId) {
       throw new BadRequestException('Employee does not belong to the specified source company');
     }
 
     // 5. Enforce single pending transfer per employee (INV-007, BR-33)
-    const existingPending = await this.employeeTransferRepository.findPendingByEmployeeId(
-      tenantId,
-      employeeId,
-      manager,
-    );
-
+    const existingPending =
+      await this.employeeTransferRepository.findPendingByEmployeeId(employeeId);
     if (existingPending) {
       throw new ConflictException('Employee already has an active pending transfer');
     }

@@ -42,7 +42,7 @@ describe('EffectiveChangeConsumer', () => {
         operation: ChangeOperation.CREATE,
         effectiveAt: '2026-09-01T00:00:00Z',
         targetCompanyId: 'company-456',
-        tenantId: 'tenant-789',
+        tenantCode: 'tenant-789',
         parameters: { name: 'IT' },
       },
     };
@@ -88,7 +88,7 @@ describe('EffectiveChangeConsumer', () => {
           operation: ChangeOperation.CREATE,
           effectiveAt: '2026-09-01T00:00:00Z',
           targetCompanyId: 'company-456',
-          tenantId: 'tenant-789',
+          tenantCode: 'tenant-789',
         },
       };
 

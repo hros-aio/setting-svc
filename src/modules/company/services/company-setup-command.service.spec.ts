@@ -37,7 +37,6 @@ describe('CompanySetupCommandService', () => {
       mockSetupStepRepo.markStepCompleted = jest.fn().mockResolvedValue(completedStep);
 
       const result = await service.markStepComplete({
-        tenantId,
         companyId,
         stepType: SetupStepType.LOCATION,
         completedBy: 'user-1',
@@ -59,7 +58,6 @@ describe('CompanySetupCommandService', () => {
 
       await expect(
         service.markStepComplete({
-          tenantId,
           companyId,
           stepType: SetupStepType.LOCATION,
         }),

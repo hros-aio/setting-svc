@@ -30,11 +30,11 @@ export class RoleCopyCompletedConsumer {
     }
 
     const eventId = envelope.id || payload.batchId;
-    const tenantId = payload.tenantId;
+    const tenantCode = payload.tenantCode;
     const companyId = payload.targetCompanyId;
 
     // Idempotency check with Redis if available
-    const idempotencyKey = `idemp:setup-step:${tenantId}:${companyId}:role-copy:${eventId}`;
+    const idempotencyKey = `idemp:setup-step:${tenantCode}:${companyId}:role-copy:${eventId}`;
     if (this.cacheService) {
       const alreadyProcessed = await this.cacheService.get<boolean>(idempotencyKey);
       if (alreadyProcessed) {

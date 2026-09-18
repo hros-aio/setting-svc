@@ -1,11 +1,11 @@
-import { TenantProvisioningConsumer } from './tenant-provisioning.consumer';
+import { EventEnvelope } from '@new-hros/libs-events';
+import { KafkaTopic } from '../../enums';
 import { CompanyProvisioningService } from '../../modules/company/services/company-provisioning.service';
 import {
-  TenantLifecycleEventType,
   TenantCreatedPayload,
+  TenantLifecycleEventType,
 } from '../types/tenant-lifecycle-events.types';
-import { KafkaTopic } from '../../enums';
-import { EventEnvelope } from '@new-hros/libs-events';
+import { TenantProvisioningConsumer } from './tenant-provisioning.consumer';
 
 describe('TenantProvisioningConsumer', () => {
   let consumer: TenantProvisioningConsumer;
@@ -48,7 +48,7 @@ describe('TenantProvisioningConsumer', () => {
       version: '1.0',
       timestamp: new Date().toISOString(),
       payload: {
-        tenantId: 'ext-t-1',
+        id: 'ext-t-1',
         tenantCode: 'ACME',
         name: 'Acme Global',
         legalName: 'Acme Global Inc',
@@ -75,7 +75,7 @@ describe('TenantProvisioningConsumer', () => {
       version: '1.0',
       timestamp: new Date().toISOString(),
       payload: {
-        tenantId: 'ext-t-2',
+        id: 'ext-t-2',
         tenantCode: 'BETA',
         name: 'Beta LLC',
       },

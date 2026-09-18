@@ -89,14 +89,14 @@ describe('EmployeeTransferController', () => {
         offset: 0,
       };
 
-      mockQueryService.findHistoryByEmployee.mockResolvedValue(mockResponse);
+      mockQueryService.findHistory.mockResolvedValue(mockResponse);
 
       const result = await controller.getTransferHistory(
         { employeeId: 'emp-1', limit: 20, offset: 0 },
         authContext,
       );
 
-      expect(mockQueryService.findHistoryByEmployee).toHaveBeenCalledWith('tenant-1', 'emp-1', {
+      expect(mockQueryService.findHistory).toHaveBeenCalledWith('tenant-1', 'emp-1', {
         employeeId: 'emp-1',
         limit: 20,
         offset: 0,

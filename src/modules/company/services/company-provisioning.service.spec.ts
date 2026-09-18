@@ -72,7 +72,7 @@ describe('CompanyProvisioningService', () => {
   it('should throw BadRequestException if tenantCode or name is missing in payload', async () => {
     await expect(
       service.provisionCompanyOnTenantCreated('evt-1', 'topic', {
-        tenantId: '1',
+        id: '1',
         tenantCode: '',
         name: 'Test',
       }),
@@ -80,7 +80,7 @@ describe('CompanyProvisioningService', () => {
 
     await expect(
       service.provisionCompanyOnTenantCreated('evt-1', 'topic', {
-        tenantId: '1',
+        id: '1',
         tenantCode: 'ACME',
         name: '',
       }),
@@ -96,7 +96,7 @@ describe('CompanyProvisioningService', () => {
       'evt-1',
       KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
-        tenantId: 'ext-t-1',
+        id: 'ext-t-1',
         tenantCode: 'ACME',
         name: 'Acme Corp',
       },
@@ -112,7 +112,7 @@ describe('CompanyProvisioningService', () => {
       'evt-1',
       KafkaTopic.TENANT_LIFECYCLE_EVENTS,
       {
-        tenantId: 'ext-t-1',
+        id: 'ext-t-1',
         tenantCode: 'ACME',
         name: 'Acme Corp',
         legalName: 'Acme Corp Inc',

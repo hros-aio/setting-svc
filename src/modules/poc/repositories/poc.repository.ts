@@ -57,7 +57,7 @@ export class PocRepository extends BaseRepository<PocEntity> {
     return count > 0;
   }
 
-  async findHistory(
+  async findHistoryByCompany(
     companyId: string,
     options?: PaginationOptions & { pocType?: string },
   ): Promise<PaginatedResult<PocEntity>> {

@@ -80,7 +80,7 @@ describe('PocQueryService', () => {
       } as unknown as EffectiveChangeEntity;
 
       mockPocRepo.findActiveByCompany.mockResolvedValue(activePocs);
-      mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue(employeeRefs);
+      mockEmployeeRefRepo.findByIds.mockResolvedValue(employeeRefs);
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(pendingChange);
 
       const result = await service.findActiveByCompany('company-123');
@@ -125,7 +125,7 @@ describe('PocQueryService', () => {
       ] as EmployeeReferenceEntity[];
 
       mockPocRepo.findActiveByCompany.mockResolvedValue(activePocs);
-      mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue(employeeRefs);
+      mockEmployeeRefRepo.findByIds.mockResolvedValue(employeeRefs);
       mockEffectiveChangeRepo.findPendingChange.mockResolvedValue(null);
 
       const result = await service.findActiveByCompany('company-123');
@@ -151,7 +151,7 @@ describe('PocQueryService', () => {
         },
       ] as unknown as PocEntity[];
 
-      mockPocRepo.findHistory.mockResolvedValue({
+      mockPocRepo.findHistoryByCompany.mockResolvedValue({
         data: historyPocs,
         total: 1,
         page: 1,
@@ -159,7 +159,7 @@ describe('PocQueryService', () => {
         totalPages: 1,
       });
 
-      mockEmployeeRefRepo.findByEmployeeIds.mockResolvedValue([
+      mockEmployeeRefRepo.findByIds.mockResolvedValue([
         {
           employeeId: 'emp-1',
           displayName: 'John Smith',
