@@ -29,16 +29,20 @@ describe('EmployeeTransferService', () => {
     } as unknown as ReturnType<typeof RequestContextService.getUser>);
 
     mockTransferRepo = {
-      create: jest.fn().mockImplementation((e: Record<string, unknown>) =>
-        Promise.resolve({ id: 'trans-1', ...e } as EmployeeTransferEntity),
-      ),
+      create: jest
+        .fn()
+        .mockImplementation((e: Record<string, unknown>) =>
+          Promise.resolve({ id: 'trans-1', ...e } as EmployeeTransferEntity),
+        ),
       findOne: jest.fn(),
     } as unknown as jest.Mocked<EmployeeTransferRepository>;
 
     mockOutboxRepo = {
-      create: jest.fn().mockImplementation((e: Record<string, unknown>) =>
-        Promise.resolve({ id: 'outbox-1', ...e }),
-      ),
+      create: jest
+        .fn()
+        .mockImplementation((e: Record<string, unknown>) =>
+          Promise.resolve({ id: 'outbox-1', ...e }),
+        ),
     } as unknown as jest.Mocked<OutboxEventRepository>;
 
     mockTxService = {
@@ -84,11 +88,7 @@ describe('EmployeeTransferService', () => {
 
       const result = await service.initiateTransfer(dto);
 
-      expect(mockValidateService.validate).toHaveBeenCalledWith(
-        'comp-1',
-        'emp-1',
-        dto,
-      );
+      expect(mockValidateService.validate).toHaveBeenCalledWith('comp-1', 'emp-1', dto);
 
       expect(mockTransferRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({

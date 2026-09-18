@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { TransactionService } from '@new-hros/libs-sql';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
@@ -17,7 +17,6 @@ describe('CompanyProvisioningService', () => {
   let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepSeederService: jest.Mocked<Partial<SetupStepSeederService>>;
-  let mockDataSource: jest.Mocked<Partial<DataSource>>;
   let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
 
   beforeEach(() => {
@@ -127,10 +126,7 @@ describe('CompanyProvisioningService', () => {
         isTemplate: true,
       }),
     );
-    expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith(
-      'ACME',
-      'c-uuid-1',
-    );
+    expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith('ACME', 'c-uuid-1');
     expect(mockOutboxRepo.create).toHaveBeenCalled();
   });
 });

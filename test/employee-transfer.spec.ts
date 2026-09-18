@@ -1,5 +1,6 @@
 import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
+import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
 import { EntityManager, Repository } from 'typeorm';
 import {
   CompanyStatus,
@@ -233,7 +234,7 @@ describe('Employee Transfer End-to-End Workflow Integration (US1-US4)', () => {
       validateService,
       mockTxService,
       employeeTransferRepo,
-      mockOutboxRepo as unknown as any,
+      mockOutboxRepo as unknown as OutboxEventRepository,
     );
 
     queryService = new EmployeeTransferQueryService(employeeTransferRepo);

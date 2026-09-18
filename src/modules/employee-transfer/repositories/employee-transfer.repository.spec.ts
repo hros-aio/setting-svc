@@ -20,11 +20,17 @@ describe('EmployeeTransferRepository', () => {
       find: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn().mockImplementation((dto) => dto as EmployeeTransferEntity),
-      save: jest.fn().mockImplementation(async (entity) => ({ id: 'trans-1', ...entity }) as EmployeeTransferEntity),
+      save: jest
+        .fn()
+        .mockImplementation(
+          async (entity) => ({ id: 'trans-1', ...entity }) as EmployeeTransferEntity,
+        ),
     };
 
     mockManager = {
-      getRepository: jest.fn().mockReturnValue(mockTypeOrmRepo as unknown as Repository<EmployeeTransferEntity>),
+      getRepository: jest
+        .fn()
+        .mockReturnValue(mockTypeOrmRepo as unknown as Repository<EmployeeTransferEntity>),
     };
 
     mockTxService = {
