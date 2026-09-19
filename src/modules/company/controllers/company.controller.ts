@@ -6,7 +6,6 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  Optional,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -32,7 +31,7 @@ export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
     private readonly companySetupQueryService: CompanySetupQueryService,
-    @Optional() private readonly cacheService?: CacheService,
+    private readonly cacheService: CacheService,
   ) {}
 
   @Post()
@@ -42,7 +41,7 @@ export class CompanyController {
   async createCompany(
     @Body() dto: CreateCompanyDto,
     @Headers('idempotency-key') idempotencyKey?: string,
-  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
+  ): Promise<CompanyResponseDto> {
     const tenantCode = RequestContextService.getTenantCode();
     if (!tenantCode) {
       throw new BadRequestException('Cannot determine tenant from request context');
@@ -50,31 +49,20 @@ export class CompanyController {
 
     // Check cached response if idempotency key was supplied using unified key generator
     const cacheKey = buildIdempotencyKey(tenantCode, idempotencyKey, 'company');
-
-    if (cacheKey && this.cacheService) {
-      const cachedResponse = await this.cacheService.get<{
-        success: boolean;
-        data: CompanyResponseDto;
-      }>(cacheKey);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+    if (cacheKey) {
+      const { result } = await this.cacheService.executeIfAbsent(
+        cacheKey,
+        async () => {
+          const company = await this.companyService.createCompany(dto);
+          return CompanyResponseDto.fromCompany(company);
+        },
+        86400,
+      );
+      return result!;
     }
 
     const company = await this.companyService.createCompany(dto);
-    const responseDto = CompanyResponseDto.fromCompany(company);
-
-    const response = {
-      success: true,
-      data: responseDto,
-    };
-
-    if (cacheKey && this.cacheService) {
-      // Cache response with a 24-hour TTL for network retries
-      await this.cacheService.set(cacheKey, response, 86400);
-    }
-
-    return response;
+    return CompanyResponseDto.fromCompany(company);
   }
 
   @Patch(':id/information')
@@ -85,7 +73,7 @@ export class CompanyController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateCompanyInformationDto,
     @Headers('idempotency-key') idempotencyKey?: string,
-  ): Promise<{ success: boolean; data: CompanyResponseDto }> {
+  ): Promise<CompanyResponseDto> {
     const tenantCode = RequestContextService.getTenantCode();
     if (!tenantCode) {
       throw new BadRequestException('Cannot determine tenant from request context');
@@ -93,31 +81,20 @@ export class CompanyController {
 
     // Check cached response if idempotency key was supplied using unified key generator
     const cacheKey = buildIdempotencyKey(tenantCode, idempotencyKey, 'company');
-
-    if (cacheKey && this.cacheService) {
-      const cachedResponse = await this.cacheService.get<{
-        success: boolean;
-        data: CompanyResponseDto;
-      }>(cacheKey);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+    if (cacheKey) {
+      const { result } = await this.cacheService.executeIfAbsent(
+        cacheKey,
+        async () => {
+          const company = await this.companyService.updateCompanyInformation(id, dto);
+          return CompanyResponseDto.fromCompany(company);
+        },
+        86400,
+      );
+      return result!;
     }
 
     const company = await this.companyService.updateCompanyInformation(id, dto);
-
-    const responseDto = CompanyResponseDto.fromCompany(company);
-
-    const response = {
-      success: true,
-      data: responseDto,
-    };
-
-    if (cacheKey && this.cacheService) {
-      await this.cacheService.set(cacheKey, response, 86400);
-    }
-
-    return response;
+    return CompanyResponseDto.fromCompany(company);
   }
 
   @Get(':id/setup')

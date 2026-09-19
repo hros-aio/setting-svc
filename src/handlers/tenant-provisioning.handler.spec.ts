@@ -1,14 +1,10 @@
 import { EventEnvelope } from '@new-hros/libs-events';
-import { KafkaTopic } from '../../enums';
-import { CompanyProvisioningService } from '../../modules/company/services/company-provisioning.service';
-import {
-  TenantCreatedPayload,
-  TenantLifecycleEventType,
-} from '../types/tenant-lifecycle-events.types';
-import { TenantProvisioningConsumer } from './tenant-provisioning.consumer';
+import { KafkaTopic, TenantLifecycleEventType } from '../enums';
+import { CompanyProvisioningService } from '../modules/company/services/company-provisioning.service';
+import { TenantCreatedPayload, TenantProvisioningHandler } from './tenant-provisioning.handler';
 
 describe('TenantProvisioningConsumer', () => {
-  let consumer: TenantProvisioningConsumer;
+  let consumer: TenantProvisioningHandler;
   let mockCompanyProvisioningService: jest.Mocked<Partial<CompanyProvisioningService>>;
 
   beforeEach(() => {
@@ -17,7 +13,7 @@ describe('TenantProvisioningConsumer', () => {
         .fn()
         .mockResolvedValue({ success: true, companyId: 'c-1' }),
     };
-    consumer = new TenantProvisioningConsumer(
+    consumer = new TenantProvisioningHandler(
       mockCompanyProvisioningService as unknown as CompanyProvisioningService,
     );
   });

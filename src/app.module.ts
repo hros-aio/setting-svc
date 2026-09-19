@@ -8,19 +8,20 @@ import {
 } from '@new-hros/libs-core';
 import { SqlModule } from '@new-hros/libs-sql';
 
+import { EventsModule, SubscriberModule } from '@new-hros/libs-events';
 import { AppLogger } from './common/logger/app-logger.service';
-import { HealthModule } from './modules/health';
-import { TenantModule } from './modules/tenant';
+import { Handlers } from './handlers';
 import { CompanyModule } from './modules/company';
-import { LocationModule } from './modules/location';
 import { DepartmentModule } from './modules/department';
-import { GradeModule } from './modules/grade';
-import { JobTitleModule } from './modules/job-title';
 import { EffectiveChangeModule } from './modules/effective-change';
 import { EmployeeReferenceModule } from './modules/employee-reference';
-import { PocModule } from './modules/poc';
 import { EmployeeTransferModule } from './modules/employee-transfer';
-import { KafkaModule } from './kafka/kafka.module';
+import { GradeModule } from './modules/grade';
+import { HealthModule } from './modules/health';
+import { JobTitleModule } from './modules/job-title';
+import { LocationModule } from './modules/location';
+import { PocModule } from './modules/poc';
+import { TenantModule } from './modules/tenant';
 
 const config = new ConfigurationService({});
 
@@ -58,6 +59,8 @@ const config = new ConfigurationService({});
         autoLoadEntities: true,
       }),
     }),
+    EventsModule,
+    SubscriberModule.register(Handlers),
     HealthModule,
     TenantModule,
     CompanyModule,
@@ -69,7 +72,6 @@ const config = new ConfigurationService({});
     EmployeeReferenceModule,
     PocModule,
     EmployeeTransferModule,
-    KafkaModule,
   ],
   providers: [AppLogger],
   exports: [AppLogger],

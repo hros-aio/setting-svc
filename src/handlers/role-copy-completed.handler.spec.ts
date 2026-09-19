@@ -1,20 +1,32 @@
+import { CacheService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
-import { KafkaTopic, SetupStepStatus, SetupStepType } from '../../enums';
-import { CompanySetupStepEntity } from '../../modules/company/entities/company-setup-step.entity';
-import { CompanySetupStepRepository } from '../../modules/company/repositories/company-setup-step.repository';
-import { RoleCopyCompletedPayload } from '../types/setup-step-events.types';
-import { RoleCopyCompletedConsumer } from './role-copy-completed.consumer';
+import { KafkaTopic, SetupStepStatus, SetupStepType } from '../enums';
+import { CompanySetupStepEntity } from '../modules/company/entities/company-setup-step.entity';
+import { CompanySetupStepRepository } from '../modules/company/repositories/company-setup-step.repository';
+import { RoleCopyCompletedHandler, RoleCopyCompletedPayload } from './role-copy-completed.handler';
 
 describe('RoleCopyCompletedConsumer', () => {
-  let consumer: RoleCopyCompletedConsumer;
+  let consumer: RoleCopyCompletedHandler;
   let mockStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
+  let mockCacheService: jest.Mocked<Partial<CacheService>>;
 
   beforeEach(() => {
     mockStepRepo = {
       findByCompanyAndStep: jest.fn(),
       markStepCompleted: jest.fn().mockResolvedValue(null),
     };
-    consumer = new RoleCopyCompletedConsumer(mockStepRepo as unknown as CompanySetupStepRepository);
+    mockCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      executeIfAbsent: jest.fn().mockImplementation(async (_key, cb) => {
+        await cb();
+        return { executed: true };
+      }),
+    };
+    consumer = new RoleCopyCompletedHandler(
+      mockStepRepo as unknown as CompanySetupStepRepository,
+      mockCacheService as unknown as CacheService,
+    );
   });
 
   it('should mark ROLE setup step as COMPLETED when consuming completion event', async () => {

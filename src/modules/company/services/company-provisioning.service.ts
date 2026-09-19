@@ -5,8 +5,8 @@ import { CompanyRepository } from '../repositories/company.repository';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 
 import { AggregateType, CompanyEventType, CompanyStatus, OutboxStatus } from '../../../enums';
-import { TenantCreatedPayload } from '../../../kafka/types/tenant-lifecycle-events.types';
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { TenantCreatedPayload } from '../../../handlers/tenant-provisioning.handler';
 
 export interface ProvisioningResult {
   success: boolean;
