@@ -29,6 +29,10 @@ describe('CompanyController', () => {
     mockCacheService = {
       get: jest.fn().mockResolvedValue(null),
       set: jest.fn().mockResolvedValue(undefined),
+      executeIfAbsent: jest.fn().mockImplementation(async (_key, cb) => ({
+        executed: true,
+        result: await cb(),
+      })),
     };
 
     controller = new CompanyController(
@@ -95,9 +99,8 @@ describe('CompanyController', () => {
         countryCode: 'SG',
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data.legalName).toBe('Acme Corp SG Pte Ltd');
-      expect(result.data.setupSteps?.[0].status).toBe(SetupStepStatus.COMPLETED);
+      expect(result.legalName).toBe('Acme Corp SG Pte Ltd');
+      expect(result.setupSteps?.[0].status).toBe(SetupStepStatus.COMPLETED);
       expect(mockCompanyService.updateCompanyInformation).toHaveBeenCalledWith(companyId, {
         legalName: 'Acme Corp SG Pte Ltd',
         displayName: 'Acme SG',
@@ -108,14 +111,14 @@ describe('CompanyController', () => {
     it('should return cached response when idempotency key is matched', async () => {
       const companyId = 'company-uuid-1';
       const cached = {
-        success: true,
-        data: {
-          id: companyId,
-          legalName: 'Cached Corp',
-        } as unknown as CompanyResponseDto,
-      };
+        id: companyId,
+        legalName: 'Cached Corp',
+      } as unknown as CompanyResponseDto;
 
-      (mockCacheService.get as jest.Mock).mockResolvedValue(cached);
+      (mockCacheService.executeIfAbsent as jest.Mock).mockResolvedValue({
+        executed: false,
+        result: cached,
+      });
 
       const result = await controller.updateCompanyInformation(
         companyId,

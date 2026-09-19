@@ -1,7 +1,9 @@
 packages:
   - '.'
 allowBuilds:
-  '@nestjs/core': set this to true or false
+  '@nestjs/core': true
 minimumReleaseAgeExclude:
   - '@new-hros/libs-apis@1.1.2'
   - '@new-hros/libs-sql@1.1.2'
+  - '@new-hros/libs-core@1.3.0'
+  - '@new-hros/libs-events@1.2.0'

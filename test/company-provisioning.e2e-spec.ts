@@ -12,8 +12,8 @@ import {
   SetupStepType,
   TenantLifecycleEventType,
 } from '../src/enums';
-import { TenantProvisioningConsumer } from '../src/kafka/consumers/tenant-provisioning.consumer';
-import { TenantCreatedPayload } from '../src/kafka/types/tenant-lifecycle-events.types';
+import { TenantCreatedPayload } from '../src/events/payload/tenant-lifecycle.payload';
+import { TenantProvisioningHandler } from '../src/handlers/tenant-provisioning.handler';
 import { CompanySetupStepEntity } from '../src/modules/company/entities/company-setup-step.entity';
 import { CompanyEntity } from '../src/modules/company/entities/company.entity';
 import { OutboxEventEntity } from '../src/modules/company/entities/outbox-event.entity';
@@ -24,7 +24,7 @@ import { TenantEntity } from '../src/modules/tenant/entities/tenant.entity';
 import { TenantRepository } from '../src/modules/tenant/repositories/tenant.repository';
 
 describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
-  let consumer: TenantProvisioningConsumer;
+  let consumer: TenantProvisioningHandler;
 
   const mockDb = {
     tenants: new Map<string, TenantEntity>(),
@@ -119,7 +119,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
 
   beforeAll(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      controllers: [TenantProvisioningConsumer],
+      controllers: [TenantProvisioningHandler],
       providers: [
         CompanyProvisioningService,
         {
@@ -171,7 +171,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       })
       .compile();
 
-    consumer = moduleFixture.get<TenantProvisioningConsumer>(TenantProvisioningConsumer);
+    consumer = moduleFixture.get<TenantProvisioningHandler>(TenantProvisioningHandler);
   });
 
   it('should provision tenant, template company (PENDING with isTemplate=true), 8 setup steps and outbox event when tenant.created is received', async () => {

@@ -1,13 +1,15 @@
 import { CacheService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
-import { KafkaTopic, SetupStepStatus, SetupStepType } from '../../enums';
-import { CompanySetupStepEntity } from '../../modules/company/entities/company-setup-step.entity';
-import { CompanySetupStepRepository } from '../../modules/company/repositories/company-setup-step.repository';
-import { EmployeeImportCompletedPayload } from '../types/setup-step-events.types';
-import { EmployeeImportCompletedConsumer } from './employee-import-completed.consumer';
+import { KafkaTopic, SetupStepStatus, SetupStepType } from '../enums';
+import { CompanySetupStepEntity } from '../modules/company/entities/company-setup-step.entity';
+import { CompanySetupStepRepository } from '../modules/company/repositories/company-setup-step.repository';
+import {
+  EmployeeImportCompletedHandler,
+  EmployeeImportCompletedPayload,
+} from './employee-import-completed.handler';
 
 describe('EmployeeImportCompletedConsumer', () => {
-  let consumer: EmployeeImportCompletedConsumer;
+  let consumer: EmployeeImportCompletedHandler;
   let mockStepRepo: jest.Mocked<Partial<CompanySetupStepRepository>>;
   let mockCacheService: jest.Mocked<Partial<CacheService>>;
 
@@ -19,8 +21,12 @@ describe('EmployeeImportCompletedConsumer', () => {
     mockCacheService = {
       get: jest.fn().mockResolvedValue(null),
       set: jest.fn().mockResolvedValue(undefined),
+      executeIfAbsent: jest.fn().mockImplementation(async (_key, cb) => {
+        await cb();
+        return { executed: true };
+      }),
     };
-    consumer = new EmployeeImportCompletedConsumer(
+    consumer = new EmployeeImportCompletedHandler(
       mockStepRepo as unknown as CompanySetupStepRepository,
       mockCacheService as unknown as CacheService,
     );
@@ -64,11 +70,10 @@ describe('EmployeeImportCompletedConsumer', () => {
       externalReferenceId: 'batch-import-123',
       metadata: { importedCount: 50 },
     });
-    expect(mockCacheService.set).toHaveBeenCalledTimes(1);
   });
 
   it('should skip duplicate event if cached in Redis', async () => {
-    (mockCacheService.get as jest.Mock).mockResolvedValue(true);
+    (mockCacheService.executeIfAbsent as jest.Mock).mockResolvedValue({ executed: false });
 
     const eventEnvelope: EventEnvelope<EmployeeImportCompletedPayload> = {
       id: 'evt-import-2',

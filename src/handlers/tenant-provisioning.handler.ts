@@ -1,17 +1,25 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { RequestContextService, RequestContext } from '@new-hros/libs-core';
+import { RequestContext, RequestContextService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
-import {
-  TenantCreatedPayload,
-  TenantLifecycleEventType,
-} from '../types/tenant-lifecycle-events.types';
-import { KafkaTopic } from '../../enums';
-import { CompanyProvisioningService } from '../../modules/company/services/company-provisioning.service';
+import { KafkaTopic, TenantLifecycleEventType } from '../enums';
+import { CompanyProvisioningService } from '../modules/company/services/company-provisioning.service';
+
+export interface TenantCreatedPayload {
+  id: string;
+  tenantCode: string;
+  name: string;
+  legalName?: string;
+  displayName?: string;
+  countryCode?: string;
+  currencyCode?: string;
+  timezone?: string;
+  sourceVersion?: number | string;
+}
 
 @Controller()
-export class TenantProvisioningConsumer {
-  private readonly logger = new Logger(TenantProvisioningConsumer.name);
+export class TenantProvisioningHandler {
+  private readonly logger = new Logger(TenantProvisioningHandler.name);
 
   constructor(private readonly companyProvisioningService: CompanyProvisioningService) {}
 
