@@ -181,7 +181,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       producer: 'tenant-service',
       version: '1.0',
       timestamp: new Date().toISOString(),
-      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+      topic: KafkaTopic.TENANT_CREATED,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
         id: 'ext-tenant-001',
@@ -221,7 +221,7 @@ describe('Company Provisioning Workflow (E2E / Integration Simulation)', () => {
       producer: 'tenant-service',
       version: '1.0',
       timestamp: new Date().toISOString(),
-      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+      topic: KafkaTopic.TENANT_CREATED,
       eventType: TenantLifecycleEventType.TENANT_CREATED,
       payload: {
         id: 'ext-tenant-001',

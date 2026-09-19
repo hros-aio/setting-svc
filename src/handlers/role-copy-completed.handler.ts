@@ -1,6 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { CacheService } from '@new-hros/libs-core';
+import { CacheService, RequestContext, RequestContextService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
 import { KafkaTopic, SetupStepStatus, SetupStepType } from '../enums';
 import { CompanySetupStepRepository } from '../modules/company/repositories/company-setup-step.repository';
@@ -27,9 +27,9 @@ export class RoleCopyCompletedHandler {
     @Payload() envelope: EventEnvelope<RoleCopyCompletedPayload>,
   ): Promise<void> {
     const payload = envelope.payload;
-    if (!payload || !payload.targetCompanyId) {
+    if (!payload || !payload.tenantCode) {
       this.logger.warn(
-        `Received authorization.role-copy.completed event without payload or targetCompanyId: ${JSON.stringify(
+        `Received authorization.role-copy.completed event without payload or tenantCode: ${JSON.stringify(
           envelope,
         )}`,
       );
@@ -40,53 +40,65 @@ export class RoleCopyCompletedHandler {
     const tenantCode = payload.tenantCode;
     const companyId = payload.targetCompanyId;
 
-    // Idempotency check with Redis if available
-    const idempotencyKey = `idemp:setup-step:${tenantCode}:${companyId}:role-copy:${eventId}`;
-    const { executed } = await this.cacheService.executeIfAbsent(
-      idempotencyKey,
-      async () => {
-        const step = await this.setupStepRepository.findByCompanyAndStep(
-          companyId,
-          SetupStepType.ROLE,
-        );
-
-        if (!step) {
-          this.logger.warn(`Setup step ROLE not found for targetCompanyId: ${companyId}`);
-          return;
-        }
-
-        if (step.status === SetupStepStatus.COMPLETED) {
-          this.logger.log(
-            `Setup step ROLE for company ${companyId} is already COMPLETED. Skipping.`,
-          );
-          if (this.cacheService) {
-            await this.cacheService.set(idempotencyKey, true, 86400);
-          }
-          return;
-        }
-
-        await this.setupStepRepository.markStepCompleted({
-          companyId,
-          stepType: SetupStepType.ROLE,
-          externalReferenceId: payload.batchId,
-          metadata: {
-            ...(step.metadata || {}),
-            roleCount: payload.copiedRoleCount ?? 0,
-            sourceCompanyId: payload.sourceCompanyId,
-          },
-        });
-        this.logger.log(
-          `Marked setup step ROLE as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
-        );
+    const context: RequestContext = {
+      traceId: envelope.correlationId || envelope.id,
+      requestId: envelope.id,
+      tenantCode: payload.tenantCode,
+      clientMetadata: {
+        ip: '127.0.0.1',
       },
-      86400,
-    );
+      requestTimestamp: new Date(),
+    };
 
-    if (!executed) {
-      this.logger.log(
-        `Duplicate authorization.role-copy.completed event received for company ${companyId}. Skipping.`,
+    return RequestContextService.run(context, async () => {
+      // Idempotency check with Redis if available
+      const idempotencyKey = `idemp:setup-step:${tenantCode}:${companyId}:role-copy:${eventId}`;
+      const { executed } = await this.cacheService.executeIfAbsent(
+        idempotencyKey,
+        async () => {
+          const step = await this.setupStepRepository.findByCompanyAndStep(
+            companyId,
+            SetupStepType.ROLE,
+          );
+
+          if (!step) {
+            this.logger.warn(`Setup step ROLE not found for targetCompanyId: ${companyId}`);
+            return;
+          }
+
+          if (step.status === SetupStepStatus.COMPLETED) {
+            this.logger.log(
+              `Setup step ROLE for company ${companyId} is already COMPLETED. Skipping.`,
+            );
+            if (this.cacheService) {
+              await this.cacheService.set(idempotencyKey, true, 86400);
+            }
+            return;
+          }
+
+          await this.setupStepRepository.markStepCompleted({
+            companyId,
+            stepType: SetupStepType.ROLE,
+            externalReferenceId: payload.batchId,
+            metadata: {
+              ...(step.metadata || {}),
+              roleCount: payload.copiedRoleCount ?? 0,
+              sourceCompanyId: payload.sourceCompanyId,
+            },
+          });
+          this.logger.log(
+            `Marked setup step ROLE as COMPLETED for company ${companyId} (batch: ${payload.batchId})`,
+          );
+        },
+        86400,
       );
-      return;
-    }
+
+      if (!executed) {
+        this.logger.log(
+          `Duplicate authorization.role-copy.completed event received for company ${companyId}. Skipping.`,
+        );
+        return;
+      }
+    });
   }
 }
