@@ -2,7 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { RequestContext, RequestContextService } from '@new-hros/libs-core';
 import { EventEnvelope } from '@new-hros/libs-events';
-import { KafkaTopic, TenantLifecycleEventType } from '../enums';
+import { KafkaTopic } from '../enums';
 import { CompanyProvisioningService } from '../modules/company/services/company-provisioning.service';
 
 export interface TenantCreatedPayload {
@@ -23,27 +23,11 @@ export class TenantProvisioningHandler {
 
   constructor(private readonly companyProvisioningService: CompanyProvisioningService) {}
 
-  @EventPattern(KafkaTopic.TENANT_LIFECYCLE_EVENTS)
+  @EventPattern(KafkaTopic.TENANT_CREATED)
   async handleTenantLifecycleEvent(
-    @Payload() envelope: EventEnvelope<TenantCreatedPayload> & { eventType?: string },
+    @Payload() envelope: EventEnvelope<TenantCreatedPayload>,
   ): Promise<unknown> {
-    const eventType =
-      envelope.eventType ||
-      (envelope as unknown as { payload?: { eventType?: string } }).payload?.eventType ||
-      TenantLifecycleEventType.TENANT_CREATED;
-
-    if (
-      eventType !== TenantLifecycleEventType.TENANT_CREATED &&
-      eventType !== TenantLifecycleEventType.TENANT_PROVISIONED
-    ) {
-      return;
-    }
-
-    const payload = envelope.payload?.tenantCode
-      ? envelope.payload
-      : (envelope as unknown as { payload?: { payload?: TenantCreatedPayload } }).payload
-          ?.payload || envelope.payload;
-
+    const payload = envelope.payload;
     if (!payload || !payload.tenantCode) {
       this.logger.warn(`Received tenant event without tenantCode: ${JSON.stringify(envelope)}`);
       return;
@@ -65,7 +49,7 @@ export class TenantProvisioningHandler {
       );
       return this.companyProvisioningService.provisionCompanyOnTenantCreated(
         envelope.id,
-        envelope.topic || KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+        envelope.topic || KafkaTopic.TENANT_CREATED,
         payload,
       );
     });

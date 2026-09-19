@@ -1,5 +1,5 @@
 export enum KafkaTopic {
-  TENANT_LIFECYCLE_EVENTS = 'tenant.lifecycle-events',
+  TENANT_CREATED = 'tenant.lifecycle-events.created',
   SETTING_EVENTS = 'setting.events',
   SETTING_COMPANY_EVENTS = 'setting.company.events',
   AUTHORIZATION_ROLE_COPY_REQUESTED = 'authorization.role-copy.requested',

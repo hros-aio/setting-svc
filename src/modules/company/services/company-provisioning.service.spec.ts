@@ -88,7 +88,7 @@ describe('CompanyProvisioningService', () => {
 
     const result = await service.provisionCompanyOnTenantCreated(
       'evt-1',
-      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+      KafkaTopic.TENANT_CREATED,
       {
         id: 'ext-t-1',
         tenantCode: 'ACME',
@@ -104,7 +104,7 @@ describe('CompanyProvisioningService', () => {
   it('should provision tenant projection, template company (PENDING with is_template = true), 8 setup steps and outbox event', async () => {
     const result = await service.provisionCompanyOnTenantCreated(
       'evt-1',
-      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+      KafkaTopic.TENANT_CREATED,
       {
         id: 'ext-t-1',
         tenantCode: 'ACME',

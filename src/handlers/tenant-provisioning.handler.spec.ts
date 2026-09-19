@@ -1,5 +1,5 @@
 import { EventEnvelope } from '@new-hros/libs-events';
-import { KafkaTopic, TenantLifecycleEventType } from '../enums';
+import { KafkaTopic } from '../enums';
 import { CompanyProvisioningService } from '../modules/company/services/company-provisioning.service';
 import { TenantCreatedPayload, TenantProvisioningHandler } from './tenant-provisioning.handler';
 
@@ -18,28 +18,26 @@ describe('TenantProvisioningConsumer', () => {
     );
   });
 
-  it('should ignore events that are not tenant.created or tenant.provisioned', async () => {
+  it('should ignore events that have no payload or tenantCode', async () => {
     const envelope = {
       id: 'evt-1',
-      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
-      eventType: 'tenant.deleted',
-      payload: { tenantCode: 'ACME', name: 'Acme', tenantId: 't-1' },
+      topic: KafkaTopic.TENANT_CREATED,
+      payload: { name: 'Acme' } as unknown as TenantCreatedPayload,
       producer: 'tenant-svc',
       version: '1.0',
       timestamp: new Date().toISOString(),
       correlationId: 'c-1',
-    } as unknown as EventEnvelope<TenantCreatedPayload> & { eventType?: string };
+    } as unknown as EventEnvelope<TenantCreatedPayload>;
 
     await consumer.handleTenantLifecycleEvent(envelope);
     expect(mockCompanyProvisioningService.provisionCompanyOnTenantCreated).not.toHaveBeenCalled();
   });
 
   it('should process tenant.created event and propagate to CompanyProvisioningService', async () => {
-    const envelope: EventEnvelope<TenantCreatedPayload> & { eventType?: string } = {
+    const envelope: EventEnvelope<TenantCreatedPayload> = {
       id: 'evt-100',
       correlationId: 'corr-100',
-      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
-      eventType: TenantLifecycleEventType.TENANT_CREATED,
+      topic: KafkaTopic.TENANT_CREATED,
       producer: 'tenant-svc',
       version: '1.0',
       timestamp: new Date().toISOString(),
@@ -56,33 +54,7 @@ describe('TenantProvisioningConsumer', () => {
     expect(result).toEqual({ success: true, companyId: 'c-1' });
     expect(mockCompanyProvisioningService.provisionCompanyOnTenantCreated).toHaveBeenCalledWith(
       'evt-100',
-      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
-      envelope.payload,
-    );
-  });
-
-  it('should process tenant.provisioned event alias successfully', async () => {
-    const envelope: EventEnvelope<TenantCreatedPayload> & { eventType?: string } = {
-      id: 'evt-101',
-      topic: KafkaTopic.TENANT_LIFECYCLE_EVENTS,
-      eventType: TenantLifecycleEventType.TENANT_PROVISIONED,
-      correlationId: 'corr-101',
-      producer: 'tenant-svc',
-      version: '1.0',
-      timestamp: new Date().toISOString(),
-      payload: {
-        id: 'ext-t-2',
-        tenantCode: 'BETA',
-        name: 'Beta LLC',
-      },
-    };
-
-    const result = await consumer.handleTenantLifecycleEvent(envelope);
-
-    expect(result).toEqual({ success: true, companyId: 'c-1' });
-    expect(mockCompanyProvisioningService.provisionCompanyOnTenantCreated).toHaveBeenCalledWith(
-      'evt-101',
-      KafkaTopic.TENANT_LIFECYCLE_EVENTS,
+      KafkaTopic.TENANT_CREATED,
       envelope.payload,
     );
   });
