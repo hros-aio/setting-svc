@@ -4,7 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { DepartmentRepository } from '../../src/modules/department/repositories/department.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
 import { TransactionService } from '@new-hros/libs-sql';
 import { Department } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';

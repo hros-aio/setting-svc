@@ -6,7 +6,7 @@ import { MasterDataStatus } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';

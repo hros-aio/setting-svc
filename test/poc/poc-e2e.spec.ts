@@ -10,10 +10,10 @@ import {
   SetupStepType,
 } from '../../src/enums';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { PocApplyHandler } from '../../src/modules/effective-change/handlers/poc-apply.handler';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';

@@ -6,7 +6,7 @@ import {
   EmployeeTransferStatus,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
 import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
 import { EmployeeTransferService } from './employee-transfer.service';

@@ -9,7 +9,7 @@ import {
   MasterDataStatus,
 } from '../src/enums';
 import { CompanyEntity } from '../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../src/modules/outbox-events/entities/outbox-event.entity';
 import { CompanyRepository } from '../src/modules/company/repositories/company.repository';
 import { DepartmentRepository } from '../src/modules/department/repositories/department.repository';
 import { EmployeeTransferApplyHandler } from '../src/modules/effective-change/handlers/employee-transfer-apply.handler';

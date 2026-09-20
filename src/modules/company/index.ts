@@ -1,7 +1,6 @@
 export * from './company.module';
 export * from './entities/company.entity';
 export * from './entities/company-setup-step.entity';
-export * from './entities/outbox-event.entity';
 export * from './repositories/company.repository';
 export * from './repositories/company-setup-step.repository';
 export * from './services/setup-step-seeder.service';

@@ -7,7 +7,7 @@ import {
   EffectiveEntityType,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';

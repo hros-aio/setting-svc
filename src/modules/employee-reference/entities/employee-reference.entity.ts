@@ -4,7 +4,7 @@ import { TableName } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 
 @Entity(TableName.EMPLOYEE_REFERENCES)
-@Unique('uq_employee_references_tenant_employee', ['tenantCode', 'employeeId'])
+@Unique('uq_employee_references_tenant_employee', ['tenantCode', 'employeeCode'])
 @Unique('uq_employee_references_company_number', ['companyId', 'employeeNumber'])
 export class EmployeeReferenceEntity extends BaseEntity {
   @Column({ type: 'uuid', name: 'employee_code' })

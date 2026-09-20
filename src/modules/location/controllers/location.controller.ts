@@ -10,7 +10,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { ApiTags } from '@nestjs/swagger';
+import { PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
@@ -20,7 +21,8 @@ import { UpdateLocationDto } from '../dtos/update-location.dto';
 import { LocationService } from '../services/location.service';
 
 @Controller('locations')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
+@ApiTags('Locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 

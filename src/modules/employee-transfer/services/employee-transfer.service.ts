@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import {
   AggregateType,
   EffectiveChangeEventType,

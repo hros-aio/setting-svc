@@ -8,7 +8,7 @@ import {
   OutboxStatus,
   PocEventType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { PocEntity } from '../../poc/entities/poc.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';

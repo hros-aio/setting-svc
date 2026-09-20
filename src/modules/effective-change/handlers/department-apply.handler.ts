@@ -8,7 +8,7 @@ import {
   MasterDataStatus,
   OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 

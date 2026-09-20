@@ -1,7 +1,7 @@
 import { Department, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager, Repository } from 'typeorm';
 import { DepartmentEventType, EffectiveChangeStatus, MasterDataStatus } from '../../src/enums';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { DepartmentApplyHandler } from '../../src/modules/effective-change/handlers/department-apply.handler';
 

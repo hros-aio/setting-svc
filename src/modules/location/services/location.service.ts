@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger } from '@nes
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
 import { isDateString } from 'class-validator';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
   AggregateType,

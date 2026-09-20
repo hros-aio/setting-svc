@@ -10,7 +10,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { ApiTags } from '@nestjs/swagger';
+import { PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { RequestContextService } from '@new-hros/libs-core';
 import { JobTitle, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
@@ -24,7 +25,8 @@ import {
 import { JobTitleService } from '../services/job-title.service';
 
 @Controller('job-titles')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
+@ApiTags('Job Titles')
 export class JobTitleController {
   constructor(
     private readonly jobTitleService: JobTitleService,

@@ -8,7 +8,7 @@ import { CompanyRepository } from '../../src/modules/company/repositories/compan
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { TransactionService } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
-import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { JobTitle } from '@new-hros/libs-sql';
 import { Department } from '@new-hros/libs-sql';
