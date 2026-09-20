@@ -5,7 +5,7 @@ import { CompanySetupStepEntity } from '../../src/modules/company/entities/compa
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../src/modules/employee-reference/repositories/employee-reference.repository';

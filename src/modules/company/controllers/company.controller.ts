@@ -15,7 +15,8 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { ApiTags } from '@nestjs/swagger';
+import { PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { CacheService, RequestContextService } from '@new-hros/libs-core';
 import { buildIdempotencyKey } from '../../../common/utils';
 import { CompanyResponseDto } from '../dto/company-response.dto';
@@ -26,7 +27,8 @@ import { CompanySetupQueryService } from '../services/company-setup-query.servic
 import { CompanyService } from '../services/company.service';
 
 @Controller('companies')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
+@ApiTags('Companies')
 export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,

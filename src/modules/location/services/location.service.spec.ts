@@ -1,10 +1,10 @@
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { LocationRepository } from '../repositories/location.repository';
 import { LocationService } from './location.service';

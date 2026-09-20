@@ -1,7 +1,7 @@
 import { Location, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager, Repository } from 'typeorm';
 import { EffectiveChangeStatus, LocationEventType, MasterDataStatus } from '../../src/enums';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { LocationApplyHandler } from '../../src/modules/effective-change/handlers/location-apply.handler';
 

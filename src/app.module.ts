@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ApisModule } from '@new-hros/libs-apis';
 import {
+  CacheModule,
+  CacheModuleOptions,
   ConfigurationModule,
   ConfigurationService,
   CoreModule,
@@ -9,7 +11,6 @@ import {
 import { SqlModule } from '@new-hros/libs-sql';
 
 import { EventsModule, SubscriberModule } from '@new-hros/libs-events';
-import { AppLogger } from './common/logger/app-logger.service';
 import { Handlers } from './handlers';
 import { CompanyModule } from './modules/company';
 import { DepartmentModule } from './modules/department';
@@ -20,22 +21,27 @@ import { GradeModule } from './modules/grade';
 import { HealthModule } from './modules/health';
 import { JobTitleModule } from './modules/job-title';
 import { LocationModule } from './modules/location';
+import { OutboxEventsModule } from './modules/outbox-events';
 import { PocModule } from './modules/poc';
 import { TenantModule } from './modules/tenant';
-
-const config = new ConfigurationService({});
 
 @Module({
   imports: [
     ConfigurationModule.register({ configDir: 'config', envPath: '.env' }),
-    CoreModule.forRoot({
-      cache: {
-        store: 'redis',
-        host: config.get<string>('redis.host') ?? 'localhost',
-        port: config.get<number>('redis.port') ?? 6379,
+    CoreModule.forRoot(),
+    CacheModule.registerAsync({
+      inject: [ConfigurationService],
+      useFactory: (configService: ConfigurationService): CacheModuleOptions => {
+        return {
+          redis: {
+            host: configService.get<string>('redis.host') ?? 'localhost',
+            port: configService.get<number>('redis.port') ?? 6379,
+          },
+        };
       },
     }),
     ApisModule.forRootAsync({
+      imports: [CacheModule],
       inject: [ConfigurationService],
       useFactory: (
         configService: ConfigurationService,
@@ -70,10 +76,9 @@ const config = new ConfigurationService({});
     JobTitleModule,
     EffectiveChangeModule,
     EmployeeReferenceModule,
+    OutboxEventsModule,
     PocModule,
     EmployeeTransferModule,
   ],
-  providers: [AppLogger],
-  exports: [AppLogger],
 })
 export class AppModule {}

@@ -11,7 +11,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { ApiTags } from '@nestjs/swagger';
+import { PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { CreatePocDto } from '../dtos/create-poc.dto';
@@ -27,7 +28,8 @@ import {
 import { PocService } from '../services/poc.service';
 
 @Controller('companies/:companyId/pocs')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
+@ApiTags('POC')
 export class PocController {
   constructor(
     private readonly pocService: PocService,

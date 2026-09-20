@@ -10,7 +10,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
+import { ApiTags } from '@nestjs/swagger';
+import { PermissionGuard, RequirePermission } from '@new-hros/libs-apis';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Grade, PaginatedResult } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
@@ -21,7 +22,8 @@ import { GradeQueryService, GradeWithPendingChange } from '../services/grade-que
 import { GradeService } from '../services/grade.service';
 
 @Controller('grades')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
+@ApiTags('Grades')
 export class GradeController {
   constructor(
     private readonly gradeService: GradeService,

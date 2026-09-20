@@ -16,7 +16,7 @@ import { TenantCreatedPayload } from '../src/events/payload/tenant-lifecycle.pay
 import { TenantProvisioningHandler } from '../src/handlers/tenant-provisioning.handler';
 import { CompanySetupStepEntity } from '../src/modules/company/entities/company-setup-step.entity';
 import { CompanyEntity } from '../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../src/modules/outbox-events/entities/outbox-event.entity';
 import { CompanyRepository } from '../src/modules/company/repositories/company.repository';
 import { CompanyProvisioningService } from '../src/modules/company/services/company-provisioning.service';
 import { SetupStepSeederService } from '../src/modules/company/services/setup-step-seeder.service';

@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from '../../src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
 import { MasterDataStatus, SetupStepType } from '../../src/enums';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';

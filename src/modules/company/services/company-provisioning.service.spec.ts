@@ -5,9 +5,9 @@ import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyEntity } from '../entities/company.entity';
-import { OutboxEventEntity } from '../entities/outbox-event.entity';
+import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanyRepository } from '../repositories/company.repository';
-import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { CompanyProvisioningService } from './company-provisioning.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 

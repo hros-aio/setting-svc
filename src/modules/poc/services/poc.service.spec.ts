@@ -5,7 +5,7 @@ import { PocType } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';

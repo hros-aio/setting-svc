@@ -1,22 +1,23 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CompanyEntity } from './entities/company.entity';
-import { CompanySetupStepEntity } from './entities/company-setup-step.entity';
-import { OutboxEventEntity } from './entities/outbox-event.entity';
-import { CompanyRepository } from './repositories/company.repository';
-import { CompanySetupStepRepository } from './repositories/company-setup-step.repository';
-import { SetupStepSeederService } from './services/setup-step-seeder.service';
-import { CompanyProvisioningService } from './services/company-provisioning.service';
-import { CompanyService } from './services/company.service';
-import { TemplateCopyService } from './services/template-copy.service';
-import { CompanySetupQueryService } from './services/company-setup-query.service';
-import { CompanySetupCommandService } from './services/company-setup-command.service';
-import { CompanyController } from './controllers/company.controller';
+import { Company } from '@new-hros/libs-sql';
 import { TenantModule } from '../tenant/tenant.module';
+import { CompanyController } from './controllers/company.controller';
+import { CompanySetupStepEntity } from './entities/company-setup-step.entity';
+import { CompanyEntity } from './entities/company.entity';
+import { CompanySetupStepRepository } from './repositories/company-setup-step.repository';
+import { CompanyRepository } from './repositories/company.repository';
+import { CompanyProvisioningService } from './services/company-provisioning.service';
+import { CompanySetupCommandService } from './services/company-setup-command.service';
+import { CompanySetupQueryService } from './services/company-setup-query.service';
+import { CompanyService } from './services/company.service';
+import { SetupStepSeederService } from './services/setup-step-seeder.service';
+import { TemplateCopyService } from './services/template-copy.service';
 
+@Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CompanyEntity, CompanySetupStepEntity, OutboxEventEntity]),
+    TypeOrmModule.forFeature([Company, CompanyEntity, CompanySetupStepEntity]),
     TenantModule,
   ],
   controllers: [CompanyController],

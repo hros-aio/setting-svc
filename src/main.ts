@@ -30,11 +30,12 @@ async function bootstrap(): Promise<void> {
 
   // Swagger Documentation Setup using @new-hros/libs-apis
   setupSwagger(app, {
+    enabled: true,
     title: 'Setting Service API',
     description: 'Enterprise HRMS Setting Service REST APIs',
     version: '1.0.0',
     path: `${globalPrefix}/docs`,
-    tags: ['Health'],
+    bearerAuth: true,
   });
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;

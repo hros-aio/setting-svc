@@ -15,7 +15,7 @@ import { CopyableCategory } from '../enums/copyable-category.enum';
 import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { CompanySetupQueryService } from './company-setup-query.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 import { TemplateCopyService } from './template-copy.service';

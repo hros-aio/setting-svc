@@ -1,6 +1,6 @@
 import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import { OutboxEventRepository } from 'src/modules/company/repositories/outbox-event.repository';
+import { OutboxEventRepository } from 'src/modules/outbox-events/repositories/outbox-event.repository';
 import { EntityManager, Repository } from 'typeorm';
 import {
   CompanyStatus,
@@ -10,7 +10,7 @@ import {
   MasterDataStatus,
 } from '../src/enums';
 import { CompanyEntity } from '../src/modules/company/entities/company.entity';
-import { OutboxEventEntity } from '../src/modules/company/entities/outbox-event.entity';
+import { OutboxEventEntity } from '../src/modules/outbox-events/entities/outbox-event.entity';
 import { CompanyRepository } from '../src/modules/company/repositories/company.repository';
 import { DepartmentRepository } from '../src/modules/department/repositories/department.repository';
 import { EmployeeTransferApplyHandler } from '../src/modules/effective-change/handlers/employee-transfer-apply.handler';
