@@ -33,9 +33,15 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
       >);
 
     mockOutboxEventService = {
-      fromLocationCreated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromLocationUpdated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromLocationDeactivated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromLocationCreated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromLocationUpdated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromLocationDeactivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockLocationRepo = {

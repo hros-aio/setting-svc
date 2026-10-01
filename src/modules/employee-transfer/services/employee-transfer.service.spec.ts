@@ -1,8 +1,6 @@
 import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
-import {
-  EmployeeTransferStatus,
-} from '../../../enums';
+import { EmployeeTransferStatus } from '../../../enums';
 import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
 import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
@@ -37,9 +35,7 @@ describe('EmployeeTransferService', () => {
     mockOutboxEventService = {
       fromEmployeeTransferScheduled: jest
         .fn()
-        .mockImplementation((transfer, params) =>
-          Promise.resolve({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-        ),
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockTxService = {

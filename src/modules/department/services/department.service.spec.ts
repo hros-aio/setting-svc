@@ -34,9 +34,15 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       >);
 
     mockOutboxEventService = {
-      fromDepartmentCreated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromDepartmentUpdated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromDepartmentDeactivated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromDepartmentCreated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromDepartmentUpdated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromDepartmentDeactivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockDeptRepo = {

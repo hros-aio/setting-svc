@@ -34,9 +34,15 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
       >);
 
     mockOutboxEventService = {
-      fromGradeCreated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromGradeUpdated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
-      fromGradeDeactivated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromGradeCreated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromGradeUpdated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromGradeDeactivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockGradeRepo = {

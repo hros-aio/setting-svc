@@ -40,9 +40,15 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
       >);
 
     mockOutboxEventService = {
-      fromJobTitleCreated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
-      fromJobTitleUpdated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
-      fromJobTitleDeactivated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromJobTitleCreated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromJobTitleUpdated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromJobTitleDeactivated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockJobTitleRepo = {

@@ -106,9 +106,7 @@ describe('CompanyService', () => {
         ),
       fromRoleCopyRequested: jest
         .fn()
-        .mockImplementation((companyId, sourceCompanyId, tenantCode) =>
-          Promise.resolve({ id: 'outbox-id' } as unknown as OutboxEventEntity),
-        ),
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
       fromCompanyUpdated: jest
         .fn()
         .mockImplementation((params) =>
@@ -116,9 +114,7 @@ describe('CompanyService', () => {
         ),
       fromCompanyActivated: jest
         .fn()
-        .mockImplementation((company, tenantCode, userId, completedStepsCount, activatedAt) =>
-          Promise.resolve({ id: 'outbox-id' } as unknown as OutboxEventEntity),
-        ),
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
     };
 
     mockTransactionService = {

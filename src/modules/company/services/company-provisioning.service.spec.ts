@@ -1,6 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 import { OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
-import { Repository } from 'typeorm';
 import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
@@ -22,9 +21,7 @@ describe('CompanyProvisioningService', () => {
     mockOutboxEventService = {
       fromCompanyProvisioned: jest
         .fn()
-        .mockImplementation((company, tenantId) =>
-          Promise.resolve({ id: 'outbox-id' } as unknown as OutboxEventEntity),
-        ),
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
     };
 
     mockTransactionService = {

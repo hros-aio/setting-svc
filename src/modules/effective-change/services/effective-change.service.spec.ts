@@ -1,10 +1,5 @@
 import { TransactionService } from '@new-hros/libs-sql';
-import {
-  AggregateType,
-  ChangeOperation,
-  EffectiveChangeEventType,
-  EffectiveEntityType,
-} from '../../../enums';
+import { AggregateType, ChangeOperation, EffectiveEntityType } from '../../../enums';
 import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
