@@ -5,9 +5,8 @@ import {
   ChangeOperation,
   EffectiveChangeEventType,
   EffectiveEntityType,
-  OutboxStatus,
 } from '../../../enums';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
@@ -22,7 +21,7 @@ export class EffectiveChangeService {
 
   constructor(
     private readonly transactionService: TransactionService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
     private readonly locationApplyHandler: LocationApplyHandler,
     private readonly departmentApplyHandler: DepartmentApplyHandler,
     private readonly gradeApplyHandler: GradeApplyHandler,
@@ -107,22 +106,12 @@ export class EffectiveChangeService {
     return this.transactionService.runInTransaction(async () => {
       const aggregateType = this.mapAggregateType(command.entityType);
 
-      await this.outboxEventRepository.create({
+      await this.outboxEventService.fromEffectiveChangeExecute(
+        command,
         aggregateType,
-        aggregateId: command.changeId,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE,
-        payload: {
-          changeId: command.changeId,
-          entityType: normalizedEntityType,
-          operation: normalizedOperation,
-          effectiveAt: command.effectiveAt,
-          targetCompanyId: command.targetCompanyId,
-          tenantCode: command.tenantCode,
-          parameters: command.parameters || {},
-        },
-        executionTime: new Date(),
-        status: OutboxStatus.PENDING,
-      });
+        normalizedEntityType,
+        normalizedOperation,
+      );
 
       this.logger.log(
         `Created outbox event ${EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE} for change ${command.changeId}`,

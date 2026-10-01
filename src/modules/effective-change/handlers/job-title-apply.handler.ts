@@ -1,14 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JobTitle, TransactionService } from '@new-hros/libs-sql';
+import { JobTitle, OutboxEventEntity, OutboxStatus, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
   JobTitleEventType,
   MasterDataStatus,
-  OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
@@ -76,7 +74,6 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         effectiveAt: jobTitle.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -169,7 +166,6 @@ export class JobTitleApplyHandler {
         status: jobTitle.status,
         updatedFields: change.payload,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -236,7 +232,6 @@ export class JobTitleApplyHandler {
         code: jobTitle.code,
         status: jobTitle.status,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

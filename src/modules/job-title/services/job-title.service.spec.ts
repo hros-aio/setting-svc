@@ -6,7 +6,7 @@ import { MasterDataStatus } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { Department } from '@new-hros/libs-sql';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
@@ -24,7 +24,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxEventRepo: { [K in keyof OutboxEventRepository]?: jest.Mock };
+  let mockOutboxEventService: { [K in keyof OutboxEventService]?: jest.Mock };
   let mockEffectiveChangeRepo: { [K in keyof EffectiveChangeRepository]?: jest.Mock };
 
   beforeEach(() => {
@@ -39,8 +39,16 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
         typeof RequestContextService.current
       >);
 
-    mockOutboxEventRepo = {
-      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+    mockOutboxEventService = {
+      fromJobTitleCreated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromJobTitleUpdated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromJobTitleDeactivated: jest
+        .fn()
+        .mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockJobTitleRepo = {
@@ -79,7 +87,7 @@ describe('JobTitleService - Multi-Company Isolation & Invariants [US1, US2]', ()
 
     service = new JobTitleService(
       mockTxService as unknown as TransactionService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
       mockJobTitleRepo as unknown as JobTitleRepository,
       mockDeptRepo as unknown as DepartmentRepository,
       mockGradeRepo as unknown as GradeRepository,

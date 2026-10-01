@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, TransactionService } from '@new-hros/libs-sql';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { MasterDataStatus, SetupStepType } from '../../src/enums';
 import { CompanySetupStepEntity } from '../../src/modules/company/entities/company-setup-step.entity';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
@@ -68,7 +69,7 @@ describe('LocationService - Create Location [US1]', () => {
 
     service = new LocationService(
       mockTxService as unknown as TransactionService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      new OutboxEventService(mockOutboxEventRepo as unknown as OutboxEventRepository),
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,

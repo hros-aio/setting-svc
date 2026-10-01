@@ -41,12 +41,13 @@ describe('RoleCopyCompletedConsumer', () => {
     (mockStepRepo.findByCompanyAndStep as jest.Mock).mockResolvedValue(mockStep);
 
     const eventEnvelope: EventEnvelope<RoleCopyCompletedPayload> = {
-      id: 'evt-1',
-      topic: KafkaTopic.AUTHORIZATION_ROLE_COPY_COMPLETED,
+      eventId: 'evt-1',
+      eventType: KafkaTopic.AUTHORIZATION_ROLE_COPY_COMPLETED,
+      eventVersion: 1,
+      tenantCode: 'tenant-1',
+      occurredAt: new Date().toISOString(),
       producer: 'auth-svc',
-      version: '1.0',
       correlationId: 'c-1',
-      timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-123',
         tenantCode: 'tenant-1',
@@ -84,12 +85,13 @@ describe('RoleCopyCompletedConsumer', () => {
     (mockStepRepo.findByCompanyAndStep as jest.Mock).mockResolvedValue(mockStep);
 
     const eventEnvelope: EventEnvelope<RoleCopyCompletedPayload> = {
-      id: 'evt-2',
-      topic: KafkaTopic.AUTHORIZATION_ROLE_COPY_COMPLETED,
+      eventId: 'evt-2',
+      eventType: KafkaTopic.AUTHORIZATION_ROLE_COPY_COMPLETED,
+      eventVersion: 1,
+      tenantCode: 'tenant-1',
+      occurredAt: new Date().toISOString(),
       producer: 'auth-svc',
-      version: '1.0',
       correlationId: 'c-2',
-      timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-123',
         tenantCode: 'tenant-1',

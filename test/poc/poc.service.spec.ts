@@ -12,6 +12,7 @@ import { CompanyEntity } from '../../src/modules/company/entities/company.entity
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../src/modules/employee-reference/entities/employee-reference.entity';
@@ -84,7 +85,7 @@ describe('PocService', () => {
 
     service = new PocService(
       mockTransactionService,
-      mockOutboxRepo,
+      new OutboxEventService(mockOutboxRepo),
       mockPocRepo,
       mockEmployeeRefRepo,
       mockCompanyRepo,

@@ -35,12 +35,13 @@ describe('TenantProvisioningConsumer', () => {
 
   it('should process tenant.created event and propagate to CompanyProvisioningService', async () => {
     const envelope: EventEnvelope<TenantCreatedPayload> = {
-      id: 'evt-100',
+      eventId: 'evt-100',
       correlationId: 'corr-100',
-      topic: KafkaTopic.TENANT_CREATED,
+      eventType: KafkaTopic.TENANT_CREATED,
+      eventVersion: 1,
+      tenantCode: 'ACME',
+      occurredAt: new Date().toISOString(),
       producer: 'tenant-svc',
-      version: '1.0',
-      timestamp: new Date().toISOString(),
       payload: {
         id: 'ext-t-1',
         tenantCode: 'ACME',

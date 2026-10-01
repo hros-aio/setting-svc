@@ -1,16 +1,15 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
+import { OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
 import { CompanyStatus, SetupStepStatus, SetupStepType } from '../../../enums';
 import { CreateCompanyDto } from '../dto/create-company.dto';
 import { CompanySetupStepEntity } from '../entities/company-setup-step.entity';
 import { CompanyEntity } from '../entities/company.entity';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CopyableCategory } from '../enums/copyable-category.enum';
 import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CompanySetupQueryService } from './company-setup-query.service';
 import { CompanyService } from './company.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
@@ -24,7 +23,7 @@ describe('CompanyService', () => {
   let mockCopyService: jest.Mocked<Partial<TemplateCopyService>>;
   let mockSetupQueryService: jest.Mocked<Partial<CompanySetupQueryService>>;
   let mockTransactionService: jest.Mocked<Partial<TransactionService>>;
-  let mockOutboxEventRepo: jest.Mocked<Partial<OutboxEventRepository>>;
+  let mockOutboxEventService: jest.Mocked<Partial<OutboxEventService>>;
 
   const defaultTenantCode = 'TEST_TENANT';
   const defaultUserId = 'user-uuid-1';
@@ -99,12 +98,23 @@ describe('CompanyService', () => {
       }),
     };
 
-    mockOutboxEventRepo = {
-      create: jest
+    mockOutboxEventService = {
+      fromCompanyCreated: jest
         .fn()
         .mockImplementation((data) =>
           Promise.resolve({ id: 'outbox-id', ...data } as unknown as OutboxEventEntity),
         ),
+      fromRoleCopyRequested: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
+      fromCompanyUpdated: jest
+        .fn()
+        .mockImplementation((params) =>
+          Promise.resolve({ id: 'outbox-id', ...params } as unknown as OutboxEventEntity),
+        ),
+      fromCompanyActivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
     };
 
     mockTransactionService = {
@@ -118,7 +128,7 @@ describe('CompanyService', () => {
       mockSeederService as unknown as SetupStepSeederService,
       mockCopyService as unknown as TemplateCopyService,
       mockSetupQueryService as unknown as CompanySetupQueryService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
     );
   });
 
@@ -142,7 +152,7 @@ describe('CompanyService', () => {
 
       expect(result.status).toBe(CompanyStatus.PENDING);
       expect(result.isTemplate).toBe(false);
-      expect(mockOutboxEventRepo.create).toHaveBeenCalledTimes(1);
+      expect(mockOutboxEventService.fromCompanyCreated).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ConflictException if company code already exists for tenant', async () => {
@@ -191,7 +201,8 @@ describe('CompanyService', () => {
       } as unknown as CreateCompanyDto);
 
       expect(result).toBeDefined();
-      expect(mockOutboxEventRepo.create).toHaveBeenCalledTimes(2);
+      expect(mockOutboxEventService.fromCompanyCreated).toHaveBeenCalledTimes(1);
+      expect(mockOutboxEventService.fromRoleCopyRequested).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -230,9 +241,9 @@ describe('CompanyService', () => {
         stepType: SetupStepType.COMPANY_INFORMATION,
         completedBy: defaultUserId,
       });
-      expect(mockOutboxEventRepo.create).toHaveBeenCalledWith(
+      expect(mockOutboxEventService.fromCompanyUpdated).toHaveBeenCalledWith(
         expect.objectContaining({
-          aggregateId: companyId,
+          companyId,
         }),
       );
       expect(result.legalName).toBe('Updated Legal Name');
@@ -363,15 +374,14 @@ describe('CompanyService', () => {
           activatedBy: defaultUserId,
         }),
       );
-      expect(mockOutboxEventRepo.create).toHaveBeenCalledWith(
+      expect(mockOutboxEventService.fromCompanyActivated).toHaveBeenCalledWith(
         expect.objectContaining({
-          aggregateId: companyId,
-          payload: expect.objectContaining({
-            companyId,
-            status: CompanyStatus.ACTIVE,
-            completedStepsCount: 8,
-          }),
+          id: companyId,
         }),
+        defaultTenantCode,
+        defaultUserId,
+        8,
+        expect.any(Date),
       );
       expect(result.status).toBe(CompanyStatus.ACTIVE);
     });
@@ -399,7 +409,7 @@ describe('CompanyService', () => {
       );
 
       expect(mockCompanyRepo.update).not.toHaveBeenCalled();
-      expect(mockOutboxEventRepo.create).not.toHaveBeenCalled();
+      expect(mockOutboxEventService.fromCompanyActivated).not.toHaveBeenCalled();
     });
 
     it('should throw UnprocessableEntityException if company is already ACTIVE', async () => {

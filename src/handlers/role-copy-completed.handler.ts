@@ -36,13 +36,13 @@ export class RoleCopyCompletedHandler {
       return;
     }
 
-    const eventId = envelope.id || payload.batchId;
+    const eventId = envelope.eventId || payload.batchId;
     const tenantCode = payload.tenantCode;
     const companyId = payload.targetCompanyId;
 
     const context: RequestContext = {
-      traceId: envelope.correlationId || envelope.id,
-      requestId: envelope.id,
+      traceId: envelope.correlationId || envelope.eventId,
+      requestId: envelope.eventId,
       tenantCode: payload.tenantCode,
       clientMetadata: {
         ip: '127.0.0.1',

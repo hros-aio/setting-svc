@@ -9,19 +9,16 @@ import { RequestContextService } from '@new-hros/libs-core';
 import { Grade, TransactionService } from '@new-hros/libs-sql';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
-  AggregateType,
   ChangeOperation,
-  EffectiveChangeEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   SetupStepType,
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CreateGradeDto } from '../dtos/create-grade.dto';
 import { DeactivateGradeDto } from '../dtos/query-grade.dto';
 import { UpdateGradeDto } from '../dtos/update-grade.dto';
@@ -37,7 +34,7 @@ export class GradeService {
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
   ) {}
 
   async create(dto: CreateGradeDto, companyId: string): Promise<Grade> {
@@ -74,21 +71,7 @@ export class GradeService {
       });
 
       // 5. Write outbox event for scheduling
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.GRADE,
-        aggregateId: grade.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: grade.id,
-          entityType: 'grade',
-          operation: 'CREATE',
-          effectiveAt: grade.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: grade.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromGradeCreated(grade, companyId, tenantCode);
 
       return grade;
     });
@@ -140,21 +123,7 @@ export class GradeService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'grade',
-          operation: 'UPDATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromGradeUpdated(savedChange, companyId, tenantCode);
 
       return savedChange;
     });
@@ -191,21 +160,7 @@ export class GradeService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'grade',
-          operation: 'DEACTIVATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromGradeDeactivated(savedChange, companyId, tenantCode);
 
       return savedChange;
     });

@@ -3,7 +3,10 @@ import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'clas
 import { Type } from 'class-transformer';
 
 export class DeactivateLocationDto {
-  @ApiProperty({ description: 'Future effective deactivation date (YYYY-MM-DD)', example: '2026-10-01' })
+  @ApiProperty({
+    description: 'Future effective deactivation date (YYYY-MM-DD)',
+    example: '2026-10-01',
+  })
   @IsDateString()
   @IsNotEmpty()
   effectiveAt: string;
@@ -29,4 +32,3 @@ export class QueryLocationDto {
   @IsString()
   search?: string;
 }
-

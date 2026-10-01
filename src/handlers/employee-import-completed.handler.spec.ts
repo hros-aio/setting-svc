@@ -44,12 +44,13 @@ describe('EmployeeImportCompletedConsumer', () => {
     (mockStepRepo.findByCompanyAndStep as jest.Mock).mockResolvedValue(mockStep);
 
     const eventEnvelope: EventEnvelope<EmployeeImportCompletedPayload> = {
-      id: 'evt-import-1',
-      topic: KafkaTopic.EMPLOYEE_IMPORT_BATCH_COMPLETED,
+      eventId: 'evt-import-1',
+      eventType: KafkaTopic.EMPLOYEE_IMPORT_BATCH_COMPLETED,
+      eventVersion: 1,
+      tenantCode: 'tenant-1',
+      occurredAt: new Date().toISOString(),
       producer: 'employee-import-svc',
-      version: '1.0',
       correlationId: 'c-import-1',
-      timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-import-123',
         tenantCode: 'tenant-1',
@@ -76,12 +77,13 @@ describe('EmployeeImportCompletedConsumer', () => {
     (mockCacheService.executeIfAbsent as jest.Mock).mockResolvedValue({ executed: false });
 
     const eventEnvelope: EventEnvelope<EmployeeImportCompletedPayload> = {
-      id: 'evt-import-2',
-      topic: KafkaTopic.EMPLOYEE_IMPORT_BATCH_COMPLETED,
+      eventId: 'evt-import-2',
+      eventType: KafkaTopic.EMPLOYEE_IMPORT_BATCH_COMPLETED,
+      eventVersion: 1,
+      tenantCode: 'tenant-1',
+      occurredAt: new Date().toISOString(),
       producer: 'employee-import-svc',
-      version: '1.0',
       correlationId: 'c-import-2',
-      timestamp: new Date().toISOString(),
       payload: {
         batchId: 'batch-import-123',
         tenantCode: 'tenant-1',

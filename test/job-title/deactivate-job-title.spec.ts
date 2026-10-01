@@ -10,6 +10,7 @@ import { EffectiveChangeRepository } from '../../src/modules/effective-change/re
 import { TransactionService } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { CompanyEntity } from '../../src/modules/company/entities/company.entity';
 import { JobTitle } from '@new-hros/libs-sql';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
@@ -64,7 +65,7 @@ describe('JobTitleService - Schedule Job Title Deactivation [US4]', () => {
 
     service = new JobTitleService(
       mockTxService as unknown as TransactionService,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      new OutboxEventService(mockOutboxRepo as unknown as OutboxEventRepository),
       mockJobTitleRepo as unknown as JobTitleRepository,
       {} as unknown as DepartmentRepository,
       {} as unknown as GradeRepository,

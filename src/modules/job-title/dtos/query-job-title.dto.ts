@@ -11,7 +11,10 @@ import {
 import { Type } from 'class-transformer';
 
 export class DeactivateJobTitleDto {
-  @ApiProperty({ description: 'Future effective deactivation date (YYYY-MM-DD)', example: '2026-10-01' })
+  @ApiProperty({
+    description: 'Future effective deactivation date (YYYY-MM-DD)',
+    example: '2026-10-01',
+  })
   @IsDateString()
   @IsNotEmpty()
   effectiveAt: string;
@@ -64,4 +67,3 @@ export class QueryJobTitleDto {
   @IsUUID('4')
   gradeId?: string;
 }
-

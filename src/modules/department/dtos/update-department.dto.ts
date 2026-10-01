@@ -22,12 +22,19 @@ export class UpdateDepartmentDto {
   @MaxLength(255)
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Department description', example: 'Updated department description' })
+  @ApiPropertyOptional({
+    description: 'Department description',
+    example: 'Updated department description',
+  })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Parent department UUID', nullable: true, example: 'dept-123' })
+  @ApiPropertyOptional({
+    description: 'Parent department UUID',
+    nullable: true,
+    example: 'dept-123',
+  })
   @ValidateIf((_, val) => val !== null && val !== undefined)
   @IsUUID()
   @IsOptional()
@@ -38,4 +45,3 @@ export class UpdateDepartmentDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

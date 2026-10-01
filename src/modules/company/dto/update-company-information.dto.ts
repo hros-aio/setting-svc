@@ -100,4 +100,3 @@ export class UpdateCompanyInformationDto {
   @IsObject()
   legalAddress?: Record<string, unknown>;
 }
-

@@ -10,21 +10,18 @@ import { TransactionService } from '@new-hros/libs-sql';
 import { isDateString } from 'class-validator';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
-  AggregateType,
   ChangeOperation,
-  EffectiveChangeEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   PocType,
   SetupStepType,
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CreatePocDto } from '../dtos/create-poc.dto';
 import { DeactivatePocDto } from '../dtos/deactivate-poc.dto';
 import { ReplacePocDto } from '../dtos/replace-poc.dto';
@@ -37,7 +34,7 @@ export class PocService {
 
   constructor(
     private readonly transactionService: TransactionService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
     private readonly pocRepository: PocRepository,
     private readonly employeeReferenceRepository: EmployeeReferenceRepository,
     private readonly companyRepository: CompanyRepository,
@@ -89,21 +86,7 @@ export class PocService {
       });
 
       // 7. Write outbox event for scheduling
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.POC,
-        aggregateId: poc.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: poc.id,
-          entityType: 'poc',
-          operation: 'CREATE',
-          effectiveAt: poc.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: poc.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromPocCreated(poc, companyId, tenantCode);
 
       this.logger.log(
         `Scheduled initial PoC assignment for ${dto.pocType} (id: ${poc.id}) in company ${companyId}`,
@@ -155,21 +138,7 @@ export class PocService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'poc',
-          operation: 'UPDATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromPocUpdated(savedChange, companyId, tenantCode);
 
       this.logger.log(
         `Scheduled replacement for PoC ${poc.pocType} (${pocId}) in company ${companyId}`,
@@ -217,21 +186,7 @@ export class PocService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'poc',
-          operation: 'DEACTIVATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromPocDeactivated(savedChange, companyId, tenantCode);
 
       this.logger.log(
         `Scheduled deactivation for PoC ${poc.pocType} (${pocId}) in company ${companyId}`,

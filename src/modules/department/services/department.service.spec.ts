@@ -1,11 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
-import { Department, TransactionService } from '@new-hros/libs-sql';
+import { Department, OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { DepartmentRepository } from '../repositories/department.repository';
 import { DepartmentService } from './department.service';
@@ -16,7 +15,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
+  let mockOutboxEventService: { [K in keyof OutboxEventService]?: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
@@ -34,9 +33,16 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventService = {
+      fromDepartmentCreated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromDepartmentUpdated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromDepartmentDeactivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockDeptRepo = {
@@ -68,7 +74,7 @@ describe('DepartmentService - Multi-Company Isolation & Invariants [US1, US2]', 
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
     );
   });
 

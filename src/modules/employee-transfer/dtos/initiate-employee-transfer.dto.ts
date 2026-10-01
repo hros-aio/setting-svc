@@ -44,4 +44,3 @@ export class InitiateEmployeeTransferDto {
   @MaxLength(1000)
   notes?: string;
 }
-

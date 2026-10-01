@@ -7,6 +7,7 @@ import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outb
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
@@ -72,7 +73,7 @@ describe('LocationService - Deactivate Location [US1]', () => {
 
     service = new LocationService(
       mockTxService as unknown as TransactionService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      new OutboxEventService(mockOutboxEventRepo as unknown as OutboxEventRepository),
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,

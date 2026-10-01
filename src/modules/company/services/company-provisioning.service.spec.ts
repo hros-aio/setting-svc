@@ -1,13 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
-import { TransactionService } from '@new-hros/libs-sql';
-import { Repository } from 'typeorm';
+import { OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
 import { CompanyStatus, KafkaTopic } from '../../../enums';
 import { TenantEntity } from '../../tenant/entities/tenant.entity';
 import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyEntity } from '../entities/company.entity';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanyRepository } from '../repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CompanyProvisioningService } from './company-provisioning.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 
@@ -17,12 +15,13 @@ describe('CompanyProvisioningService', () => {
   let mockTenantRepo: jest.Mocked<Partial<TenantRepository>>;
   let mockCompanyRepo: jest.Mocked<Partial<CompanyRepository>>;
   let mockSetupStepSeederService: jest.Mocked<Partial<SetupStepSeederService>>;
-  let mockOutboxRepo: jest.Mocked<Partial<Repository<OutboxEventEntity>>>;
+  let mockOutboxEventService: jest.Mocked<Partial<OutboxEventService>>;
 
   beforeEach(() => {
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => dto as OutboxEventEntity),
-      save: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
+    mockOutboxEventService = {
+      fromCompanyProvisioned: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-id' } as unknown as OutboxEventEntity),
     };
 
     mockTransactionService = {
@@ -59,7 +58,7 @@ describe('CompanyProvisioningService', () => {
       mockTenantRepo as unknown as TenantRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepSeederService as unknown as SetupStepSeederService,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
     );
   });
 
@@ -127,6 +126,6 @@ describe('CompanyProvisioningService', () => {
       }),
     );
     expect(mockSetupStepSeederService.seedMandatorySteps).toHaveBeenCalledWith('ACME', 'c-uuid-1');
-    expect(mockOutboxRepo.create).toHaveBeenCalled();
+    expect(mockOutboxEventService.fromCompanyProvisioned).toHaveBeenCalled();
   });
 });

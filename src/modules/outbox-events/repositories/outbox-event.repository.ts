@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { TransactionService } from '@new-hros/libs-sql';
-import { OutboxStatus } from '../../../enums';
+import { OutboxEventEntity, OutboxStatus, TransactionService } from '@new-hros/libs-sql';
 import { DeepPartial, FindOptionsWhere, Repository } from 'typeorm';
-import { OutboxEventEntity } from '../entities/outbox-event.entity';
 
 @Injectable()
 export class OutboxEventRepository {

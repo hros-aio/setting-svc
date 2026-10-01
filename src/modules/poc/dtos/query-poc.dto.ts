@@ -28,4 +28,3 @@ export class QueryPocDto {
   @IsOptional()
   limit?: number = 20;
 }
-

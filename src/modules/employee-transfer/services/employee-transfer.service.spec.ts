@@ -1,12 +1,7 @@
 import { RequestContextService } from '@new-hros/libs-core';
-import { TransactionService } from '@new-hros/libs-sql';
-import {
-  AggregateType,
-  EffectiveChangeEventType,
-  EmployeeTransferStatus,
-  OutboxStatus,
-} from '../../../enums';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
+import { EmployeeTransferStatus } from '../../../enums';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EmployeeTransferEntity } from '../entities/employee-transfer.entity';
 import { EmployeeTransferRepository } from '../repositories/employee-transfer.repository';
 import { EmployeeTransferService } from './employee-transfer.service';
@@ -16,7 +11,7 @@ describe('EmployeeTransferService', () => {
   let service: EmployeeTransferService;
   let mockTxService: jest.Mocked<TransactionService>;
   let mockTransferRepo: jest.Mocked<EmployeeTransferRepository>;
-  let mockOutboxRepo: jest.Mocked<OutboxEventRepository>;
+  let mockOutboxEventService: jest.Mocked<Partial<OutboxEventService>>;
   let mockValidateService: jest.Mocked<ValidateTransferRequestService>;
 
   const futureDate = new Date(Date.now() + 86400000 * 7);
@@ -37,13 +32,11 @@ describe('EmployeeTransferService', () => {
       findOne: jest.fn(),
     } as unknown as jest.Mocked<EmployeeTransferRepository>;
 
-    mockOutboxRepo = {
-      create: jest
+    mockOutboxEventService = {
+      fromEmployeeTransferScheduled: jest
         .fn()
-        .mockImplementation((e: Record<string, unknown>) =>
-          Promise.resolve({ id: 'outbox-1', ...e }),
-        ),
-    } as unknown as jest.Mocked<OutboxEventRepository>;
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+    };
 
     mockTxService = {
       runInTransaction: jest.fn().mockImplementation(async (cb: () => Promise<unknown>) => cb()),
@@ -57,7 +50,7 @@ describe('EmployeeTransferService', () => {
       mockValidateService,
       mockTxService,
       mockTransferRepo,
-      mockOutboxRepo,
+      mockOutboxEventService as unknown as OutboxEventService,
     );
   });
 
@@ -102,17 +95,14 @@ describe('EmployeeTransferService', () => {
         }),
       );
 
-      expect(mockOutboxRepo.create).toHaveBeenCalledWith(
+      expect(mockOutboxEventService.fromEmployeeTransferScheduled).toHaveBeenCalledWith(
         expect.objectContaining({
-          aggregateType: AggregateType.EMPLOYEE_TRANSFER,
-          aggregateId: 'trans-1',
-          eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-          status: OutboxStatus.PENDING,
-          payload: expect.objectContaining({
-            transferId: 'trans-1',
-            changeType: 'EMPLOYEE_TRANSFER',
-            destinationCompanyId: 'comp-2',
-          }),
+          id: 'trans-1',
+        }),
+        expect.objectContaining({
+          destinationCompanyId: 'comp-2',
+          sourceCompanyId: 'comp-1',
+          employeeId: 'emp-1',
         }),
       );
       expect(result.id).toBe('trans-1');

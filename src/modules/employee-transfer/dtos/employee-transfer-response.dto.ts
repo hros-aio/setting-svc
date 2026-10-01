@@ -54,4 +54,3 @@ export class EmployeeTransferResponseDto {
   @ApiProperty({ description: 'Update timestamp', example: '2026-09-20T04:00:00.000Z' })
   updatedAt: Date;
 }
-

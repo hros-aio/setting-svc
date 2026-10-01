@@ -42,7 +42,10 @@ export class UpdateLocationDto {
   @IsOptional()
   address?: Record<string, unknown>;
 
-  @ApiPropertyOptional({ description: 'Whether this location is company headquarter', example: true })
+  @ApiPropertyOptional({
+    description: 'Whether this location is company headquarter',
+    example: true,
+  })
   @IsBoolean()
   @IsOptional()
   isHeadquarter?: boolean;
@@ -52,4 +55,3 @@ export class UpdateLocationDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

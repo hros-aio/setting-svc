@@ -4,7 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { DepartmentRepository } from '../../src/modules/department/repositories/department.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
-import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { TransactionService } from '@new-hros/libs-sql';
 import { Department } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
@@ -42,7 +42,7 @@ describe('DepartmentService - Query Departments [US2]', () => {
       {} as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
-      {} as unknown as OutboxEventRepository,
+      {} as unknown as OutboxEventService,
     );
   });
 

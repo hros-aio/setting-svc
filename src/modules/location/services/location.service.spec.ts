@@ -1,10 +1,9 @@
 import { RequestContextService } from '@new-hros/libs-core';
-import { Location, TransactionService } from '@new-hros/libs-sql';
+import { Location, OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { LocationRepository } from '../repositories/location.repository';
 import { LocationService } from './location.service';
@@ -15,7 +14,7 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxEventRepo: { create: jest.Mock };
+  let mockOutboxEventService: { [K in keyof OutboxEventService]?: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
@@ -33,8 +32,16 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
         typeof RequestContextService.current
       >);
 
-    mockOutboxEventRepo = {
-      create: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+    mockOutboxEventService = {
+      fromLocationCreated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromLocationUpdated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromLocationDeactivated: jest
+        .fn()
+        .mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockLocationRepo = {
@@ -64,7 +71,7 @@ describe('LocationService - Multi-Company Isolation & Code Generation [US1]', ()
 
     service = new LocationService(
       mockTxService as unknown as TransactionService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
       mockLocationRepo as unknown as LocationRepository,
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,

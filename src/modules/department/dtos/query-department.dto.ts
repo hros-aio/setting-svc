@@ -11,7 +11,10 @@ import {
 import { Transform, Type } from 'class-transformer';
 
 export class DeactivateDepartmentDto {
-  @ApiProperty({ description: 'Future effective deactivation date (YYYY-MM-DD)', example: '2026-10-01' })
+  @ApiProperty({
+    description: 'Future effective deactivation date (YYYY-MM-DD)',
+    example: '2026-10-01',
+  })
   @IsDateString()
   @IsNotEmpty()
   effectiveAt: string;
@@ -37,10 +40,13 @@ export class QueryDepartmentDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Whether to return as hierarchical tree', default: false, example: false })
+  @ApiPropertyOptional({
+    description: 'Whether to return as hierarchical tree',
+    default: false,
+    example: false,
+  })
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   asTree?: boolean = false;
 }
-

@@ -14,7 +14,10 @@ export class CreateGradeDto {
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ description: 'Grade description', example: 'Level 3 individual contributor' })
+  @ApiPropertyOptional({
+    description: 'Grade description',
+    example: 'Level 3 individual contributor',
+  })
   @IsString()
   @IsOptional()
   description?: string;
@@ -29,4 +32,3 @@ export class CreateGradeDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

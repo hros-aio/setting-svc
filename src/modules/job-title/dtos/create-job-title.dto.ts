@@ -34,4 +34,3 @@ export class CreateJobTitleDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

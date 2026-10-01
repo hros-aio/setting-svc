@@ -11,17 +11,14 @@ import { JobTitle, TransactionService } from '@new-hros/libs-sql';
 import { isDateString } from 'class-validator';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
-  AggregateType,
   ChangeOperation,
-  EffectiveChangeEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   SetupStepType,
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { DepartmentRepository } from '../../department/repositories/department.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
@@ -37,7 +34,7 @@ export class JobTitleService {
 
   constructor(
     private readonly transactionService: TransactionService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
     private readonly jobTitleRepository: JobTitleRepository,
     private readonly departmentRepository: DepartmentRepository,
     private readonly gradeRepository: GradeRepository,
@@ -87,21 +84,7 @@ export class JobTitleService {
       });
 
       // 7. Write outbox event for scheduling
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.JOB_TITLE,
-        aggregateId: jobTitle.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: jobTitle.id,
-          entityType: 'job_title',
-          operation: 'CREATE',
-          effectiveAt: jobTitle.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: jobTitle.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromJobTitleCreated(jobTitle, companyId, tenantCode);
 
       return jobTitle;
     });
@@ -165,21 +148,7 @@ export class JobTitleService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'job_title',
-          operation: 'UPDATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromJobTitleUpdated(savedChange, companyId, tenantCode);
 
       return savedChange;
     });
@@ -217,21 +186,7 @@ export class JobTitleService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'job_title',
-          operation: 'DEACTIVATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromJobTitleDeactivated(savedChange, companyId, tenantCode);
 
       return savedChange;
     });

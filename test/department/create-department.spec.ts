@@ -10,6 +10,7 @@ import { DepartmentRepository } from '../../src/modules/department/repositories/
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { TransactionService } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
@@ -75,7 +76,7 @@ describe('DepartmentService - Create Department [US1]', () => {
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      new OutboxEventService(mockOutboxRepo as unknown as OutboxEventRepository),
     );
   });
 

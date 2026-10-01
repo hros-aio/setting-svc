@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TransactionService } from '@new-hros/libs-sql';
-import {
-  AggregateType,
-  EmployeeTransferEventType,
-  EmployeeTransferStatus,
-  OutboxStatus,
-} from '../../../enums';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
+import { OutboxEventEntity, OutboxStatus, TransactionService } from '@new-hros/libs-sql';
+import { AggregateType, EmployeeTransferEventType, EmployeeTransferStatus } from '../../../enums';
 import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
 import { EmployeeTransferEntity } from '../../employee-transfer/entities/employee-transfer.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
@@ -90,7 +84,6 @@ export class EmployeeTransferApplyHandler {
         completedAt: transfer.completedAt,
         continuousEmployment: true,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
 

@@ -1,13 +1,7 @@
 import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
 import { TransactionService } from '@new-hros/libs-sql';
-import {
-  AggregateType,
-  CompanyEventType,
-  CompanyStatus,
-  OutboxStatus,
-  SetupStepType,
-} from '../../../enums';
+import { CompanyStatus, SetupStepType } from '../../../enums';
 import { CreateCompanyDto } from '../dto/create-company.dto';
 import { UpdateCompanyInformationDto } from '../dto/update-company-information.dto';
 import { CompanyEntity } from '../entities/company.entity';
@@ -15,7 +9,7 @@ import { CopyableCategory } from '../enums/copyable-category.enum';
 import { CompanyActivationRejectedException } from '../exceptions/company-activation-rejected.exception';
 import { CompanySetupStepRepository } from '../repositories/company-setup-step.repository';
 import { CompanyRepository } from '../repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CompanySetupQueryService } from './company-setup-query.service';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 import { TemplateCopyService } from './template-copy.service';
@@ -29,7 +23,7 @@ export class CompanyService {
     private readonly setupStepSeederService: SetupStepSeederService,
     private readonly templateCopyService: TemplateCopyService,
     private readonly companySetupQueryService: CompanySetupQueryService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
   ) {}
 
   async createCompany(dto: CreateCompanyDto): Promise<CompanyEntity> {
@@ -88,21 +82,7 @@ export class CompanyService {
       newCompany.setupSteps = setupSteps;
 
       // 4. Outbox event for company.created
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.COMPANY,
-        aggregateId: newCompany.id,
-        eventType: CompanyEventType.COMPANY_CREATED,
-        payload: {
-          companyId: newCompany.id,
-          tenantCode,
-          companyCode: newCompany.companyCode,
-          companyName: newCompany.displayName || newCompany.legalName,
-          status: newCompany.status,
-          createdAt: newCompany.createdAt || new Date(),
-        },
-        executionTime: new Date(),
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromCompanyCreated(newCompany, tenantCode);
 
       // 5. Outbox event for role copy delegation if ROLES is selected
       if (
@@ -110,18 +90,11 @@ export class CompanyService {
         defaultCompany &&
         copiedCategories.includes(CopyableCategory.ROLES)
       ) {
-        await this.outboxEventRepository.create({
-          aggregateType: AggregateType.COMPANY,
-          aggregateId: newCompany.id,
-          eventType: CompanyEventType.ROLE_COPY_REQUESTED,
-          payload: {
-            tenantCode,
-            sourceCompanyId: defaultCompany.id,
-            targetCompanyId: newCompany.id,
-          },
-          executionTime: new Date(),
-          status: OutboxStatus.PENDING,
-        });
+        await this.outboxEventService.fromRoleCopyRequested(
+          newCompany.id,
+          defaultCompany.id,
+          tenantCode,
+        );
       }
 
       return newCompany;
@@ -179,27 +152,20 @@ export class CompanyService {
       });
 
       // Outbox event for company.updated
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.COMPANY,
-        aggregateId: id,
-        eventType: CompanyEventType.COMPANY_UPDATED,
-        payload: {
-          companyId: id,
-          tenantCode,
-          companyCode: company.companyCode,
-          legalName: updateData.legalName || company.legalName,
-          displayName: updateData.displayName || company.displayName,
-          status: company.status,
-          countryCode: updateData.countryCode || company.countryCode,
-          currencyCode: updateData.currencyCode || company.currencyCode,
-          timezone: updateData.timezone || company.timezone,
-          informationCompleted: true,
-          informationCompletedAt: company.informationCompletedAt || now,
-          informationCompletedBy: company.informationCompletedBy || userId,
-          updatedAt: now,
-        },
-        executionTime: new Date(),
-        status: OutboxStatus.PENDING,
+      await this.outboxEventService.fromCompanyUpdated({
+        companyId: id,
+        tenantCode,
+        companyCode: company.companyCode,
+        legalName: updateData.legalName || company.legalName,
+        displayName: updateData.displayName || company.displayName,
+        status: company.status,
+        countryCode: updateData.countryCode || company.countryCode,
+        currencyCode: updateData.currencyCode || company.currencyCode,
+        timezone: updateData.timezone || company.timezone,
+        informationCompleted: true,
+        informationCompletedAt: company.informationCompletedAt || now,
+        informationCompletedBy: company.informationCompletedBy || userId,
+        updatedAt: now,
       });
 
       const updatedCompany = await this.companyRepository.findById(id);
@@ -257,24 +223,13 @@ export class CompanyService {
       });
 
       // Write domain outbox event for company.activated
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.COMPANY,
-        aggregateId: id,
-        eventType: CompanyEventType.COMPANY_ACTIVATED,
-        payload: {
-          companyId: id,
-          tenantCode,
-          companyCode: company.companyCode,
-          displayName: company.displayName,
-          legalName: company.legalName,
-          status: CompanyStatus.ACTIVE,
-          activatedAt: now,
-          activatedBy: userId,
-          completedStepsCount: validationResult.totalSteps,
-        },
-        executionTime: new Date(),
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromCompanyActivated(
+        company,
+        tenantCode,
+        userId,
+        validationResult.totalSteps,
+        now,
+      );
 
       const updatedCompany = await this.companyRepository.findById(id);
       return updatedCompany!;

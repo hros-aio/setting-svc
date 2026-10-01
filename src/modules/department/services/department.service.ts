@@ -9,19 +9,16 @@ import { RequestContextService } from '@new-hros/libs-core';
 import { Department, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
-  AggregateType,
   ChangeOperation,
-  EffectiveChangeEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   SetupStepType,
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
 import { DeactivateDepartmentDto, QueryDepartmentDto } from '../dtos/query-department.dto';
 import { UpdateDepartmentDto } from '../dtos/update-department.dto';
@@ -38,7 +35,7 @@ export class DepartmentService {
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
     private readonly effectiveChangeRepository: EffectiveChangeRepository,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
   ) {}
 
   async create(dto: CreateDepartmentDto, companyId: string): Promise<Department> {
@@ -82,21 +79,7 @@ export class DepartmentService {
       });
 
       // 6. Write outbox event for scheduling
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.DEPARTMENT,
-        aggregateId: department.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: department.id,
-          entityType: 'department',
-          operation: 'CREATE',
-          effectiveAt: department.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: department.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromDepartmentCreated(department, companyId, tenantCode);
 
       return department;
     });
@@ -198,22 +181,7 @@ export class DepartmentService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'department',
-          entityId: id,
-          operation: 'UPDATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromDepartmentUpdated(savedChange, companyId, tenantCode, id);
 
       return savedChange;
     });
@@ -251,22 +219,12 @@ export class DepartmentService {
       });
 
       // Write outbox event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'department',
-          entityId: department.id,
-          operation: 'DEACTIVATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromDepartmentDeactivated(
+        savedChange,
+        companyId,
+        tenantCode,
+        department.id,
+      );
 
       return savedChange;
     });
