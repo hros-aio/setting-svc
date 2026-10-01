@@ -5,7 +5,7 @@ import { PocType } from '../../../enums';
 import { CompanyEntity } from '../../company/entities/company.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { EmployeeReferenceEntity } from '../../employee-reference/entities/employee-reference.entity';
 import { EmployeeReferenceRepository } from '../../employee-reference/repositories/employee-reference.repository';
@@ -20,7 +20,7 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxEventRepo: { [K in keyof OutboxEventRepository]?: jest.Mock };
+  let mockOutboxEventService: { [K in keyof OutboxEventService]?: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
@@ -34,8 +34,10 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
         typeof RequestContextService.current
       >);
 
-    mockOutboxEventRepo = {
-      create: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+    mockOutboxEventService = {
+      fromPocCreated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromPocUpdated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
+      fromPocDeactivated: jest.fn().mockImplementation(async (dto) => ({ id: 'outbox-1', ...dto })),
     };
 
     mockPocRepo = {
@@ -65,7 +67,7 @@ describe('PocService - Multi-Company Isolation & Invariants [US1, US2]', () => {
 
     service = new PocService(
       mockTxService as unknown as TransactionService,
-      mockOutboxEventRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
       mockPocRepo as unknown as PocRepository,
       mockEmployeeRefRepo as unknown as EmployeeReferenceRepository,
       mockCompanyRepo as unknown as CompanyRepository,

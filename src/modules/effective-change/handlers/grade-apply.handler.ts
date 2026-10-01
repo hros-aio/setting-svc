@@ -1,14 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Grade, TransactionService } from '@new-hros/libs-sql';
+import { Grade, OutboxEventEntity, OutboxStatus, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
   GradeEventType,
   MasterDataStatus,
-  OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
@@ -73,7 +71,6 @@ export class GradeApplyHandler {
         status: grade.status,
         effectiveAt: grade.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -151,7 +148,6 @@ export class GradeApplyHandler {
         status: grade.status,
         updatedFields: change.payload,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -218,7 +214,6 @@ export class GradeApplyHandler {
         code: grade.code,
         status: grade.status,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

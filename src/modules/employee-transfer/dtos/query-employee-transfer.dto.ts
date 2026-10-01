@@ -33,4 +33,3 @@ export class QueryEmployeeTransferDto {
   @Min(0)
   page: number = 0;
 }
-

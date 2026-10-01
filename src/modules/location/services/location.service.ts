@@ -2,21 +2,18 @@ import { BadRequestException, ConflictException, Injectable, Logger } from '@nes
 import { RequestContextService } from '@new-hros/libs-core';
 import { Location, PaginatedResult, TransactionService } from '@new-hros/libs-sql';
 import { isDateString } from 'class-validator';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
 import { EffectiveDateUtil } from '../../../common/utils/effective-date.util';
 import {
-  AggregateType,
   ChangeOperation,
-  EffectiveChangeEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   SetupStepType,
 } from '../../../enums';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
 import { EffectiveChangeEntity } from '../../effective-change/entities/effective-change.entity';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { CreateLocationDto } from '../dtos/create-location.dto';
 import { DeactivateLocationDto, QueryLocationDto } from '../dtos/query-location.dto';
 import { UpdateLocationDto } from '../dtos/update-location.dto';
@@ -28,7 +25,7 @@ export class LocationService {
 
   constructor(
     private readonly transactionService: TransactionService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
     private readonly locationRepository: LocationRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly companySetupStepRepository: CompanySetupStepRepository,
@@ -79,21 +76,7 @@ export class LocationService {
       });
 
       // 6. Write outbox event for scheduling
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.LOCATION,
-        aggregateId: location.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: location.id,
-          entityType: 'location',
-          operation: 'CREATE',
-          effectiveAt: location.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: location.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromLocationCreated(location, companyId, tenantCode);
 
       return location;
     });
@@ -166,21 +149,7 @@ export class LocationService {
       });
 
       // Outbox write for schedule-worker
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'location',
-          operation: 'UPDATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromLocationUpdated(savedChange, companyId, tenantCode);
 
       return updatedLocation;
     });
@@ -217,21 +186,7 @@ export class LocationService {
         createdBy: userId,
       });
 
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.EFFECTIVE_CHANGE,
-        aggregateId: savedChange.id,
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_SCHEDULED,
-        payload: {
-          changeId: savedChange.id,
-          entityType: 'location',
-          operation: 'DEACTIVATE',
-          effectiveAt: savedChange.effectiveAt,
-          targetCompanyId: companyId,
-          tenantCode,
-        },
-        executionTime: savedChange.effectiveAt,
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromLocationDeactivated(savedChange, companyId, tenantCode);
 
       return savedChange;
     });

@@ -1,11 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { RequestContextService } from '@new-hros/libs-core';
-import { Grade, TransactionService } from '@new-hros/libs-sql';
+import { Grade, OutboxEventEntity, TransactionService } from '@new-hros/libs-sql';
 import { CompanyEntity } from '../../company/entities/company.entity';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { CompanySetupStepRepository } from '../../company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../company/repositories/company.repository';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveChangeRepository } from '../../effective-change/repositories/effective-change.repository';
 import { GradeRepository } from '../repositories/grade.repository';
 import { GradeService } from './grade.service';
@@ -16,7 +15,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
   let mockCompanyRepo: { [K in keyof CompanyRepository]?: jest.Mock };
   let mockSetupStepRepo: { [K in keyof CompanySetupStepRepository]?: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock; save: jest.Mock };
+  let mockOutboxEventService: { [K in keyof OutboxEventService]?: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(RequestContextService, 'getTenantCode').mockReturnValue('tenant-1');
@@ -34,9 +33,10 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
         typeof RequestContextService.current
       >);
 
-    mockOutboxRepo = {
-      create: jest.fn().mockImplementation((dto) => Promise.resolve(dto as OutboxEventEntity)),
-      save: jest.fn().mockResolvedValue({ id: 'outbox-1' } as OutboxEventEntity),
+    mockOutboxEventService = {
+      fromGradeCreated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromGradeUpdated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
+      fromGradeDeactivated: jest.fn().mockResolvedValue({ id: 'outbox-1' } as unknown as OutboxEventEntity),
     };
 
     mockGradeRepo = {
@@ -66,7 +66,7 @@ describe('GradeService - Multi-Company Isolation [US1]', () => {
       mockCompanyRepo as unknown as CompanyRepository,
       mockSetupStepRepo as unknown as CompanySetupStepRepository,
       {} as unknown as EffectiveChangeRepository,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
     );
   });
 

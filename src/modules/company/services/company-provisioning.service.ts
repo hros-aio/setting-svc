@@ -4,8 +4,8 @@ import { TenantRepository } from '../../tenant/repositories/tenant.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { SetupStepSeederService } from './setup-step-seeder.service';
 
-import { AggregateType, CompanyEventType, CompanyStatus, OutboxStatus } from '../../../enums';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { CompanyStatus } from '../../../enums';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { TenantCreatedPayload } from '../../../handlers/tenant-provisioning.handler';
 
 export interface ProvisioningResult {
@@ -21,7 +21,7 @@ export class CompanyProvisioningService {
     private readonly tenantRepository: TenantRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly setupStepSeederService: SetupStepSeederService,
-    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
   ) {}
 
   generateCompanyCode(tenantCode: string): string {
@@ -79,22 +79,7 @@ export class CompanyProvisioningService {
       await this.setupStepSeederService.seedMandatorySteps(tenantRecord.tenantCode, newCompany.id);
 
       // 6. Write Transactional Outbox Event
-      await this.outboxEventRepository.create({
-        aggregateType: AggregateType.COMPANY,
-        aggregateId: newCompany.id,
-        eventType: CompanyEventType.COMPANY_CREATED,
-        payload: {
-          companyId: newCompany.id,
-          tenantId: tenantRecord.id,
-          tenantCode: newCompany.tenantCode,
-          companyCode: newCompany.companyCode,
-          legalName: newCompany.legalName,
-          status: newCompany.status,
-          isTemplate: newCompany.isTemplate,
-        },
-        executionTime: new Date(),
-        status: OutboxStatus.PENDING,
-      });
+      await this.outboxEventService.fromCompanyProvisioned(newCompany, tenantRecord.id);
 
       return {
         success: true,

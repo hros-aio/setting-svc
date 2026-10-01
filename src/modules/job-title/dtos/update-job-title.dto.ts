@@ -32,7 +32,11 @@ export class UpdateJobTitleDto {
   @IsOptional()
   gradeId?: string;
 
-  @ApiPropertyOptional({ description: 'Job title description', nullable: true, example: 'Updated description' })
+  @ApiPropertyOptional({
+    description: 'Job title description',
+    nullable: true,
+    example: 'Updated description',
+  })
   @ValidateIf((_, val) => val !== null && val !== undefined)
   @IsString()
   @IsOptional()
@@ -43,4 +47,3 @@ export class UpdateJobTitleDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

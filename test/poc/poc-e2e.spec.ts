@@ -14,6 +14,7 @@ import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outb
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { EffectiveChangeEntity } from '../../src/modules/effective-change/entities/effective-change.entity';
 import { PocApplyHandler } from '../../src/modules/effective-change/handlers/poc-apply.handler';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
@@ -248,7 +249,7 @@ describe('PoC End-to-End Workflow Integration (US1-US5)', () => {
 
     pocService = new PocService(
       transactionService,
-      mockOutboxRepo,
+      new OutboxEventService(mockOutboxRepo),
       pocRepository,
       employeeRefRepo,
       mockCompanyRepo,

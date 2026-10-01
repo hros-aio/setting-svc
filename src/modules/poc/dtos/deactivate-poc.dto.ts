@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class DeactivatePocDto {
-  @ApiProperty({ description: 'Future effective deactivation date (YYYY-MM-DD)', example: '2026-10-01' })
+  @ApiProperty({
+    description: 'Future effective deactivation date (YYYY-MM-DD)',
+    example: '2026-10-01',
+  })
   @IsDateString()
   @IsNotEmpty()
   effectiveAt: string;
@@ -12,4 +15,3 @@ export class DeactivatePocDto {
   @IsOptional()
   reason?: string;
 }
-

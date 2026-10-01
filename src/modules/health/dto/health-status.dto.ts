@@ -22,4 +22,3 @@ export class HealthStatusDto {
   })
   readonly details!: Record<string, SubsystemHealth>;
 }
-

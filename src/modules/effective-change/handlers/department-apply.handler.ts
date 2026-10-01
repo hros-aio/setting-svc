@@ -1,14 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Department, TransactionService } from '@new-hros/libs-sql';
+import {
+  Department,
+  OutboxEventEntity,
+  OutboxStatus,
+  TransactionService,
+} from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   DepartmentEventType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
 
@@ -75,7 +78,6 @@ export class DepartmentApplyHandler {
         status: department.status,
         effectiveAt: department.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -169,7 +171,6 @@ export class DepartmentApplyHandler {
         status: department.status,
         updatedFields: change.payload,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -236,7 +237,6 @@ export class DepartmentApplyHandler {
         code: department.code,
         status: department.status,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

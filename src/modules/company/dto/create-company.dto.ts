@@ -124,4 +124,3 @@ export class CreateCompanyDto {
   @IsEnum(CopyableCategory, { each: true })
   copyCategories?: CopyableCategory[];
 }
-

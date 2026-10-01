@@ -14,7 +14,10 @@ export class CreateDepartmentDto {
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ description: 'Department description', example: 'Software development department' })
+  @ApiPropertyOptional({
+    description: 'Department description',
+    example: 'Software development department',
+  })
   @IsString()
   @IsOptional()
   description?: string;
@@ -29,4 +32,3 @@ export class CreateDepartmentDto {
   @IsNotEmpty()
   effectiveAt: string;
 }
-

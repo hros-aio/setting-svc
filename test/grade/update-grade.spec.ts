@@ -12,6 +12,7 @@ import { CompanyRepository } from '../../src/modules/company/repositories/compan
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { TransactionService } from '@new-hros/libs-sql';
 import { RequestContextService } from '@new-hros/libs-core';
 import { OutboxEventEntity } from '../../src/modules/outbox-events/entities/outbox-event.entity';
@@ -78,7 +79,7 @@ describe('GradeService - Schedule Grade Update [US3]', () => {
       mockCompanyRepo as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,
       mockEffectiveChangeRepo as unknown as EffectiveChangeRepository,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      new OutboxEventService(mockOutboxRepo as unknown as OutboxEventRepository),
     );
   });
 

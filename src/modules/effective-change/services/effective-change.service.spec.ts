@@ -4,9 +4,8 @@ import {
   ChangeOperation,
   EffectiveChangeEventType,
   EffectiveEntityType,
-  OutboxStatus,
 } from '../../../enums';
-import { OutboxEventRepository } from '../../outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../outbox-events/services/outbox-event.service';
 import { EffectiveScheduledCommand } from '../dto/effective-scheduled-event.dto';
 import { DepartmentApplyHandler } from '../handlers/department-apply.handler';
 import { EmployeeTransferApplyHandler } from '../handlers/employee-transfer-apply.handler';
@@ -24,7 +23,7 @@ describe('EffectiveChangeService', () => {
   let mockJobTitleHandler: { apply: jest.Mock };
   let mockPocHandler: { apply: jest.Mock };
   let mockEmployeeTransferHandler: { apply: jest.Mock };
-  let mockOutboxRepo: { create: jest.Mock };
+  let mockOutboxEventService: { fromEffectiveChangeExecute: jest.Mock };
   let mockTxService: { runInTransaction: jest.Mock };
 
   beforeEach(() => {
@@ -35,8 +34,8 @@ describe('EffectiveChangeService', () => {
     mockPocHandler = { apply: jest.fn().mockResolvedValue(undefined) };
     mockEmployeeTransferHandler = { apply: jest.fn().mockResolvedValue(undefined) };
 
-    mockOutboxRepo = {
-      create: jest.fn().mockResolvedValue(undefined),
+    mockOutboxEventService = {
+      fromEffectiveChangeExecute: jest.fn().mockResolvedValue(undefined),
     };
 
     mockTxService = {
@@ -45,7 +44,7 @@ describe('EffectiveChangeService', () => {
 
     service = new EffectiveChangeService(
       mockTxService as unknown as TransactionService,
-      mockOutboxRepo as unknown as OutboxEventRepository,
+      mockOutboxEventService as unknown as OutboxEventService,
       mockLocationHandler as unknown as LocationApplyHandler,
       mockDepartmentHandler as unknown as DepartmentApplyHandler,
       mockGradeHandler as unknown as GradeApplyHandler,
@@ -89,22 +88,12 @@ describe('EffectiveChangeService', () => {
       await service.scheduleExecution(command);
 
       expect(mockTxService.runInTransaction).toHaveBeenCalled();
-      expect(mockOutboxRepo.create).toHaveBeenCalledWith({
-        aggregateType: AggregateType.DEPARTMENT,
-        aggregateId: 'change-123',
-        eventType: EffectiveChangeEventType.EFFECTIVE_CHANGE_EXECUTE,
-        payload: {
-          changeId: 'change-123',
-          entityType: EffectiveEntityType.DEPARTMENT,
-          operation: ChangeOperation.CREATE,
-          effectiveAt: pastOrNowDate,
-          targetCompanyId: 'comp-1',
-          tenantCode: 'tenant-1',
-          parameters: { name: 'Engineering' },
-        },
-        executionTime: expect.any(Date),
-        status: OutboxStatus.PENDING,
-      });
+      expect(mockOutboxEventService.fromEffectiveChangeExecute).toHaveBeenCalledWith(
+        command,
+        AggregateType.DEPARTMENT,
+        EffectiveEntityType.DEPARTMENT,
+        ChangeOperation.CREATE,
+      );
     });
 
     it('should skip creating outbox event when effectiveAt is in the future (> now)', async () => {
@@ -122,7 +111,7 @@ describe('EffectiveChangeService', () => {
       await service.scheduleExecution(command);
 
       expect(mockTxService.runInTransaction).not.toHaveBeenCalled();
-      expect(mockOutboxRepo.create).not.toHaveBeenCalled();
+      expect(mockOutboxEventService.fromEffectiveChangeExecute).not.toHaveBeenCalled();
     });
   });
 });

@@ -34,8 +34,8 @@ export class TenantProvisioningHandler {
     }
 
     const context: RequestContext = {
-      traceId: envelope.correlationId || envelope.id,
-      requestId: envelope.id,
+      traceId: envelope.correlationId || envelope.eventId,
+      requestId: envelope.eventId,
       tenantCode: payload.tenantCode,
       clientMetadata: {
         ip: '127.0.0.1',
@@ -45,11 +45,11 @@ export class TenantProvisioningHandler {
 
     return RequestContextService.run(context, async () => {
       this.logger.log(
-        `Processing tenant provisioning for tenantCode: ${payload.tenantCode} (eventId: ${envelope.id})`,
+        `Processing tenant provisioning for tenantCode: ${payload.tenantCode} (eventId: ${envelope.eventId})`,
       );
       return this.companyProvisioningService.provisionCompanyOnTenantCreated(
-        envelope.id,
-        envelope.topic || KafkaTopic.TENANT_CREATED,
+        envelope.eventId,
+        envelope.eventType || KafkaTopic.TENANT_CREATED,
         payload,
       );
     });

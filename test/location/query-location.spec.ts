@@ -3,7 +3,7 @@ import { Location, TransactionService } from '@new-hros/libs-sql';
 import { MasterDataStatus } from '../../src/enums';
 import { CompanySetupStepRepository } from '../../src/modules/company/repositories/company-setup-step.repository';
 import { CompanyRepository } from '../../src/modules/company/repositories/company.repository';
-import { OutboxEventRepository } from '../../src/modules/outbox-events/repositories/outbox-event.repository';
+import { OutboxEventService } from '../../src/modules/outbox-events/services/outbox-event.service';
 import { EffectiveChangeRepository } from '../../src/modules/effective-change/repositories/effective-change.repository';
 import { LocationRepository } from '../../src/modules/location/repositories/location.repository';
 import { LocationService } from '../../src/modules/location/services/location.service';
@@ -27,7 +27,7 @@ describe('LocationService - Query Locations [US2]', () => {
 
     service = new LocationService(
       {} as unknown as TransactionService,
-      {} as unknown as OutboxEventRepository,
+      {} as unknown as OutboxEventService,
       mockLocationRepo as unknown as LocationRepository,
       {} as unknown as CompanyRepository,
       {} as unknown as CompanySetupStepRepository,

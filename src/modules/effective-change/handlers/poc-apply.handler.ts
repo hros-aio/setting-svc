@@ -1,14 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TransactionService } from '@new-hros/libs-sql';
+import { OutboxEventEntity, OutboxStatus, TransactionService } from '@new-hros/libs-sql';
 import { EntityManager } from 'typeorm';
 import {
   AggregateType,
   EffectiveChangeStatus,
   MasterDataStatus,
-  OutboxStatus,
   PocEventType,
 } from '../../../enums';
-import { OutboxEventEntity } from '../../outbox-events/entities/outbox-event.entity';
 import { PocEntity } from '../../poc/entities/poc.entity';
 import { EffectiveChangeEntity } from '../entities/effective-change.entity';
 import { EffectiveExecuteCommand } from './location-apply.handler';
@@ -74,7 +72,6 @@ export class PocApplyHandler {
         status: poc.status,
         effectiveAt: poc.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -170,7 +167,6 @@ export class PocApplyHandler {
         newEmployeeId: savedNewPoc.employeeId,
         effectiveAt: change.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);
@@ -243,7 +239,6 @@ export class PocApplyHandler {
         employeeId: poc.employeeId,
         effectiveAt: change.effectiveAt,
       },
-      executionTime: new Date(),
       status: OutboxStatus.PENDING,
     });
     await outboxRepo.save(domainEvent);

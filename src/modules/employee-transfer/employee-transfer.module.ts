@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CompanyModule } from '../company/company.module';
-import { OutboxEventEntity } from '../outbox-events/entities/outbox-event.entity';
+import { OutboxEventEntity } from '@new-hros/libs-sql';
 import { DepartmentModule } from '../department/department.module';
 import { EffectiveChangeModule } from '../effective-change/effective-change.module';
 import { EmployeeReferenceModule } from '../employee-reference/employee-reference.module';

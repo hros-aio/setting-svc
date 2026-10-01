@@ -4,6 +4,6 @@ export * from './effective-entity-type.enum';
 export * from './employee-transfer-status.enum';
 export * from './event-type.enum';
 export * from './kafka-topic.enum';
-export * from './outbox-status.enum';
 export * from './poc-type.enum';
 export * from './table-name.enum';
+export { OutboxStatus } from '@new-hros/libs-sql';
